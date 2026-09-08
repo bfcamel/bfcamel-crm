@@ -4,15 +4,12 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-if ! command -v msgfmt >/dev/null 2>&1; then
-  echo "msgfmt is required (install GNU gettext)." >&2
-  exit 1
-fi
-
-if ! command -v zip >/dev/null 2>&1; then
-  echo "zip is required." >&2
-  exit 1
-fi
+for cmd in msgfmt msgunfmt zip rsync php unzip; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "$cmd is required." >&2
+    exit 1
+  fi
+done
 
 VERSION="$(php -r '$data=file_get_contents("bfcamel-crm.php"); if (preg_match("/^[[:space:]]*\\*[[:space:]]*Version:[[:space:]]*([^[:space:]]+)/mi", $data, $m)) { echo $m[1]; }')"
 if [[ -z "$VERSION" ]]; then
@@ -40,9 +37,22 @@ rsync -a ./ "$PACKAGE_DIR/" \
   --exclude='vendor/' \
   --exclude='README.md'
 
-# Always compile the MO file from the editable PO source used for this release.
-msgfmt "$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.po" \
-  -o "$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.mo"
+PO_FILE="$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.po"
+MO_FILE="$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.mo"
+
+# Build the binary catalog from the UTF-8 PO source on every release. The MO is
+# intentionally not committed to Git because a stale binary caused mojibake in
+# 0.1.3. Runtime Russian localization also has a PO fallback for safety.
+msgfmt --check --check-format "$PO_FILE" -o "$MO_FILE"
+
+# Fail the release if the generated catalog cannot be decoded or if a known
+# Cyrillic translation is missing/corrupted.
+msgunfmt --no-wrap "$MO_FILE" >/tmp/bfcamel-crm-ru_RU.po
+if ! grep -F 'msgid "Forms"' -A1 /tmp/bfcamel-crm-ru_RU.po | grep -Fq 'msgstr "Формы"'; then
+  echo "Russian localization integrity check failed: Forms -> Формы not found." >&2
+  exit 1
+fi
+rm -f /tmp/bfcamel-crm-ru_RU.po
 
 (
   cd "$BUILD_DIR"
@@ -51,6 +61,11 @@ msgfmt "$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.po" \
 
 if ! unzip -Z1 "$ZIP_PATH" | grep -qx 'bfcamel-crm/bfcamel-crm.php'; then
   echo "Release ZIP does not contain bfcamel-crm/bfcamel-crm.php" >&2
+  exit 1
+fi
+
+if ! unzip -Z1 "$ZIP_PATH" | grep -qx 'bfcamel-crm/languages/bfcamel-crm-ru_RU.mo'; then
+  echo "Release ZIP does not contain the compiled Russian MO catalog" >&2
   exit 1
 fi
 
