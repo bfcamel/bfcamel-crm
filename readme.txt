@@ -4,7 +4,7 @@ Tags: crm, forms, form builder, contacts, consent
 Requires at least: 6.2
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,11 +14,12 @@ Native form builder and lightweight CRM for WordPress: forms, submissions, conta
 
 BfCamel CRM combines a native WordPress form builder with a lightweight CRM. Published form revisions act as server-side CRM contracts, so field validation, contact mapping and consent evidence do not depend on browser-controlled hidden values.
 
-Version 0.1.0 is an alpha intended for testing before a future WordPress.org stable release.
+Version 0.1.1 is an alpha intended for testing before a future WordPress.org stable release.
 
 Features include:
 
 * Native forms without Contact Form 7.
+* English interface with a bundled Russian translation; BfCamel CRM follows the WordPress site/user language.
 * Immutable form revisions.
 * CRM mapping for name, email, phone, organization and custom fields.
 * Conflict-safe contact matching.
@@ -56,7 +57,7 @@ No. An unchecked optional consent field creates no revocation event.
 
 = Does BfCamel receive my CRM data? =
 
-No. Version 0.1.0 has no telemetry or external CRM service connection.
+No. Version 0.1.1 has no telemetry or external CRM service connection.
 
 == Privacy ==
 
@@ -65,6 +66,11 @@ The plugin stores form submissions and CRM contact information in the WordPress 
 The plugin integrates with WordPress Personal Data Export and Erase tools. Site operators remain responsible for determining their actual legal basis, disclosures and retention rules.
 
 == Changelog ==
+
+= 0.1.1 =
+* Added bundled Russian translation while keeping English as the source language.
+* Localized form-builder JavaScript labels, CRM statuses, contact synchronization states, dashboard counters and consent history labels.
+* Added a bundled Russian MO translation catalog under `/languages`.
 
 = 0.1.0 =
 * First universal BfCamel CRM alpha.
