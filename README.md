@@ -1,30 +1,45 @@
-# GFR CRM
+# BfCamel CRM
 
-**GFR CRM** is an open-source WordPress form builder and lightweight CRM developed by the People & Camels Charity Foundation.
+**BfCamel CRM** is an open-source WordPress form builder and lightweight CRM developed by the People & Camels Charity Foundation.
 
-Version `0.1.2` fixes localization packaging, preserves update compatibility with the earlier BfCamel CRM alpha, and completes the visible rebrand to GFR CRM.
+Version `0.1.3` restores the BfCamel CRM product name, fixes the Russian localization packaging/source mismatch introduced during the temporary GFR CRM rebrand, and formalizes in-place upgrade packaging.
 
-## Important upgrade compatibility
+## Upgrade compatibility
 
-The public product name and repository are now **GFR CRM** / `bfcamel/gfr-crm`, but the WordPress plugin directory, main file, text domain, database table prefixes and existing internal identifiers intentionally remain `bfcamel-crm` / `bfcamel_crm_*` for now. This allows version `0.1.2` to replace `0.1.0` / `0.1.1` as an update instead of appearing as a separate clean installation.
+The WordPress technical identity intentionally remains unchanged:
 
-Installable release ZIPs therefore keep this structure:
+- plugin directory: `bfcamel-crm/`
+- main plugin file: `bfcamel-crm.php`
+- text domain: `bfcamel-crm`
+- PHP namespace: `BfCamel\\CRM`
+- options/capabilities/actions: `bfcamel_crm_*`
+- database tables: `wp_bfcamel_crm_*`
+
+This means `0.1.3` keeps the same plugin basename (`bfcamel-crm/bfcamel-crm.php`) as the earlier BfCamel CRM versions and the temporary GFR CRM `0.1.2` release. Existing forms, submissions, contacts, consent history, settings and permissions therefore remain attached to the same installation.
+
+### Important: use the installable release ZIP
+
+An installable/update ZIP must have this exact top-level layout:
 
 ```text
 bfcamel-crm/
-└── bfcamel-crm.php
+├── bfcamel-crm.php
+├── assets/
+├── languages/
+├── src/
+└── uninstall.php
 ```
 
-Do not rename that directory on an existing installation. The visible WordPress plugin name is **GFR CRM**.
+A generic GitHub **Source code (zip)** archive normally uses a repository/branch-derived folder name and must not be used as the WordPress update package. The repository includes a release-build workflow that produces `bfcamel-crm-<version>.zip` with the correct `bfcamel-crm/` root folder. Uploading that package through **Plugins → Add Plugin → Upload Plugin** makes WordPress offer replacement of the installed version instead of creating a second plugin directory.
 
 ## Localization
 
 - English is the source language.
 - Russian (`ru_RU`) is bundled.
 - The interface follows the WordPress site/user locale.
-- The repository contains editable `.po` / `.pot` sources and a correctly compiled binary `.mo` catalog.
-
-The previous `0.1.1` `.mo` file was uploaded through a text path and could be corrupted in transit, producing mojibake. `0.1.2` replaces it with a binary-safe compiled catalog.
+- The technical text domain remains `bfcamel-crm` for backward compatibility.
+- Translation loading happens on `init`, after WordPress can reliably resolve the active locale.
+- Editable `.po` / `.pot` sources live in `languages/`; the release package contains the compiled `.mo` catalog.
 
 ## What works
 
@@ -33,8 +48,8 @@ The previous `0.1.1` `.mo` file was uploaded through a text path and could be co
 - Per-field widths and responsive one/two-column layouts.
 - Theme/default/custom appearance modes.
 - Per-form colors, border radius, custom wrapper class, submit label and response messages.
-- Preferred shortcode: `[gfr_form id="1"]` or `[gfr_form slug="contact-form"]`.
-- Legacy `[bfcamel_form ...]` remains supported for backward compatibility.
+- Preferred shortcode: `[bfcamel_form id="1"]` or `[bfcamel_form slug="contact-form"]`.
+- Temporary-rebrand shortcode `[gfr_form ...]` remains supported as a compatibility alias.
 - Server-side validation from stored form revisions.
 - CRM mapping for contact name, email, phone, organization and custom contact fields.
 - Conflict-safe contact matching.
@@ -48,7 +63,7 @@ The previous `0.1.1` `.mo` file was uploaded through a text path and could be co
 
 The server-side form revision is the CRM contract. Browser-controlled hidden values do not define field mapping or consent-document versions.
 
-Existing database tables are intentionally unchanged in `0.1.2`, including:
+Existing database tables remain unchanged, including:
 
 - `wp_bfcamel_crm_forms`
 - `wp_bfcamel_crm_form_revisions`
@@ -59,8 +74,6 @@ Existing database tables are intentionally unchanged in `0.1.2`, including:
 - `wp_bfcamel_crm_contact_fields`
 - `wp_bfcamel_crm_consent_events`
 - `wp_bfcamel_crm_activity_log`
-
-This is deliberate: rebranding must not disconnect an existing installation from its data.
 
 ## Requirements
 
