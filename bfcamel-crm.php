@@ -52,6 +52,36 @@ add_action(
 );
 
 /**
+ * Keep the pre-rebrand technical text domain and source identifiers so an
+ * existing BfCamel CRM installation can be upgraded in place, while exposing
+ * the new GFR CRM product name in the UI.
+ */
+add_filter(
+    'gettext_bfcamel-crm',
+    static function ( $translation, $text, $domain ) {
+        if ( 'bfcamel-crm' !== $domain ) {
+            return $translation;
+        }
+
+        $is_ru = 0 === strpos( determine_locale(), 'ru' );
+        $brand = array(
+            'BfCamel CRM' => 'GFR CRM',
+            'BfCamel CRM settings' => $is_ru ? 'Настройки GFR CRM' : 'GFR CRM settings',
+            'Delete all BfCamel CRM data when the plugin is uninstalled' => $is_ru ? 'Удалять все данные GFR CRM при удалении плагина' : 'Delete all GFR CRM data when the plugin is uninstalled',
+            'BfCamel CRM contact' => $is_ru ? 'Контакт GFR CRM' : 'GFR CRM contact',
+            'BfCamel CRM submissions' => $is_ru ? 'Обращения GFR CRM' : 'GFR CRM submissions',
+            'BfCamel CRM: form not found.' => $is_ru ? 'GFR CRM: форма не найдена.' : 'GFR CRM: form not found.',
+            'BfCamel CRM contact identifiers and mapped submission fields were anonymized. Consent event timestamps and document snapshots were retained as non-contact audit records.' => $is_ru ? 'Идентификаторы контакта GFR CRM и связанные персональные поля обращений были обезличены. Даты событий согласий и снимки документов сохранены как обезличенные записи аудита.' : 'GFR CRM contact identifiers and mapped submission fields were anonymized. Consent event timestamps and document snapshots were retained as non-contact audit records.',
+            'If forms created with BfCamel CRM are used on this site, the plugin may store submitted form data, CRM contacts, consent events, source URLs and browser User-Agent strings. IP address storage is optional and disabled by default. Administrators should describe the actual forms, purposes, retention periods and legal basis used on their site.' => $is_ru ? 'Если на сайте используются формы GFR CRM, плагин может сохранять отправленные данные форм, контакты CRM, события согласий, URL источника и строки User-Agent браузера. Сохранение IP-адресов является необязательным и по умолчанию отключено. Администратору следует описать используемые формы, цели обработки, сроки хранения и применимые правовые основания.' : 'If forms created with GFR CRM are used on this site, the plugin may store submitted form data, CRM contacts, consent events, source URLs and browser User-Agent strings. IP address storage is optional and disabled by default. Administrators should describe the actual forms, purposes, retention periods and legal basis used on their site.',
+        );
+
+        return isset( $brand[ $text ] ) ? $brand[ $text ] : $translation;
+    },
+    10,
+    3
+);
+
+/**
  * Supply localized strings to the admin form builder and translate technical
  * status codes that are intentionally stored in the database in English.
  *
