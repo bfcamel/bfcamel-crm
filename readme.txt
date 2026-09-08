@@ -4,7 +4,7 @@ Tags: crm, forms, form builder, contacts, consent
 Requires at least: 6.2
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.1.3
+Stable tag: 0.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,7 +14,7 @@ Native form builder and lightweight CRM for WordPress: forms, submissions, conta
 
 BfCamel CRM combines a native WordPress form builder with a lightweight CRM. Published form revisions act as server-side CRM contracts, so field validation, contact mapping and consent evidence do not depend on browser-controlled hidden values.
 
-Version 0.1.3 is an alpha intended for testing before a future stable release.
+Version 0.1.4 is an alpha intended for testing before a future stable release.
 
 Features include:
 
@@ -52,6 +52,10 @@ WordPress identifies an installed plugin by its plugin basename. Keeping `bfcame
 
 Not for an in-place update. GitHub source archives normally contain a branch-derived top-level folder. Use the release ZIP produced by the repository build workflow; it contains the required `bfcamel-crm/` root folder.
 
+= Why does the Russian interface not use the MO file directly at runtime? =
+
+Version 0.1.4 includes a deterministic UTF-8 fallback that reads the bundled PO source for Russian locales. This prevents stale or corrupt MO files in `wp-content/languages/plugins` from causing truncated Cyrillic strings or replacement characters. Release ZIPs still contain a freshly compiled MO catalog, and the build fails if its integrity check does not pass.
+
 = Does it require Contact Form 7? =
 
 No. BfCamel CRM has its own form engine.
@@ -71,6 +75,14 @@ The plugin stores form submissions and CRM contact information in the WordPress 
 The plugin integrates with WordPress Personal Data Export and Erase tools. Site operators remain responsible for determining their actual legal basis, disclosures and retention rules.
 
 == Changelog ==
+
+= 0.1.4 =
+* Fixed corrupted/truncated Russian UI strings caused by a stale or malformed MO catalog.
+* Added a deterministic UTF-8 PO fallback for Russian locales so global stale MO files cannot produce mojibake.
+* Removed the stale binary MO file from the source tree; release builds now compile it from the current PO source every time.
+* Added a release-time localization integrity check for Cyrillic translations.
+* Updated plugin and update URIs to the current `bfcamel/bfcamel-crm` repository.
+* Kept the technical plugin basename, database tables, options, capabilities, actions, namespace and text domain unchanged for in-place upgrades.
 
 = 0.1.3 =
 * Restored the visible product name to BfCamel CRM.
