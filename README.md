@@ -2,7 +2,7 @@
 
 **BfCamel CRM** is an open-source WordPress form builder and lightweight CRM developed by the People & Camels Charity Foundation.
 
-Version `0.1.3` restores the BfCamel CRM product name, fixes the Russian localization packaging/source mismatch introduced during the temporary GFR CRM rebrand, and formalizes in-place upgrade packaging.
+Version `0.1.4` fixes the corrupted Russian interface seen with stale/malformed MO catalogs and makes Russian localization deterministic even when WordPress has an outdated global translation file cached in `wp-content/languages/plugins`.
 
 ## Upgrade compatibility
 
@@ -15,7 +15,7 @@ The WordPress technical identity intentionally remains unchanged:
 - options/capabilities/actions: `bfcamel_crm_*`
 - database tables: `wp_bfcamel_crm_*`
 
-This means `0.1.3` keeps the same plugin basename (`bfcamel-crm/bfcamel-crm.php`) as the earlier BfCamel CRM versions and the temporary GFR CRM `0.1.2` release. Existing forms, submissions, contacts, consent history, settings and permissions therefore remain attached to the same installation.
+This means `0.1.4` keeps the same plugin basename (`bfcamel-crm/bfcamel-crm.php`) as the earlier BfCamel CRM versions and the temporary GFR CRM `0.1.2` release. Existing forms, submissions, contacts, consent history, settings and permissions therefore remain attached to the same installation.
 
 ### Important: use the installable release ZIP
 
@@ -35,11 +35,13 @@ A generic GitHub **Source code (zip)** archive normally uses a repository/branch
 ## Localization
 
 - English is the source language.
-- Russian (`ru_RU`) is bundled.
+- Russian (`ru_RU`) is bundled as editable UTF-8 PO source.
 - The interface follows the WordPress site/user locale.
 - The technical text domain remains `bfcamel-crm` for backward compatibility.
-- Translation loading happens on `init`, after WordPress can reliably resolve the active locale.
-- Editable `.po` / `.pot` sources live in `languages/`; the release package contains the compiled `.mo` catalog.
+- Russian locales use a deterministic PO fallback registered before plugin UI strings are rendered. This prevents a stale or corrupted MO file from producing truncated Cyrillic text or `�` replacement characters.
+- The stale binary MO is not kept in the source tree anymore.
+- Release builds compile a fresh `bfcamel-crm-ru_RU.mo` from the PO source and fail if the catalog cannot be decoded or the known `Forms → Формы` translation is missing.
+- Other locales continue through WordPress' normal gettext loading path.
 
 ## What works
 

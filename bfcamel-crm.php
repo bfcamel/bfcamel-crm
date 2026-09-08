@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name: BfCamel CRM
- * Plugin URI: https://github.com/bfcamel/gfr-crm
+ * Plugin URI: https://github.com/bfcamel/bfcamel-crm
  * Description: Native form builder and lightweight CRM for WordPress: forms, submissions, contacts, consent evidence and privacy tools.
- * Version: 0.1.3
+ * Version: 0.1.4
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: BfCamel / People & Camels Charity Foundation
@@ -12,14 +12,14 @@
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: bfcamel-crm
  * Domain Path: /languages
- * Update URI: https://github.com/bfcamel/gfr-crm
+ * Update URI: https://github.com/bfcamel/bfcamel-crm
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'BFCAMEL_CRM_VERSION', '0.1.3' );
+define( 'BFCAMEL_CRM_VERSION', '0.1.4' );
 define( 'BFCAMEL_CRM_FILE', __FILE__ );
 define( 'BFCAMEL_CRM_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BFCAMEL_CRM_URL', plugin_dir_url( __FILE__ ) );
@@ -41,14 +41,16 @@ spl_autoload_register(
     }
 );
 
+/*
+ * Register the UTF-8 PO fallback before any plugin UI strings are translated.
+ * Russian intentionally uses this source catalog directly so a stale/corrupt
+ * MO file in wp-content/languages/plugins cannot produce mojibake.
+ */
+BfCamel\CRM\I18n::register();
+
 register_activation_hook( __FILE__, array( 'BfCamel\\CRM\\Plugin', 'activate' ) );
 register_deactivation_hook( __FILE__, array( 'BfCamel\\CRM\\Plugin', 'deactivate' ) );
 
-/*
- * Boot the plugin as early as before, but load translations on init. Loading
- * the text domain on init lets WordPress resolve the current site/user locale
- * reliably and avoids the rebranding gettext shim used by 0.1.2.
- */
 add_action(
     'plugins_loaded',
     static function () {
@@ -59,7 +61,13 @@ add_action(
 add_action(
     'init',
     static function () {
-        load_plugin_textdomain( 'bfcamel-crm', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+        $locale = function_exists( 'determine_locale' ) ? determine_locale() : get_locale();
+
+        // Russian is served by the bundled UTF-8 PO fallback registered above.
+        // Other locales continue to use the normal WordPress gettext loader.
+        if ( ! BfCamel\CRM\I18n::is_russian_locale( $locale ) ) {
+            load_plugin_textdomain( 'bfcamel-crm', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+        }
     },
     0
 );
