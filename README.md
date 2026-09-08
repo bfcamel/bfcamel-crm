@@ -1,37 +1,54 @@
-# BfCamel CRM
+# GFR CRM
 
-**BfCamel CRM** is an open-source WordPress form builder and lightweight CRM developed under the BfCamel project by the People & Camels Charity Foundation.
+**GFR CRM** is an open-source WordPress form builder and lightweight CRM developed by the People & Camels Charity Foundation.
 
-Version `0.1.1` is the current functional alpha and continues the clean universal codebase without hard-coding the foundation's forms.
+Version `0.1.2` fixes localization packaging, preserves update compatibility with the earlier BfCamel CRM alpha, and completes the visible rebrand to GFR CRM.
 
-## What works in 0.1.1
+## Important upgrade compatibility
+
+The public product name and repository are now **GFR CRM** / `bfcamel/gfr-crm`, but the WordPress plugin directory, main file, text domain, database table prefixes and existing internal identifiers intentionally remain `bfcamel-crm` / `bfcamel_crm_*` for now. This allows version `0.1.2` to replace `0.1.0` / `0.1.1` as an update instead of appearing as a separate clean installation.
+
+Installable release ZIPs therefore keep this structure:
+
+```text
+bfcamel-crm/
+└── bfcamel-crm.php
+```
+
+Do not rename that directory on an existing installation. The visible WordPress plugin name is **GFR CRM**.
+
+## Localization
+
+- English is the source language.
+- Russian (`ru_RU`) is bundled.
+- The interface follows the WordPress site/user locale.
+- The repository contains editable `.po` / `.pot` sources and a correctly compiled binary `.mo` catalog.
+
+The previous `0.1.1` `.mo` file was uploaded through a text path and could be corrupted in transit, producing mojibake. `0.1.2` replaces it with a binary-safe compiled catalog.
+
+## What works
 
 - Native form builder with immutable published revisions.
-- English is the source language and a complete Russian (`ru_RU`) translation is bundled with the plugin; the interface follows the WordPress site/user locale.
 - Field types: text, email, phone, number, date, textarea, select, radio, checkboxes, hidden, content block, personal-data consent and marketing consent.
 - Per-field widths and responsive one/two-column layouts.
-- Three appearance modes: theme/unstyled, default, custom.
+- Theme/default/custom appearance modes.
 - Per-form colors, border radius, custom wrapper class, submit label and response messages.
-- Shortcode rendering: `[bfcamel_form id="1"]` or `[bfcamel_form slug="contact-form"]`.
-- Server-side validation from the stored revision schema.
+- Preferred shortcode: `[gfr_form id="1"]` or `[gfr_form slug="contact-form"]`.
+- Legacy `[bfcamel_form ...]` remains supported for backward compatibility.
+- Server-side validation from stored form revisions.
 - CRM mapping for contact name, email, phone, organization and custom contact fields.
-- Safe contact matching: conflicting phone/email identities are flagged for manual review and are never silently merged.
-- Submissions with UUID, form revision, source URL and optional IP evidence.
-- Legal-document settings for:
-  - Personal Data Processing Consent;
-  - Privacy Policy;
-  - Marketing / Information Messages Consent.
-- Consent event evidence stores the exact document URLs and versions that were active at submission time.
-- An unchecked optional marketing checkbox never revokes an earlier consent.
+- Conflict-safe contact matching.
+- Submission UUIDs, form revision tracking, source URL and optional IP evidence.
+- Legal-document URLs and versions for personal-data consent, privacy policy and marketing consent.
+- Consent event history with document snapshots.
 - WordPress Personal Data Exporter and Eraser integration.
 - Honeypot and basic per-form rate limiting.
-- Data is retained on uninstall by default; destructive uninstall must be explicitly enabled.
 
-## Architecture
+## Architecture and data compatibility
 
-The browser never defines the CRM contract. A form submission references a stored server-side form revision. That revision is the contract used for validation, CRM mapping and evidence.
+The server-side form revision is the CRM contract. Browser-controlled hidden values do not define field mapping or consent-document versions.
 
-Main tables:
+Existing database tables are intentionally unchanged in `0.1.2`, including:
 
 - `wp_bfcamel_crm_forms`
 - `wp_bfcamel_crm_form_revisions`
@@ -43,28 +60,12 @@ Main tables:
 - `wp_bfcamel_crm_consent_events`
 - `wp_bfcamel_crm_activity_log`
 
-## Privacy
-
-BfCamel CRM stores data submitted through forms. Source URL and User-Agent are stored with submissions. IP-address storage is disabled by default and can be enabled in **BfCamel CRM → Settings** when an operator has an appropriate reason and privacy disclosure.
-
-The plugin does not send CRM data to BfCamel or any third-party service.
+This is deliberate: rebranding must not disconnect an existing installation from its data.
 
 ## Requirements
 
 - WordPress 6.2+
 - PHP 7.4+
-
-## Development roadmap
-
-The next milestones are expected to add:
-
-1. contact/submission editing, notes, tags and assignees;
-2. configurable pipelines and routing rules;
-3. email notifications;
-4. form preview and richer form-builder UX;
-5. legacy `lv-crm-suite` migration and optional Contact Form 7 import;
-6. CSV/XLSX exports and segments;
-7. automated Plugin Check / PHPCS / PHPUnit CI before WordPress.org submission.
 
 ## License
 
