@@ -2,11 +2,12 @@
 
 **BfCamel CRM** is an open-source WordPress form builder and lightweight CRM developed under the BfCamel project by the People & Camels Charity Foundation.
 
-Version `0.1.0` is the first functional alpha and intentionally starts a clean universal codebase instead of hard-coding the foundation's forms.
+Version `0.1.1` is the current functional alpha and continues the clean universal codebase without hard-coding the foundation's forms.
 
-## What works in 0.1.0
+## What works in 0.1.1
 
 - Native form builder with immutable published revisions.
+- English is the source language and a complete Russian (`ru_RU`) translation is bundled with the plugin; the interface follows the WordPress site/user locale.
 - Field types: text, email, phone, number, date, textarea, select, radio, checkboxes, hidden, content block, personal-data consent and marketing consent.
 - Per-field widths and responsive one/two-column layouts.
 - Three appearance modes: theme/unstyled, default, custom.
