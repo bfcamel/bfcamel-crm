@@ -19,6 +19,8 @@ final class Renderer {
 
     public function register() {
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+        add_shortcode( 'gfr_form', array( $this, 'shortcode' ) );
+        // Backward-compatible alias for installations created before the GFR CRM rebrand.
         add_shortcode( 'bfcamel_form', array( $this, 'shortcode' ) );
     }
 
@@ -38,13 +40,13 @@ final class Renderer {
                 'slug' => '',
             ),
             $atts,
-            'bfcamel_form'
+            'gfr_form'
         );
 
         $form = absint( $atts['id'] ) ? Repository::get( $atts['id'] ) : Repository::get_by_slug( $atts['slug'] );
         if ( ! $form || 'publish' !== $form->status ) {
             return current_user_can( 'bfcamel_crm_manage_forms' )
-                ? '<p class="bfcamel-crm-notice">' . esc_html__( 'BfCamel CRM: form not found.', 'bfcamel-crm' ) . '</p>'
+                ? '<p class="bfcamel-crm-notice">' . esc_html__( 'GFR CRM: form not found.', 'bfcamel-crm' ) . '</p>'
                 : '';
         }
 
@@ -55,6 +57,7 @@ final class Renderer {
 
         $schema   = Repository::decode_schema( $revision );
         $settings = Repository::decode_settings( $revision );
+
 
         $classes = array(
             'bfcamel-crm-form',
