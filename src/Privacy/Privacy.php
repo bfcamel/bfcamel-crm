@@ -29,7 +29,7 @@ final class Privacy {
 
     public function register_exporter( $exporters ) {
         $exporters['bfcamel-crm'] = array(
-            'exporter_friendly_name' => __( 'GFR CRM', 'bfcamel-crm' ),
+            'exporter_friendly_name' => __( 'BfCamel CRM', 'bfcamel-crm' ),
             'callback'               => array( $this, 'export_personal_data' ),
         );
         return $exporters;
@@ -37,7 +37,7 @@ final class Privacy {
 
     public function register_eraser( $erasers ) {
         $erasers['bfcamel-crm'] = array(
-            'eraser_friendly_name' => __( 'GFR CRM', 'bfcamel-crm' ),
+            'eraser_friendly_name' => __( 'BfCamel CRM', 'bfcamel-crm' ),
             'callback'             => array( $this, 'erase_personal_data' ),
         );
         return $erasers;
@@ -71,7 +71,7 @@ final class Privacy {
 
             $data[] = array(
                 'group_id'    => 'bfcamel-crm-contact',
-                'group_label' => __( 'GFR CRM contact', 'bfcamel-crm' ),
+                'group_label' => __( 'BfCamel CRM contact', 'bfcamel-crm' ),
                 'item_id'     => 'contact-' . absint( $contact_id ),
                 'data'        => $items,
             );
@@ -91,7 +91,7 @@ final class Privacy {
                 }
                 $data[] = array(
                     'group_id'    => 'bfcamel-crm-submissions',
-                    'group_label' => __( 'GFR CRM submissions', 'bfcamel-crm' ),
+                    'group_label' => __( 'BfCamel CRM submissions', 'bfcamel-crm' ),
                     'item_id'     => 'submission-' . absint( $submission->id ),
                     'data'        => $submission_data,
                 );
@@ -122,7 +122,7 @@ final class Privacy {
         }
 
         if ( $removed ) {
-            $messages[] = __( 'GFR CRM contact identifiers and mapped submission fields were anonymized. Consent event timestamps and document snapshots were retained as non-contact audit records.', 'bfcamel-crm' );
+            $messages[] = __( 'BfCamel CRM contact identifiers and mapped submission fields were anonymized. Consent event timestamps and document snapshots were retained as non-contact audit records.', 'bfcamel-crm' );
             $retained = true;
         }
 
@@ -139,8 +139,8 @@ final class Privacy {
             return;
         }
 
-        $content = '<p>' . esc_html__( 'If forms created with GFR CRM are used on this site, the plugin may store submitted form data, CRM contacts, consent events, source URLs and browser User-Agent strings. IP address storage is optional and disabled by default. Administrators should describe the actual forms, purposes, retention periods and legal basis used on their site.', 'bfcamel-crm' ) . '</p>';
-        wp_add_privacy_policy_content( 'GFR CRM', wp_kses_post( wpautop( $content ) ) );
+        $content = '<p>' . esc_html__( 'If forms created with BfCamel CRM are used on this site, the plugin may store submitted form data, CRM contacts, consent events, source URLs and browser User-Agent strings. IP address storage is optional and disabled by default. Administrators should describe the actual forms, purposes, retention periods and legal basis used on their site.', 'bfcamel-crm' ) . '</p>';
+        wp_add_privacy_policy_content( 'BfCamel CRM', wp_kses_post( wpautop( $content ) ) );
     }
 
     private function submissions_for_contact( $contact_id ) {
