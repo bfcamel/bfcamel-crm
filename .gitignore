@@ -2,5 +2,6 @@
 .idea/
 .vscode/
 *.zip
+build/
 vendor/
 node_modules/
