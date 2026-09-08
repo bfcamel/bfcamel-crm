@@ -64,8 +64,51 @@ final class I18n {
             return self::$ru;
         }
 
-        self::$ru = self::parse_po( BFCAMEL_CRM_DIR . 'languages/bfcamel-crm-ru_RU.po' );
+        self::$ru = array_merge(
+            self::parse_po( BFCAMEL_CRM_DIR . 'languages/bfcamel-crm-ru_RU.po' ),
+            self::russian_runtime_overrides()
+        );
         return self::$ru;
+    }
+
+    /**
+     * Strings introduced in 0.2.0 are kept here as a small runtime safety
+     * catalog. Russian runtime already bypasses MO files, so this keeps the
+     * new workflow fully localized without re-introducing binary catalog risk.
+     */
+    private static function russian_runtime_overrides() {
+        return array(
+            'All forms' => 'Все формы',
+            'All priorities' => 'Все приоритеты',
+            'All responsible employees' => 'Все ответственные сотрудники',
+            'All statuses' => 'Все статусы',
+            'All tags' => 'Все метки',
+            'Filter' => 'Фильтровать',
+            'Found: %d' => 'Найдено: %d',
+            'From' => 'С',
+            'High' => 'Высокий',
+            'No history entries yet.' => 'История пока пуста.',
+            'Normal' => 'Обычный',
+            'Priority' => 'Приоритет',
+            'Reset' => 'Сбросить',
+            'Responsible' => 'Ответственный',
+            'Search by ID, name, email, phone or form data' => 'Поиск по ID, имени, e-mail, телефону или данным формы',
+            'Search submissions' => 'Поиск обращений',
+            'Search, filter and manage incoming submissions.' => 'Поиск, фильтрация и обработка входящих обращений.',
+            'Separate tags with commas.' => 'Разделяйте метки запятыми.',
+            'Submission assignee changed.' => 'Ответственный по обращению изменён.',
+            'Submission history' => 'История обращения',
+            'Submission priority changed.' => 'Приоритет обращения изменён.',
+            'Submission tags changed.' => 'Метки обращения изменены.',
+            'Submission updated.' => 'Обращение обновлено.',
+            'System' => 'Система',
+            'Tag' => 'Метка',
+            'Tags' => 'Метки',
+            'To' => 'По',
+            'Unassigned' => 'Не назначен',
+            'Urgent' => 'Срочный',
+            'e.g. urgent, transport, volunteer' => 'например: срочно, перевозка, волонтёр',
+        );
     }
 
     private static function parse_po( $path ) {

@@ -2,11 +2,11 @@
 
 **BfCamel CRM** is an open-source WordPress form builder and lightweight CRM developed by the People & Camels Charity Foundation.
 
-Version `0.1.4` fixes the corrupted Russian interface seen with stale/malformed MO catalogs and makes Russian localization deterministic even when WordPress has an outdated global translation file cached in `wp-content/languages/plugins`.
+Version `0.2.0` turns incoming form submissions into a practical CRM work queue: staff can search and filter submissions, assign responsible employees, set priorities, add tags and review a complete activity history.
 
 ## Upgrade compatibility
 
-The WordPress technical identity intentionally remains unchanged:
+The WordPress technical identity remains unchanged:
 
 - plugin directory: `bfcamel-crm/`
 - main plugin file: `bfcamel-crm.php`
@@ -15,67 +15,50 @@ The WordPress technical identity intentionally remains unchanged:
 - options/capabilities/actions: `bfcamel_crm_*`
 - database tables: `wp_bfcamel_crm_*`
 
-This means `0.1.4` keeps the same plugin basename (`bfcamel-crm/bfcamel-crm.php`) as the earlier BfCamel CRM versions and the temporary GFR CRM `0.1.2` release. Existing forms, submissions, contacts, consent history, settings and permissions therefore remain attached to the same installation.
+Version `0.2.0` keeps the same plugin basename as earlier releases, so an installable release ZIP replaces the existing plugin rather than creating a second copy. Existing forms, contacts, consent history and settings remain attached to the same installation.
 
-### Important: use the installable release ZIP
+## Submissions workflow in 0.2.0
 
-An installable/update ZIP must have this exact top-level layout:
+- Server-side search by ID, name, email, phone, form name and submitted data.
+- Filters by status, form, responsible employee, priority, tag and date range.
+- Server-side pagination instead of the previous hard 250-row limit.
+- Responsible employee assignment using WordPress users.
+- Priorities: normal, high and urgent.
+- Free-form submission tags with automatic tag creation and tag filtering.
+- Activity history for submission creation, status changes, assignment changes, priority changes and tag changes.
+- Existing statuses remain compatible: `new`, `in_progress`, `waiting`, `completed`, `needs_review`.
 
-```text
-bfcamel-crm/
-├── bfcamel-crm.php
-├── assets/
-├── languages/
-├── src/
-└── uninstall.php
-```
+## Data model
 
-A generic GitHub **Source code (zip)** archive normally uses a repository/branch-derived folder name and must not be used as the WordPress update package. The repository includes a release-build workflow that produces `bfcamel-crm-<version>.zip` with the correct `bfcamel-crm/` root folder. Uploading that package through **Plugins → Add Plugin → Upload Plugin** makes WordPress offer replacement of the installed version instead of creating a second plugin directory.
+Schema version 2 adds `assigned_to` and `priority` to submissions plus two tag tables:
+
+- `wp_bfcamel_crm_tags`
+- `wp_bfcamel_crm_submission_tags`
+
+There is no legacy submission backfill or data conversion logic in 0.2.0. The normal schema installer/dbDelta path only ensures the required columns and tables exist.
 
 ## Localization
 
 - English is the source language.
 - Russian (`ru_RU`) is bundled as editable UTF-8 PO source.
-- The interface follows the WordPress site/user locale.
-- The technical text domain remains `bfcamel-crm` for backward compatibility.
-- Russian locales use a deterministic PO fallback registered before plugin UI strings are rendered. This prevents a stale or corrupted MO file from producing truncated Cyrillic text or `�` replacement characters.
-- The stale binary MO is not kept in the source tree anymore.
-- Release builds compile a fresh `bfcamel-crm-ru_RU.mo` from the PO source and fail if the catalog cannot be decoded or the known `Forms → Формы` translation is missing.
-- Other locales continue through WordPress' normal gettext loading path.
+- Russian locales use the deterministic PO fallback introduced in 0.1.4, preventing stale global MO catalogs from corrupting Cyrillic text.
+- Release builds compile a fresh MO catalog from the PO source and validate it before packaging.
 
-## What works
+## Core features
 
-- Native form builder with immutable published revisions.
-- Field types: text, email, phone, number, date, textarea, select, radio, checkboxes, hidden, content block, personal-data consent and marketing consent.
-- Per-field widths and responsive one/two-column layouts.
-- Theme/default/custom appearance modes.
-- Per-form colors, border radius, custom wrapper class, submit label and response messages.
-- Preferred shortcode: `[bfcamel_form id="1"]` or `[bfcamel_form slug="contact-form"]`.
-- Temporary-rebrand shortcode `[gfr_form ...]` remains supported as a compatibility alias.
-- Server-side validation from stored form revisions.
-- CRM mapping for contact name, email, phone, organization and custom contact fields.
+- Native WordPress form builder with immutable published revisions.
+- CRM mapping for name, email, phone, organization and custom contact fields.
 - Conflict-safe contact matching.
-- Submission UUIDs, form revision tracking, source URL and optional IP evidence.
-- Legal-document URLs and versions for personal-data consent, privacy policy and marketing consent.
-- Consent event history with document snapshots.
-- WordPress Personal Data Exporter and Eraser integration.
+- Submission UUIDs and source evidence.
+- Personal-data and marketing consent fields with document snapshots.
+- WordPress Privacy Exporter and Eraser support.
 - Honeypot and basic per-form rate limiting.
+- Preferred shortcode: `[bfcamel_form id="1"]` or `[bfcamel_form slug="contact-form"]`.
+- `[gfr_form ...]` remains as a compatibility alias for the temporary 0.1.2 rebrand.
 
-## Architecture and data compatibility
+## Installable ZIP
 
-The server-side form revision is the CRM contract. Browser-controlled hidden values do not define field mapping or consent-document versions.
-
-Existing database tables remain unchanged, including:
-
-- `wp_bfcamel_crm_forms`
-- `wp_bfcamel_crm_form_revisions`
-- `wp_bfcamel_crm_submissions`
-- `wp_bfcamel_crm_contacts`
-- `wp_bfcamel_crm_contact_emails`
-- `wp_bfcamel_crm_contact_phones`
-- `wp_bfcamel_crm_contact_fields`
-- `wp_bfcamel_crm_consent_events`
-- `wp_bfcamel_crm_activity_log`
+Use the release ZIP produced by GitHub Actions. Its top-level directory is exactly `bfcamel-crm/`. Do not use GitHub's generic **Source code (zip)** archive for an in-place WordPress update.
 
 ## Requirements
 

@@ -1,7 +1,7 @@
 <?php
 namespace BfCamel\CRM;
 
-use BfCamel\CRM\Admin\Admin;
+use BfCamel\CRM\Admin\Bootstrap;
 use BfCamel\CRM\Database\Schema;
 use BfCamel\CRM\Forms\Renderer;
 use BfCamel\CRM\Forms\SubmissionHandler;
@@ -39,7 +39,7 @@ final class Plugin {
         Privacy::instance()->register();
 
         if ( is_admin() ) {
-            Admin::instance()->register();
+            Bootstrap::instance()->register();
         }
     }
 

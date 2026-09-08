@@ -3,7 +3,7 @@
  * Plugin Name: BfCamel CRM
  * Plugin URI: https://github.com/bfcamel/bfcamel-crm
  * Description: Native form builder and lightweight CRM for WordPress: forms, submissions, contacts, consent evidence and privacy tools.
- * Version: 0.1.4
+ * Version: 0.2.0
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: BfCamel / People & Camels Charity Foundation
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'BFCAMEL_CRM_VERSION', '0.1.4' );
+define( 'BFCAMEL_CRM_VERSION', '0.2.0' );
 define( 'BFCAMEL_CRM_FILE', __FILE__ );
 define( 'BFCAMEL_CRM_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BFCAMEL_CRM_URL', plugin_dir_url( __FILE__ ) );

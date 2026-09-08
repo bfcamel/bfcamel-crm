@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class Schema {
-    const VERSION = '1';
+    const VERSION = '2';
     const OPTION  = 'bfcamel_crm_db_version';
 
     public static function maybe_upgrade() {
@@ -130,6 +130,8 @@ final class Schema {
                 contact_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
                 status VARCHAR(40) NOT NULL DEFAULT 'new',
                 contact_sync_status VARCHAR(40) NOT NULL DEFAULT '',
+                assigned_to BIGINT UNSIGNED NOT NULL DEFAULT 0,
+                priority VARCHAR(20) NOT NULL DEFAULT 'normal',
                 payload_json LONGTEXT NOT NULL,
                 source_url TEXT NULL,
                 source_ip VARCHAR(100) NOT NULL DEFAULT '',
@@ -142,6 +144,8 @@ final class Schema {
                 KEY contact_id (contact_id),
                 KEY status (status),
                 KEY contact_sync_status (contact_sync_status),
+                KEY assigned_to (assigned_to),
+                KEY priority (priority),
                 KEY submitted_at (submitted_at)
             ) {$cc};"
         );
@@ -167,6 +171,31 @@ final class Schema {
                 KEY consent_type (consent_type),
                 KEY status (status),
                 KEY event_at (event_at)
+            ) {$cc};"
+        );
+
+        $tags = self::table( 'tags' );
+        dbDelta(
+            "CREATE TABLE {$tags} (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                name VARCHAR(120) NOT NULL,
+                slug VARCHAR(120) NOT NULL,
+                created_at DATETIME NOT NULL,
+                updated_at DATETIME NOT NULL,
+                PRIMARY KEY (id),
+                UNIQUE KEY slug (slug),
+                KEY name (name)
+            ) {$cc};"
+        );
+
+        $submission_tags = self::table( 'submission_tags' );
+        dbDelta(
+            "CREATE TABLE {$submission_tags} (
+                submission_id BIGINT UNSIGNED NOT NULL,
+                tag_id BIGINT UNSIGNED NOT NULL,
+                created_at DATETIME NOT NULL,
+                PRIMARY KEY (submission_id,tag_id),
+                KEY tag_id (tag_id)
             ) {$cc};"
         );
 

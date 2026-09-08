@@ -12,6 +12,8 @@ global $wpdb;
 $tables = array(
     'forms',
     'form_revisions',
+    'submission_tags',
+    'tags',
     'submissions',
     'contacts',
     'contact_emails',
