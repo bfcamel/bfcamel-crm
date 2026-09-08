@@ -1,24 +1,25 @@
 <?php
 /**
- * Plugin Name: GFR CRM
+ * Plugin Name: BfCamel CRM
  * Plugin URI: https://github.com/bfcamel/gfr-crm
  * Description: Native form builder and lightweight CRM for WordPress: forms, submissions, contacts, consent evidence and privacy tools.
- * Version: 0.1.2
+ * Version: 0.1.3
  * Requires at least: 6.2
  * Requires PHP: 7.4
- * Author: GFR / People & Camels Charity Foundation
+ * Author: BfCamel / People & Camels Charity Foundation
  * Author URI: https://bfcamel.ru/
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: bfcamel-crm
  * Domain Path: /languages
+ * Update URI: https://github.com/bfcamel/gfr-crm
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'BFCAMEL_CRM_VERSION', '0.1.2' );
+define( 'BFCAMEL_CRM_VERSION', '0.1.3' );
 define( 'BFCAMEL_CRM_FILE', __FILE__ );
 define( 'BFCAMEL_CRM_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BFCAMEL_CRM_URL', plugin_dir_url( __FILE__ ) );
@@ -43,42 +44,24 @@ spl_autoload_register(
 register_activation_hook( __FILE__, array( 'BfCamel\\CRM\\Plugin', 'activate' ) );
 register_deactivation_hook( __FILE__, array( 'BfCamel\\CRM\\Plugin', 'deactivate' ) );
 
+/*
+ * Boot the plugin as early as before, but load translations on init. Loading
+ * the text domain on init lets WordPress resolve the current site/user locale
+ * reliably and avoids the rebranding gettext shim used by 0.1.2.
+ */
 add_action(
     'plugins_loaded',
     static function () {
-        load_plugin_textdomain( 'bfcamel-crm', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
         BfCamel\CRM\Plugin::instance()->boot();
     }
 );
 
-/**
- * Keep the pre-rebrand technical text domain and source identifiers so an
- * existing BfCamel CRM installation can be upgraded in place, while exposing
- * the new GFR CRM product name in the UI.
- */
-add_filter(
-    'gettext_bfcamel-crm',
-    static function ( $translation, $text, $domain ) {
-        if ( 'bfcamel-crm' !== $domain ) {
-            return $translation;
-        }
-
-        $is_ru = 0 === strpos( determine_locale(), 'ru' );
-        $brand = array(
-            'BfCamel CRM' => 'GFR CRM',
-            'BfCamel CRM settings' => $is_ru ? 'Настройки GFR CRM' : 'GFR CRM settings',
-            'Delete all BfCamel CRM data when the plugin is uninstalled' => $is_ru ? 'Удалять все данные GFR CRM при удалении плагина' : 'Delete all GFR CRM data when the plugin is uninstalled',
-            'BfCamel CRM contact' => $is_ru ? 'Контакт GFR CRM' : 'GFR CRM contact',
-            'BfCamel CRM submissions' => $is_ru ? 'Обращения GFR CRM' : 'GFR CRM submissions',
-            'BfCamel CRM: form not found.' => $is_ru ? 'GFR CRM: форма не найдена.' : 'GFR CRM: form not found.',
-            'BfCamel CRM contact identifiers and mapped submission fields were anonymized. Consent event timestamps and document snapshots were retained as non-contact audit records.' => $is_ru ? 'Идентификаторы контакта GFR CRM и связанные персональные поля обращений были обезличены. Даты событий согласий и снимки документов сохранены как обезличенные записи аудита.' : 'GFR CRM contact identifiers and mapped submission fields were anonymized. Consent event timestamps and document snapshots were retained as non-contact audit records.',
-            'If forms created with BfCamel CRM are used on this site, the plugin may store submitted form data, CRM contacts, consent events, source URLs and browser User-Agent strings. IP address storage is optional and disabled by default. Administrators should describe the actual forms, purposes, retention periods and legal basis used on their site.' => $is_ru ? 'Если на сайте используются формы GFR CRM, плагин может сохранять отправленные данные форм, контакты CRM, события согласий, URL источника и строки User-Agent браузера. Сохранение IP-адресов является необязательным и по умолчанию отключено. Администратору следует описать используемые формы, цели обработки, сроки хранения и применимые правовые основания.' : 'If forms created with GFR CRM are used on this site, the plugin may store submitted form data, CRM contacts, consent events, source URLs and browser User-Agent strings. IP address storage is optional and disabled by default. Administrators should describe the actual forms, purposes, retention periods and legal basis used on their site.',
-        );
-
-        return isset( $brand[ $text ] ) ? $brand[ $text ] : $translation;
+add_action(
+    'init',
+    static function () {
+        load_plugin_textdomain( 'bfcamel-crm', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
     },
-    10,
-    3
+    0
 );
 
 /**
