@@ -18,7 +18,17 @@ final class Renderer {
     private function __construct() {}
 
     public function register() {
+        add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_shortcode( 'bfcamel_form', array( $this, 'shortcode' ) );
+    }
+
+    public function enqueue_assets() {
+        wp_enqueue_style(
+            'bfcamel-crm-frontend',
+            BFCAMEL_CRM_URL . 'assets/frontend.css',
+            array(),
+            BFCAMEL_CRM_VERSION
+        );
     }
 
     public function shortcode( $atts ) {
@@ -45,13 +55,6 @@ final class Renderer {
 
         $schema   = Repository::decode_schema( $revision );
         $settings = Repository::decode_settings( $revision );
-
-        wp_enqueue_style(
-            'bfcamel-crm-frontend',
-            BFCAMEL_CRM_URL . 'assets/frontend.css',
-            array(),
-            BFCAMEL_CRM_VERSION
-        );
 
         $classes = array(
             'bfcamel-crm-form',
@@ -158,9 +161,7 @@ final class Renderer {
 
             case 'select':
                 $html .= '<select class="bfcamel-crm-control" id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '"' . $required_attr . '>';
-                if ( ! $required ) {
-                    $html .= '<option value="">' . esc_html__( 'Select an option', 'bfcamel-crm' ) . '</option>';
-                }
+                $html .= '<option value=""' . ( $required ? ' disabled selected' : '' ) . '>' . esc_html__( 'Select an option', 'bfcamel-crm' ) . '</option>';
                 foreach ( (array) ( $field['options'] ?? array() ) as $option ) {
                     $html .= '<option value="' . esc_attr( $option ) . '">' . esc_html( $option ) . '</option>';
                 }
@@ -174,7 +175,7 @@ final class Renderer {
                 foreach ( (array) ( $field['options'] ?? array() ) as $index => $option ) {
                     $option_id = $id . '-' . absint( $index );
                     $html .= '<label class="bfcamel-crm-option" for="' . esc_attr( $option_id ) . '">';
-                    $html .= '<input id="' . esc_attr( $option_id ) . '" type="' . esc_attr( $type ) . '" name="' . esc_attr( $input_name ) . '" value="' . esc_attr( $option ) . '"' . ( $required && 0 === $index ? ' required' : '' ) . '>';
+                    $html .= '<input id="' . esc_attr( $option_id ) . '" type="' . esc_attr( $type ) . '" name="' . esc_attr( $input_name ) . '" value="' . esc_attr( $option ) . '">';
                     $html .= '<span>' . esc_html( $option ) . '</span></label>';
                 }
                 $html .= '</div>';
