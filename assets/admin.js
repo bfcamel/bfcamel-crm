@@ -6,7 +6,61 @@
     else document.addEventListener('DOMContentLoaded', fn);
   }
 
+  function applyRuntimeTranslations() {
+    var runtime = (window.BfCamelCRMI18n && window.BfCamelCRMI18n.runtime) || {};
+    var statuses = runtime.statuses || {};
+    var sync = runtime.sync || {};
+    var consentTypes = runtime.consentTypes || {};
+    var consentStatuses = runtime.consentStatuses || {};
+    var stats = runtime.stats || {};
+
+    document.querySelectorAll('.bfcamel-crm-stat span').forEach(function (node) {
+      var raw = node.textContent.trim();
+      if (stats[raw]) node.textContent = stats[raw];
+    });
+
+    document.querySelectorAll('.bfcamel-crm-badge').forEach(function (node) {
+      var raw = node.textContent.trim();
+      if (statuses[raw]) node.textContent = statuses[raw];
+    });
+
+    document.querySelectorAll('select[name="status"] option').forEach(function (option) {
+      if (statuses[option.value]) option.textContent = statuses[option.value];
+    });
+
+    document.querySelectorAll('.bfcamel-crm-admin table td').forEach(function (node) {
+      var raw = node.textContent.trim();
+      if (statuses[raw]) node.textContent = statuses[raw];
+    });
+
+    document.querySelectorAll('.bfcamel-crm-admin p').forEach(function (node) {
+      Array.prototype.forEach.call(node.childNodes, function (child) {
+        if (child.nodeType !== 3) return;
+        var raw = child.nodeValue.trim();
+        if (sync[raw]) child.nodeValue = ' ' + sync[raw];
+      });
+    });
+
+    document.querySelectorAll('.bfcamel-crm-timeline li').forEach(function (item) {
+      var strong = item.querySelector('strong');
+      if (strong) {
+        var type = strong.textContent.trim();
+        if (consentTypes[type]) strong.textContent = consentTypes[type];
+      }
+      Array.prototype.forEach.call(item.childNodes, function (child) {
+        if (child.nodeType !== 3) return;
+        var text = child.nodeValue;
+        Object.keys(consentStatuses).forEach(function (status) {
+          text = text.replace(status, consentStatuses[status]);
+        });
+        child.nodeValue = text;
+      });
+    });
+  }
+
   ready(function () {
+    applyRuntimeTranslations();
+
     var root = document.getElementById('bfcamel-crm-builder');
     var hidden = document.getElementById('bfcamel-crm-schema-json');
     if (!root || !hidden || typeof window.BfCamelCRMBuilder === 'undefined') return;
@@ -16,13 +70,14 @@
       ? JSON.parse(JSON.stringify(window.BfCamelCRMBuilder.schema))
       : [];
 
+    var types = window.BfCamelCRMBuilder.types || {};
     var mappings = [
-      ['submission_only', 'Submission only'],
-      ['contact.name', 'Contact: name'],
-      ['contact.email', 'Contact: email'],
-      ['contact.phone', 'Contact: phone'],
-      ['contact.organization', 'Contact: organization'],
-      ['contact.custom', 'Contact: custom field']
+      ['submission_only', labels.submissionOnly || 'Submission only'],
+      ['contact.name', labels.contactName || 'Contact: name'],
+      ['contact.email', labels.contactEmail || 'Contact: email'],
+      ['contact.phone', labels.contactPhone || 'Contact: phone'],
+      ['contact.organization', labels.contactOrganization || 'Contact: organization'],
+      ['contact.custom', labels.contactCustom || 'Contact: custom field']
     ];
 
     var widths = [
@@ -47,14 +102,14 @@
 
       if (type === 'consent_personal_data') {
         base.name = 'consent_personal_data_' + Math.random().toString(36).slice(2, 6);
-        base.label = 'I consent to {personal_data_consent} and confirm that I have read the {privacy_policy}.';
+        base.label = labels.personalDataDefault || 'I consent to {personal_data_consent} and confirm that I have read the {privacy_policy}.';
         base.required = true;
       } else if (type === 'consent_marketing') {
         base.name = 'consent_marketing_' + Math.random().toString(36).slice(2, 6);
-        base.label = 'I consent to receive informational and marketing messages under the {marketing_consent}.';
+        base.label = labels.marketingDefault || 'I consent to receive informational and marketing messages under the {marketing_consent}.';
       } else if (type === 'html') {
         base.name = 'content_' + Math.random().toString(36).slice(2, 7);
-        base.label = '<h3>Section title</h3><p>Add explanatory text here.</p>';
+        base.label = '<h3>' + (labels.sectionTitle || 'Section title') + '</h3><p>' + (labels.sectionHelp || 'Add explanatory text here.') + '</p>';
       }
       return base;
     }
@@ -97,7 +152,7 @@
         card.dataset.index = String(index);
 
         var head = el('div', 'bfcamel-crm-builder-field__head');
-        var title = el('strong', '', (labels.field || 'Field') + ' ' + (index + 1) + ' · ' + field.type);
+        var title = el('strong', '', (labels.field || 'Field') + ' ' + (index + 1) + ' · ' + (types[field.type] || field.type));
         var actions = el('div', 'bfcamel-crm-builder-actions');
 
         var up = el('button', 'button button-small', '↑');
