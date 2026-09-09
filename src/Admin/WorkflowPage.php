@@ -16,6 +16,7 @@ final class WorkflowPage {
         if ( false === strpos( (string) $hook, 'bfcamel-crm' ) ) return;
         wp_enqueue_script( 'bfcamel-crm-admin-04', BFCAMEL_CRM_URL . 'assets/admin-04.js', array( 'bfcamel-crm-admin' ), BFCAMEL_CRM_VERSION, true );
         wp_enqueue_style( 'bfcamel-crm-admin-04', BFCAMEL_CRM_URL . 'assets/admin-04.css', array( 'bfcamel-crm-admin' ), BFCAMEL_CRM_VERSION );
+        wp_add_inline_style( 'bfcamel-crm-admin-04', $this->badge_styles() );
 
         $form_settings = array();
         if ( false !== strpos( (string) $hook, 'bfcamel-crm-forms' ) ) {
@@ -42,6 +43,7 @@ final class WorkflowPage {
                 'defaultStatus'  => __( 'Default status', 'bfcamel-crm' ),
                 'defaultPriority'=> __( 'Default priority', 'bfcamel-crm' ),
                 'fieldCssClass'  => __( 'Field CSS class', 'bfcamel-crm' ),
+                'styleModeTheme' => __( 'Theme / unstyled', 'bfcamel-crm' ),
                 'deleteForm'     => __( 'Delete form', 'bfcamel-crm' ),
                 'restoreForm'    => __( 'Restore form', 'bfcamel-crm' ),
                 'archived'       => __( 'Archived', 'bfcamel-crm' ),
@@ -95,7 +97,7 @@ final class WorkflowPage {
         ?>
         <div class="bfcamel-crm-table-scroll"><table class="widefat striped bfcamel-crm-definition-table"><thead><tr><th><?php esc_html_e( 'Name', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Slug', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Color', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Order', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Enabled', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Default', 'bfcamel-crm' ); ?></th></tr></thead><tbody>
         <?php foreach ( $rows as $i => $item ) : $item = wp_parse_args( $item, array( 'slug'=>'','name'=>'','color'=>'#8c8f94','weight'=>0,'enabled'=>1,'default'=>0 ) ); ?>
-            <tr><td><input type="text" name="workflow[<?php echo esc_attr( $key ); ?>][<?php echo esc_attr( $i ); ?>][name]" value="<?php echo esc_attr( $item['name'] ); ?>"></td><td><input type="text" name="workflow[<?php echo esc_attr( $key ); ?>][<?php echo esc_attr( $i ); ?>][slug]" value="<?php echo esc_attr( $item['slug'] ); ?>" <?php echo $item['slug'] ? 'readonly' : ''; ?>></td><td><input type="color" name="workflow[<?php echo esc_attr( $key ); ?>][<?php echo esc_attr( $i ); ?>][color]" value="<?php echo esc_attr( $item['color'] ); ?>"></td><td><input type="number" name="workflow[<?php echo esc_attr( $key ); ?>][<?php echo esc_attr( $i ); ?>][weight]" value="<?php echo esc_attr( $item['weight'] ); ?>"></td><td><input type="checkbox" name="workflow[<?php echo esc_attr( $key ); ?>][<?php echo esc_attr( $i ); ?>][enabled]" value="1" <?php checked( ! empty( $item['enabled'] ) ); ?>></td><td><input type="radio" name="workflow[<?php echo esc_attr( $key ); ?>_default]" value="<?php echo esc_attr( $i ); ?>" <?php checked( ! empty( $item['default'] ) ); ?>></td></tr>
+            <tr><td><input type="hidden" name="workflow[<?php echo esc_attr( $key ); ?>][<?php echo esc_attr( $i ); ?>][builtin]" value="<?php echo ! empty( $item['builtin'] ) ? '1' : '0'; ?>"><input type="text" name="workflow[<?php echo esc_attr( $key ); ?>][<?php echo esc_attr( $i ); ?>][name]" value="<?php echo esc_attr( $item['name'] ); ?>"></td><td><input type="text" name="workflow[<?php echo esc_attr( $key ); ?>][<?php echo esc_attr( $i ); ?>][slug]" value="<?php echo esc_attr( $item['slug'] ); ?>" <?php echo $item['slug'] ? 'readonly' : ''; ?>></td><td><input type="color" name="workflow[<?php echo esc_attr( $key ); ?>][<?php echo esc_attr( $i ); ?>][color]" value="<?php echo esc_attr( $item['color'] ); ?>"></td><td><input type="number" name="workflow[<?php echo esc_attr( $key ); ?>][<?php echo esc_attr( $i ); ?>][weight]" value="<?php echo esc_attr( $item['weight'] ); ?>"></td><td><input type="checkbox" name="workflow[<?php echo esc_attr( $key ); ?>][<?php echo esc_attr( $i ); ?>][enabled]" value="1" <?php checked( ! empty( $item['enabled'] ) ); ?>></td><td><input type="radio" name="workflow[<?php echo esc_attr( $key ); ?>_default]" value="<?php echo esc_attr( $i ); ?>" <?php checked( ! empty( $item['default'] ) ); ?>></td></tr>
         <?php endforeach; ?></tbody></table></div>
         <?php
     }
@@ -183,17 +185,29 @@ final class WorkflowPage {
     }
 
     public function delete_tag() {
-        $this->guard(); $id = isset( $_GET['tag_id'] ) ? absint( $_GET['tag_id'] ) : 0; check_admin_referer( 'bfcamel_crm_delete_tag_' . $id ); TagService::delete_catalog_tag( $id ); $this->redirect( 'tags' );
+        $this->guard(); $id = isset( $_GET['tag_id'] ) ? absint( $_GET['tag_id'] ) : 0; check_admin_referer( 'bfcamel_crm_delete_tag_' . $id ); $result=TagService::delete_catalog_tag( $id ); if(is_wp_error($result))wp_die(esc_html($result->get_error_message())); if(!$result)wp_die(esc_html__( 'Could not remove a tag.', 'bfcamel-crm' )); $this->redirect( 'tags' );
     }
 
     public function archive_form() {
-        $this->guard_forms(); $id = isset( $_GET['form_id'] ) ? absint( $_GET['form_id'] ) : 0; check_admin_referer( 'bfcamel_crm_archive_form' ); Repository::archive( $id, get_current_user_id() ); wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-forms&archived=1' ) ); exit;
+        $this->guard_forms(); $id = isset( $_GET['form_id'] ) ? absint( $_GET['form_id'] ) : 0; check_admin_referer( 'bfcamel_crm_archive_form' ); if(!Repository::archive( $id, get_current_user_id() ))wp_die(esc_html__( 'The form could not be updated.', 'bfcamel-crm' )); wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-forms&archived=1' ) ); exit;
     }
     public function restore_form() {
-        $this->guard_forms(); $id = isset( $_GET['form_id'] ) ? absint( $_GET['form_id'] ) : 0; check_admin_referer( 'bfcamel_crm_restore_form' ); Repository::restore( $id, get_current_user_id() ); wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-forms&restored=1' ) ); exit;
+        $this->guard_forms(); $id = isset( $_GET['form_id'] ) ? absint( $_GET['form_id'] ) : 0; check_admin_referer( 'bfcamel_crm_restore_form' ); if(!Repository::restore( $id, get_current_user_id() ))wp_die(esc_html__( 'The form could not be updated.', 'bfcamel-crm' )); wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-forms&restored=1' ) ); exit;
     }
 
     private function redirect( $tab ) { wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-workflow&tab=' . $tab . '&saved=1' ) ); exit; }
     private function guard() { if ( ! current_user_can( 'bfcamel_crm_manage_settings' ) && ! current_user_can( 'manage_options' ) ) wp_die( esc_html__( 'You do not have permission to access this page.', 'bfcamel-crm' ) ); }
     private function guard_forms() { if ( ! current_user_can( 'bfcamel_crm_manage_forms' ) ) wp_die( esc_html__( 'You do not have permission to access this page.', 'bfcamel-crm' ) ); }
+
+    private function badge_styles() {
+        $rules = array();
+        foreach ( array( 'status'=>'bfcamel-crm-badge', 'priority'=>'bfcamel-crm-priority' ) as $type => $class ) {
+            foreach ( WorkflowService::definitions( $type, false ) as $item ) {
+                $slug = sanitize_html_class( $item['slug'] );
+                $color = WorkflowService::color( $type, $item['slug'] );
+                if ( $slug && $color ) $rules[] = '.' . $class . '--' . $slug . '{box-shadow:inset 4px 0 0 ' . $color . ';}';
+            }
+        }
+        return implode( '', $rules );
+    }
 }

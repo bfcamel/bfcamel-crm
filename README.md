@@ -2,20 +2,18 @@
 
 **BfCamel CRM** is an open-source WordPress form builder and lightweight CRM developed by the People & Camels Charity Foundation.
 
-Version **0.3.2** expands the everyday CRM workspace while preserving the established WordPress plugin identity and in-place update path introduced in earlier releases.
+Version **0.4.1** is the audited bug-fix release for the configurable workflow introduced in 0.4.0. It preserves the established WordPress plugin identity and in-place update path.
 
-## 0.3.2 CRM workspace
+## 0.4.1 audit fixes
 
-- Edit contact name, organization, primary email and primary phone with audited changes.
-- Add internal notes to contacts and submissions with author and timestamp history.
-- Run bulk actions on submissions: status, priority, responsible employee, add tags and remove tags.
-- Run bulk tag actions on contacts.
-- Filter contacts by personal-data and marketing consent status.
-- See both consent statuses directly in the contacts list.
-- Open **My submissions** as a one-click view for the current WordPress user.
-- Use pagination above and below contacts and submissions tables.
-- Export selected contacts to UTF-8 CSV or native XLSX in addition to filtered exports.
-- Use the updated complete Russian (`ru_RU`) interface.
+- Built-in statuses and priorities follow the current WordPress user locale, including Russian.
+- Dashboard cards use the configured default status and highest priority instead of hard-coded slugs.
+- Custom workflow colors are visible in admin badges, and custom slugs fit their database columns.
+- At least one enabled default status and priority is always retained.
+- The one-column form setting now changes the rendered layout.
+- Form publishing, public submission capture and tag-catalog changes are transactional.
+- Incomplete bulk actions and failed archive, restore or tag operations no longer report false success.
+- Release publication is blocked unless the PHP 7.4/8.1/8.3, smoke, duplicate-load and JavaScript checks pass.
 
 ## Upgrade compatibility
 

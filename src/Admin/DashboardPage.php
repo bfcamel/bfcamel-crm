@@ -3,6 +3,7 @@ namespace BfCamel\CRM\Admin;
 
 use BfCamel\CRM\CRM\ContactService;
 use BfCamel\CRM\CRM\SubmissionService;
+use BfCamel\CRM\CRM\WorkflowService;
 use BfCamel\CRM\Database\Schema;
 use BfCamel\CRM\Forms\Repository;
 
@@ -31,16 +32,16 @@ final class DashboardPage {
             $recent = SubmissionService::query( array(), 1, 8 );
             $workload = SubmissionService::workload();
             $cards[] = array( 'value' => $counts['total'], 'label' => __( 'All submissions', 'bfcamel-crm' ), 'url' => 'admin.php?page=bfcamel-crm-submissions', 'tone' => 'neutral' );
-            $cards[] = array( 'value' => $counts['new'], 'label' => __( 'New submissions', 'bfcamel-crm' ), 'url' => 'admin.php?page=bfcamel-crm-submissions&status=new', 'tone' => 'blue' );
-            $cards[] = array( 'value' => $counts['urgent'], 'label' => __( 'Urgent submissions', 'bfcamel-crm' ), 'url' => 'admin.php?page=bfcamel-crm-submissions&priority=urgent', 'tone' => 'red' );
+            $cards[] = array( 'value' => $counts['new'], 'label' => sprintf( '%s: %s', __( 'Status', 'bfcamel-crm' ), WorkflowService::label( 'status', $counts['default_status'] ) ), 'url' => 'admin.php?page=bfcamel-crm-submissions&status=' . $counts['default_status'], 'tone' => 'blue' );
+            $cards[] = array( 'value' => $counts['urgent'], 'label' => sprintf( '%s: %s', __( 'Priority', 'bfcamel-crm' ), WorkflowService::label( 'priority', $counts['top_priority'] ) ), 'url' => 'admin.php?page=bfcamel-crm-submissions&priority=' . $counts['top_priority'], 'tone' => 'red' );
             $cards[] = array( 'value' => $counts['unassigned'], 'label' => __( 'Unassigned submissions', 'bfcamel-crm' ), 'url' => 'admin.php?page=bfcamel-crm-submissions&assigned_to=0', 'tone' => 'amber' );
-            $cards[] = array( 'value' => $counts['needs_review'], 'label' => __( 'Need review', 'bfcamel-crm' ), 'url' => 'admin.php?page=bfcamel-crm-submissions&status=needs_review', 'tone' => 'amber' );
+            if ( $counts['review_status'] ) $cards[] = array( 'value' => $counts['needs_review'], 'label' => __( 'Need review', 'bfcamel-crm' ), 'url' => 'admin.php?page=bfcamel-crm-submissions&status=' . $counts['review_status'], 'tone' => 'amber' );
         }
         if ( $can_contacts ) {
             $cards[] = array( 'value' => ContactService::count(), 'label' => __( 'Contacts', 'bfcamel-crm' ), 'url' => 'admin.php?page=bfcamel-crm-contacts', 'tone' => 'green' );
         }
         if ( $can_forms ) {
-            $cards[] = array( 'value' => count( Repository::all() ), 'label' => __( 'Forms', 'bfcamel-crm' ), 'url' => 'admin.php?page=bfcamel-crm-forms', 'tone' => 'neutral' );
+            $cards[] = array( 'value' => count( Repository::all( false ) ), 'label' => __( 'Forms', 'bfcamel-crm' ), 'url' => 'admin.php?page=bfcamel-crm-forms', 'tone' => 'neutral' );
         }
         ?>
         <div class="wrap bfcamel-crm-admin">

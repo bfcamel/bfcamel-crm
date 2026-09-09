@@ -4,6 +4,7 @@
 .bfcamel-form-grid,.bfcamel-crm-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:var(--bfcamel-gap);row-gap:var(--bfcamel-row-gap)}
 .bfcamel-field,.bfcamel-crm-field{min-width:0}.bfcamel-col-12{grid-column:span 12}.bfcamel-col-6{grid-column:span 6}.bfcamel-col-4{grid-column:span 4}.bfcamel-col-3{grid-column:span 3}
 .bfcamel-crm-field--100{grid-column:span 12}.bfcamel-crm-field--50{grid-column:span 6}.bfcamel-crm-field--33{grid-column:span 4}.bfcamel-crm-field--25{grid-column:span 3}
+.bfcamel-form-columns-1 .bfcamel-field{grid-column:span 12}
 .bfcamel-form-honeypot,.bfcamel-crm-hp{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important}
 .bfcamel-form--default,.bfcamel-form--custom{color:var(--bfcamel-text)}
 .bfcamel-form--default .bfcamel-label,.bfcamel-form--custom .bfcamel-label{display:block;margin:0 0 6px;font-size:.82em;font-weight:700;line-height:1.35;color:var(--bfcamel-primary)}

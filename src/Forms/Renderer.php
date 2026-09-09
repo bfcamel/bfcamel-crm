@@ -25,7 +25,7 @@ final class Renderer {
         $revision = Repository::current_revision( $form ); if ( ! $revision ) return '';
         $schema = Repository::decode_schema( $revision ); $settings = Repository::decode_settings( $revision ); wp_enqueue_style( 'bfcamel-crm-frontend' );
         $mode = 'theme' === $settings['style_mode'] ? 'unstyled' : sanitize_key( $settings['style_mode'] );
-        $classes = array( 'bfcamel-form', 'bfcamel-crm-form', 'bfcamel-form--'.$mode, 'bfcamel-crm-form--'.$settings['style_mode'], 'bfcamel-form-id-'.absint($form->id) );
+        $classes = array( 'bfcamel-form', 'bfcamel-crm-form', 'bfcamel-form--'.$mode, 'bfcamel-crm-form--'.$settings['style_mode'], 'bfcamel-form-columns-'.( '1' === (string) $settings['columns'] ? '1' : '2' ), 'bfcamel-form-id-'.absint($form->id) );
         if ( ! empty( $settings['custom_class'] ) ) $classes[] = sanitize_html_class( $settings['custom_class'] );
         $style = sprintf('--bfcamel-primary:%1$s;--bfcamel-text:%2$s;--bfcamel-field-bg:%3$s;--bfcamel-border:%4$s;--bfcamel-button:%5$s;--bfcamel-button-text:%6$s;--bfcamel-radius:%7$dpx;',esc_attr($settings['primary_color']),esc_attr($settings['text_color']),esc_attr($settings['field_bg']),esc_attr($settings['border_color']),esc_attr($settings['button_color']),esc_attr($settings['button_text']),absint($settings['border_radius']));
         $state = isset($_GET['bfcamel_crm_form'])?sanitize_key(wp_unslash($_GET['bfcamel_crm_form'])):''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended

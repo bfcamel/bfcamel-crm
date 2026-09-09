@@ -27,16 +27,16 @@ final class WorkflowService {
     public static function default_config() {
         return array(
             'statuses' => array(
-                array( 'slug' => 'new', 'name' => __( 'New', 'bfcamel-crm' ), 'color' => '#2271b1', 'weight' => 10, 'enabled' => 1, 'default' => 1 ),
-                array( 'slug' => 'in_progress', 'name' => __( 'In progress', 'bfcamel-crm' ), 'color' => '#dba617', 'weight' => 20, 'enabled' => 1, 'default' => 0 ),
-                array( 'slug' => 'waiting', 'name' => __( 'Waiting', 'bfcamel-crm' ), 'color' => '#8c8f94', 'weight' => 30, 'enabled' => 1, 'default' => 0 ),
-                array( 'slug' => 'completed', 'name' => __( 'Completed', 'bfcamel-crm' ), 'color' => '#00a32a', 'weight' => 100, 'enabled' => 1, 'default' => 0 ),
-                array( 'slug' => 'needs_review', 'name' => __( 'Needs review', 'bfcamel-crm' ), 'color' => '#d63638', 'weight' => 90, 'enabled' => 1, 'default' => 0 ),
+                array( 'slug' => 'new', 'name' => 'New', 'color' => '#2271b1', 'weight' => 10, 'enabled' => 1, 'default' => 1, 'builtin' => 1 ),
+                array( 'slug' => 'in_progress', 'name' => 'In progress', 'color' => '#dba617', 'weight' => 20, 'enabled' => 1, 'default' => 0, 'builtin' => 1 ),
+                array( 'slug' => 'waiting', 'name' => 'Waiting', 'color' => '#8c8f94', 'weight' => 30, 'enabled' => 1, 'default' => 0, 'builtin' => 1 ),
+                array( 'slug' => 'completed', 'name' => 'Completed', 'color' => '#00a32a', 'weight' => 100, 'enabled' => 1, 'default' => 0, 'builtin' => 1 ),
+                array( 'slug' => 'needs_review', 'name' => 'Needs review', 'color' => '#d63638', 'weight' => 90, 'enabled' => 1, 'default' => 0, 'builtin' => 1 ),
             ),
             'priorities' => array(
-                array( 'slug' => 'normal', 'name' => __( 'Normal', 'bfcamel-crm' ), 'color' => '#8c8f94', 'weight' => 10, 'enabled' => 1, 'default' => 1 ),
-                array( 'slug' => 'high', 'name' => __( 'High', 'bfcamel-crm' ), 'color' => '#dba617', 'weight' => 20, 'enabled' => 1, 'default' => 0 ),
-                array( 'slug' => 'urgent', 'name' => __( 'Urgent', 'bfcamel-crm' ), 'color' => '#d63638', 'weight' => 30, 'enabled' => 1, 'default' => 0 ),
+                array( 'slug' => 'normal', 'name' => 'Normal', 'color' => '#8c8f94', 'weight' => 10, 'enabled' => 1, 'default' => 1, 'builtin' => 1 ),
+                array( 'slug' => 'high', 'name' => 'High', 'color' => '#dba617', 'weight' => 20, 'enabled' => 1, 'default' => 0, 'builtin' => 1 ),
+                array( 'slug' => 'urgent', 'name' => 'Urgent', 'color' => '#d63638', 'weight' => 30, 'enabled' => 1, 'default' => 0, 'builtin' => 1 ),
             ),
         );
     }
@@ -52,6 +52,7 @@ final class WorkflowService {
             if ( empty( $config[ $key ] ) || ! is_array( $config[ $key ] ) ) {
                 $config[ $key ] = $defaults[ $key ];
             }
+            $config[ $key ] = self::prepare_rows( $key, $config[ $key ] );
         }
         return $config;
     }
@@ -64,7 +65,7 @@ final class WorkflowService {
             if ( ! is_array( $item ) || empty( $item['slug'] ) || empty( $item['name'] ) ) {
                 continue;
             }
-            $item = wp_parse_args( $item, array( 'color' => '#8c8f94', 'weight' => 0, 'enabled' => 1, 'default' => 0 ) );
+            $item = wp_parse_args( $item, array( 'color' => '#8c8f94', 'weight' => 0, 'enabled' => 1, 'default' => 0, 'builtin' => 0 ) );
             if ( $active_only && empty( $item['enabled'] ) ) {
                 continue;
             }
@@ -130,14 +131,25 @@ final class WorkflowService {
         $saved = array();
         foreach ( array( 'statuses', 'priorities' ) as $key ) {
             $rows = isset( $posted[ $key ] ) && is_array( $posted[ $key ] ) ? $posted[ $key ] : array();
-            $saved[ $key ] = self::sanitize_rows( $rows, $current[ $key ] );
+            $saved[ $key ] = self::sanitize_rows( $key, $rows, $current[ $key ] );
             if ( ! $saved[ $key ] ) $saved[ $key ] = $current[ $key ];
             $has_default = false;
+            $has_enabled = false;
             foreach ( $saved[ $key ] as &$row ) {
-                if ( ! empty( $row['enabled'] ) && ! empty( $row['default'] ) && ! $has_default ) $has_default = true;
-                else $row['default'] = 0;
+                if ( ! empty( $row['enabled'] ) ) {
+                    $has_enabled = true;
+                    if ( ! empty( $row['default'] ) && ! $has_default ) $has_default = true;
+                    else $row['default'] = 0;
+                } else {
+                    $row['default'] = 0;
+                }
             }
             unset( $row );
+            if ( ! $has_enabled && $saved[ $key ] ) {
+                $saved[ $key ][0]['enabled'] = 1;
+                $saved[ $key ][0]['default'] = 1;
+                $has_default = true;
+            }
             if ( ! $has_default ) {
                 foreach ( $saved[ $key ] as &$row ) {
                     if ( ! empty( $row['enabled'] ) ) { $row['default'] = 1; break; }
@@ -149,28 +161,131 @@ final class WorkflowService {
         return $saved;
     }
 
-    private static function sanitize_rows( $rows, $existing ) {
-        $result = array(); $seen = array();
+    private static function sanitize_rows( $type, $rows, $existing ) {
+        $result = array(); $seen = array(); $existing_by_slug = array();
+        foreach ( (array) $existing as $item ) {
+            if ( is_array( $item ) && ! empty( $item['slug'] ) ) {
+                $existing_by_slug[ sanitize_key( $item['slug'] ) ] = $item;
+            }
+        }
         foreach ( $rows as $row ) {
             if ( ! is_array( $row ) ) continue;
-            $name = sanitize_text_field( $row['name'] ?? '' );
+            $name = self::truncate_text( sanitize_text_field( $row['name'] ?? '' ), 190 );
             $slug = sanitize_key( $row['slug'] ?? '' );
             if ( '' === $name && '' === $slug ) continue;
             if ( '' === $name ) $name = $slug;
             if ( '' === $slug ) $slug = sanitize_title( $name );
             $slug = sanitize_key( str_replace( '-', '_', $slug ) );
+            $slug = self::bounded_slug( $type, $slug, $name );
             if ( '' === $slug || isset( $seen[ $slug ] ) ) continue;
             $seen[ $slug ] = true;
+            $existing_item = $existing_by_slug[ $slug ] ?? array();
+            $builtin_name = self::builtin_name( $type, $slug );
+            $was_builtin = ! empty( $row['builtin'] ) || ! empty( $existing_item['builtin'] );
+            $is_builtin = $was_builtin && '' !== $builtin_name && $name === $builtin_name;
             $result[] = array(
                 'slug' => $slug,
-                'name' => $name,
+                'name' => $is_builtin ? self::builtin_source_name( $type, $slug ) : $name,
                 'color' => sanitize_hex_color( $row['color'] ?? '' ) ?: '#8c8f94',
                 'weight' => (int) ( $row['weight'] ?? 0 ),
                 'enabled' => ! empty( $row['enabled'] ) ? 1 : 0,
                 'default' => ! empty( $row['default'] ) ? 1 : 0,
+                'builtin' => $is_builtin ? 1 : 0,
             );
         }
         return $result;
+    }
+
+    private static function prepare_rows( $type, $rows ) {
+        $result = array();
+        $has_enabled = false;
+        $has_default = false;
+        foreach ( (array) $rows as $row ) {
+            if ( ! is_array( $row ) ) continue;
+            $row = wp_parse_args( $row, array( 'slug'=>'', 'name'=>'', 'color'=>'#8c8f94', 'weight'=>0, 'enabled'=>1, 'default'=>0, 'builtin'=>null ) );
+            $row['slug'] = sanitize_key( $row['slug'] );
+            if ( '' === $row['slug'] || '' === (string) $row['name'] ) continue;
+            if ( null === $row['builtin'] ) {
+                $source_name = self::builtin_source_name( $type, $row['slug'] );
+                $translated_name = self::builtin_name( $type, $row['slug'] );
+                $row['builtin'] = '' !== $source_name && in_array( (string) $row['name'], array( $source_name, $translated_name ), true ) ? 1 : 0;
+            }
+            if ( ! empty( $row['builtin'] ) ) {
+                $translated_name = self::builtin_name( $type, $row['slug'] );
+                if ( '' !== $translated_name ) $row['name'] = $translated_name;
+            }
+            $row['enabled'] = ! empty( $row['enabled'] ) ? 1 : 0;
+            $row['default'] = ! empty( $row['default'] ) ? 1 : 0;
+            if ( $row['enabled'] ) {
+                $has_enabled = true;
+                if ( $row['default'] && ! $has_default ) $has_default = true;
+                else $row['default'] = 0;
+            } else {
+                $row['default'] = 0;
+            }
+            $result[] = $row;
+        }
+        if ( ! $result ) return self::prepare_rows( $type, self::default_config()[ $type ] );
+        if ( ! $has_enabled ) $result[0]['enabled'] = 1;
+        if ( ! $has_default ) {
+            foreach ( $result as &$row ) {
+                if ( ! empty( $row['enabled'] ) ) { $row['default'] = 1; break; }
+            }
+            unset( $row );
+        }
+        return $result;
+    }
+
+    private static function builtin_names() {
+        return array(
+            'statuses' => array(
+                'new'          => __( 'New', 'bfcamel-crm' ),
+                'in_progress'  => __( 'In progress', 'bfcamel-crm' ),
+                'waiting'      => __( 'Waiting', 'bfcamel-crm' ),
+                'completed'    => __( 'Completed', 'bfcamel-crm' ),
+                'needs_review' => __( 'Needs review', 'bfcamel-crm' ),
+            ),
+            'priorities' => array(
+                'normal' => __( 'Normal', 'bfcamel-crm' ),
+                'high'   => __( 'High', 'bfcamel-crm' ),
+                'urgent' => __( 'Urgent', 'bfcamel-crm' ),
+            ),
+        );
+    }
+
+    private static function builtin_source_names() {
+        return array(
+            'statuses' => array( 'new'=>'New', 'in_progress'=>'In progress', 'waiting'=>'Waiting', 'completed'=>'Completed', 'needs_review'=>'Needs review' ),
+            'priorities' => array( 'normal'=>'Normal', 'high'=>'High', 'urgent'=>'Urgent' ),
+        );
+    }
+
+    private static function builtin_name( $type, $slug ) {
+        $names = self::builtin_names();
+        return isset( $names[ $type ][ $slug ] ) ? $names[ $type ][ $slug ] : '';
+    }
+
+    private static function builtin_source_name( $type, $slug ) {
+        $names = self::builtin_source_names();
+        return isset( $names[ $type ][ $slug ] ) ? $names[ $type ][ $slug ] : '';
+    }
+
+    private static function bounded_slug( $type, $slug, $name ) {
+        $max = 'priorities' === $type ? 20 : 40;
+        if ( '' === $slug ) $slug = ( 'priorities' === $type ? 'p_' : 's_' ) . substr( hash( 'sha256', (string) $name ), 0, 16 );
+        if ( strlen( $slug ) > $max ) $slug = substr( $slug, 0, $max - 9 ) . '_' . substr( hash( 'sha256', $slug ), 0, 8 );
+        return $slug;
+    }
+
+    private static function truncate_text( $value, $length ) {
+        $value = (string) $value;
+        if ( function_exists( 'mb_substr' ) ) return mb_substr( $value, 0, $length, 'UTF-8' );
+        if ( function_exists( 'iconv_substr' ) ) {
+            $truncated = iconv_substr( $value, 0, $length, 'UTF-8' );
+            if ( false !== $truncated ) return $truncated;
+        }
+        if ( preg_match_all( '/./us', $value, $characters ) ) return implode( '', array_slice( $characters[0], 0, $length ) );
+        return substr( $value, 0, $length );
     }
 
     public static function rules() {

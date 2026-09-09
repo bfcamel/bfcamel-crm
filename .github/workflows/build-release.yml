@@ -13,7 +13,28 @@ permissions:
   contents: read
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.1', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+
+      - name: Validate source
+        run: |
+          find . -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php tests/smoke.php
+          php tests/duplicate-load.php
+          find assets -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+
   package:
+    needs: validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +67,8 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           name: bfcamel-crm-release
@@ -62,11 +85,19 @@ jobs:
             echo "Release $tag already exists; leaving its immutable assets unchanged."
             exit 0
           fi
+          notes_file="$(mktemp)"
+          awk -v version="$version" '
+            $0 == "## " version { found=1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > "$notes_file"
+          test -s "$notes_file"
+          printf '\n### Installation\n\nUpload `bfcamel-crm.zip` through Plugins → Add Plugin → Upload Plugin. Do not use GitHub source-code archives.\n' >> "$notes_file"
           gh release create "$tag" \
             "$versioned_zip#BfCamel CRM $version for WordPress" \
             "bfcamel-crm.zip#BfCamel CRM — stable install/update package" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "BfCamel CRM $version" \
-            --notes "Install or update through Plugins → Add Plugin → Upload Plugin using bfcamel-crm.zip. Do not use GitHub's Source code archives." \
+            --notes-file "$notes_file" \
             --latest

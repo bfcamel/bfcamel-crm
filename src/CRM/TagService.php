@@ -29,35 +29,40 @@ final class TagService {
         global $wpdb;
         $table = Schema::table( 'tags' );
         $scope_map = WorkflowService::tag_scopes();
+        if ( ! Schema::begin_transaction() ) return new \WP_Error( 'bfcamel_crm_tag_transaction', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
         foreach ( (array) $rows as $row ) {
             if ( ! is_array( $row ) ) continue;
             $id = absint( $row['id'] ?? 0 );
-            $name = self::truncate_name( trim( sanitize_text_field( wp_unslash( (string) ( $row['name'] ?? '' ) ) ) ) );
+            $name = self::truncate_name( trim( sanitize_text_field( (string) ( $row['name'] ?? '' ) ) ) );
             if ( ! $id && '' === $name ) continue;
             if ( $id ) {
                 if ( '' === $name ) continue;
                 $slug = self::slug( $name );
                 $duplicate = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE slug=%s AND id<>%d LIMIT 1", $slug, $id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                if ( $duplicate ) continue;
-                $wpdb->update( $table, array( 'name'=>$name, 'slug'=>$slug, 'updated_at'=>current_time('mysql') ), array( 'id'=>$id ), array('%s','%s','%s'), array('%d') );
+                if ( $duplicate ) return self::rollback_error( __( 'Could not create a tag.', 'bfcamel-crm' ) );
+                if ( false === $wpdb->update( $table, array( 'name'=>$name, 'slug'=>$slug, 'updated_at'=>current_time('mysql') ), array( 'id'=>$id ), array('%s','%s','%s'), array('%d') ) ) return self::rollback_error( __( 'Could not create a tag.', 'bfcamel-crm' ) );
             } else {
                 $id = self::get_or_create( $name );
-                if ( is_wp_error( $id ) ) return $id;
+                if ( is_wp_error( $id ) ) { Schema::rollback(); return $id; }
             }
             $scope_map[ absint( $id ) ] = array( 'submission'=>!empty($row['submission'])?1:0, 'contact'=>!empty($row['contact'])?1:0 );
         }
         WorkflowService::save_tag_scopes( $scope_map );
+        if ( ! Schema::commit() ) return self::rollback_error( __( 'Could not create a tag.', 'bfcamel-crm' ) );
         return true;
     }
 
     public static function delete_catalog_tag( $tag_id ) {
         global $wpdb;
         $tag_id = absint( $tag_id ); if ( ! $tag_id ) return false;
+        if ( ! Schema::begin_transaction() ) return new \WP_Error( 'bfcamel_crm_tag_transaction', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
         $submission_links = Schema::table('submission_tags'); $contact_links = Schema::table('contact_tags'); $tags=Schema::table('tags');
-        $wpdb->delete($submission_links,array('tag_id'=>$tag_id),array('%d')); $wpdb->delete($contact_links,array('tag_id'=>$tag_id),array('%d'));
+        if(false===$wpdb->delete($submission_links,array('tag_id'=>$tag_id),array('%d'))||false===$wpdb->delete($contact_links,array('tag_id'=>$tag_id),array('%d')))return self::rollback_error(__( 'Could not remove a tag.', 'bfcamel-crm' ));
         $deleted = $wpdb->delete($tags,array('id'=>$tag_id),array('%d'));
+        if(false===$deleted)return self::rollback_error(__( 'Could not remove a tag.', 'bfcamel-crm' ));
         $map = WorkflowService::tag_scopes(); unset($map[$tag_id]); WorkflowService::save_tag_scopes($map);
-        return false !== $deleted;
+        if(!Schema::commit())return self::rollback_error(__( 'Could not remove a tag.', 'bfcamel-crm' ));
+        return (bool)$deleted;
     }
 
     public static function for_submission( $submission_id ) { return self::for_entity( 'submission', $submission_id ); }
@@ -96,4 +101,5 @@ final class TagService {
     private static function find_by_name( $name ) { global $wpdb; $table=Schema::table('tags'); return (int)$wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE slug=%s LIMIT 1",self::slug($name))); }
     private static function get_or_create( $name ) { global $wpdb; $table=Schema::table('tags');$slug=self::slug($name);$existing=self::find_by_name($name);if($existing)return $existing;$now=current_time('mysql');$inserted=$wpdb->insert($table,array('name'=>$name,'slug'=>$slug,'created_at'=>$now,'updated_at'=>$now),array('%s','%s','%s','%s'));if($inserted)return absint($wpdb->insert_id);$existing=self::find_by_name($name);return $existing?$existing:self::database_error(__( 'Could not create a tag.', 'bfcamel-crm' )); }
     private static function database_error( $fallback ) { global $wpdb; return new \WP_Error('bfcamel_crm_tag_database_error',$wpdb->last_error?$fallback.' '.sanitize_text_field($wpdb->last_error):$fallback); }
+    private static function rollback_error( $fallback ) { $error=self::database_error($fallback);Schema::rollback();return $error; }
 }

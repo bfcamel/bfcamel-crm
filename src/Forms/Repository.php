@@ -28,19 +28,49 @@ final class Repository {
     }
 
     public static function save( $id, $name, $slug, $schema, $settings, $user_id ) {
-        global $wpdb; $forms=Schema::table('forms');$revisions=Schema::table('form_revisions');$now=current_time('mysql');$id=absint($id);$name=sanitize_text_field($name);$slug=sanitize_title($slug?:$name);$user_id=absint($user_id);
-        if(''===$name)return new \WP_Error('bfcamel_crm_form_name',__( 'Form name is required.', 'bfcamel-crm' ));
-        if(''===$slug)return new \WP_Error('bfcamel_crm_form_slug',__( 'Form slug is required.', 'bfcamel-crm' ));
-        $duplicate=(int)$wpdb->get_var($wpdb->prepare("SELECT id FROM {$forms} WHERE slug=%s AND id<>%d LIMIT 1",$slug,$id));
-        if($duplicate)return new \WP_Error('bfcamel_crm_form_slug_exists',__( 'Another form already uses this slug.', 'bfcamel-crm' ));
-        $schema=self::sanitize_schema($schema);$settings=self::sanitize_settings($settings);if(is_wp_error($schema))return $schema;
-        if($id){$updated=$wpdb->update($forms,array('name'=>$name,'slug'=>$slug,'settings_json'=>wp_json_encode($settings),'updated_at'=>$now),array('id'=>$id),array('%s','%s','%s','%s'),array('%d'));if(false===$updated)return new \WP_Error('bfcamel_crm_form_update',__( 'The form could not be updated.', 'bfcamel-crm' ));}
-        else{$inserted=$wpdb->insert($forms,array('name'=>$name,'slug'=>$slug,'status'=>'publish','current_revision_id'=>0,'settings_json'=>wp_json_encode($settings),'created_by'=>$user_id,'created_at'=>$now,'updated_at'=>$now),array('%s','%s','%s','%d','%s','%d','%s','%s'));if(!$inserted)return new \WP_Error('bfcamel_crm_form_insert',__( 'The form could not be created.', 'bfcamel-crm' ));$id=absint($wpdb->insert_id);}
-        $version=(int)$wpdb->get_var($wpdb->prepare("SELECT MAX(version) FROM {$revisions} WHERE form_id=%d",$id));$version++;
-        $inserted_revision=$wpdb->insert($revisions,array('form_id'=>$id,'version'=>$version,'schema_json'=>wp_json_encode($schema),'settings_json'=>wp_json_encode($settings),'created_by'=>$user_id,'created_at'=>$now),array('%d','%d','%s','%s','%d','%s'));
-        if(!$inserted_revision)return new \WP_Error('bfcamel_crm_revision_insert',__( 'The form revision could not be created.', 'bfcamel-crm' ));
-        $revision_id=absint($wpdb->insert_id);$wpdb->update($forms,array('current_revision_id'=>$revision_id,'updated_at'=>$now),array('id'=>$id),array('%d','%s'),array('%d'));
-        Schema::log('form',$id,'revision_published',sprintf(__( 'Form revision %d published.', 'bfcamel-crm' ),$version),array('revision_id'=>$revision_id,'version'=>$version),$user_id);
+        global $wpdb;
+        $forms = Schema::table( 'forms' );
+        $revisions = Schema::table( 'form_revisions' );
+        $now = current_time( 'mysql' );
+        $id = absint( $id );
+        $name = sanitize_text_field( $name );
+        $slug = sanitize_title( $slug ?: $name );
+        $user_id = absint( $user_id );
+        if ( '' === $name ) return new \WP_Error( 'bfcamel_crm_form_name', __( 'Form name is required.', 'bfcamel-crm' ) );
+        if ( '' === $slug ) return new \WP_Error( 'bfcamel_crm_form_slug', __( 'Form slug is required.', 'bfcamel-crm' ) );
+
+        $schema = self::sanitize_schema( $schema );
+        if ( is_wp_error( $schema ) ) return $schema;
+        $settings = self::sanitize_settings( $settings );
+        if ( ! Schema::begin_transaction() ) return new \WP_Error( 'bfcamel_crm_form_transaction', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
+
+        if ( $id && ! $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$forms} WHERE id=%d FOR UPDATE", $id ) ) ) {
+            return self::rollback_error( 'bfcamel_crm_form_update', __( 'The form could not be updated.', 'bfcamel-crm' ) );
+        }
+        $duplicate = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$forms} WHERE slug=%s AND id<>%d LIMIT 1", $slug, $id ) );
+        if ( $duplicate ) return self::rollback_error( 'bfcamel_crm_form_slug_exists', __( 'Another form already uses this slug.', 'bfcamel-crm' ) );
+
+        if ( $id ) {
+            $updated = $wpdb->update( $forms, array( 'name'=>$name, 'slug'=>$slug, 'settings_json'=>wp_json_encode($settings), 'updated_at'=>$now ), array( 'id'=>$id ), array( '%s','%s','%s','%s' ), array( '%d' ) );
+            if ( false === $updated ) return self::rollback_error( 'bfcamel_crm_form_update', __( 'The form could not be updated.', 'bfcamel-crm' ) );
+        } else {
+            $inserted = $wpdb->insert( $forms, array( 'name'=>$name, 'slug'=>$slug, 'status'=>'publish', 'current_revision_id'=>0, 'settings_json'=>wp_json_encode($settings), 'created_by'=>$user_id, 'created_at'=>$now, 'updated_at'=>$now ), array( '%s','%s','%s','%d','%s','%d','%s','%s' ) );
+            if ( ! $inserted ) return self::rollback_error( 'bfcamel_crm_form_insert', __( 'The form could not be created.', 'bfcamel-crm' ) );
+            $id = absint( $wpdb->insert_id );
+        }
+
+        $version = (int) $wpdb->get_var( $wpdb->prepare( "SELECT MAX(version) FROM {$revisions} WHERE form_id=%d", $id ) ) + 1;
+        $inserted_revision = $wpdb->insert( $revisions, array( 'form_id'=>$id, 'version'=>$version, 'schema_json'=>wp_json_encode($schema), 'settings_json'=>wp_json_encode($settings), 'created_by'=>$user_id, 'created_at'=>$now ), array( '%d','%d','%s','%s','%d','%s' ) );
+        if ( ! $inserted_revision ) return self::rollback_error( 'bfcamel_crm_revision_insert', __( 'The form revision could not be created.', 'bfcamel-crm' ) );
+
+        $revision_id = absint( $wpdb->insert_id );
+        if ( false === $wpdb->update( $forms, array( 'current_revision_id'=>$revision_id, 'updated_at'=>$now ), array( 'id'=>$id ), array( '%d','%s' ), array( '%d' ) ) ) {
+            return self::rollback_error( 'bfcamel_crm_form_update', __( 'The form could not be updated.', 'bfcamel-crm' ) );
+        }
+        if ( ! Schema::log( 'form', $id, 'revision_published', sprintf( __( 'Form revision %d published.', 'bfcamel-crm' ), $version ), array( 'revision_id'=>$revision_id, 'version'=>$version ), $user_id ) ) {
+            return self::rollback_error( 'bfcamel_crm_form_update', __( 'The form could not be updated.', 'bfcamel-crm' ) );
+        }
+        if ( ! Schema::commit() ) return self::rollback_error( 'bfcamel_crm_form_update', __( 'The form could not be updated.', 'bfcamel-crm' ) );
         return $id;
     }
 
@@ -85,5 +115,13 @@ final class Repository {
         $columns=in_array((string)$settings['columns'],array('1','2'),true)?(string)$settings['columns']:'2';$radius=min(60,max(0,absint($settings['border_radius'])));$status=sanitize_key($settings['default_status']);$priority=sanitize_key($settings['default_priority']);
         if(!WorkflowService::is_valid('status',$status))$status=WorkflowService::default_status();if(!WorkflowService::is_valid('priority',$priority))$priority=WorkflowService::default_priority();
         return array('style_mode'=>$mode,'columns'=>$columns,'primary_color'=>sanitize_hex_color($settings['primary_color'])?:$defaults['primary_color'],'text_color'=>sanitize_hex_color($settings['text_color'])?:$defaults['text_color'],'field_bg'=>sanitize_hex_color($settings['field_bg'])?:$defaults['field_bg'],'border_color'=>sanitize_hex_color($settings['border_color'])?:$defaults['border_color'],'button_color'=>sanitize_hex_color($settings['button_color'])?:$defaults['button_color'],'button_text'=>sanitize_hex_color($settings['button_text'])?:$defaults['button_text'],'border_radius'=>(string)$radius,'custom_class'=>sanitize_html_class($settings['custom_class']),'submit_label'=>sanitize_text_field($settings['submit_label']),'success_message'=>sanitize_text_field($settings['success_message']),'error_message'=>sanitize_text_field($settings['error_message']),'default_status'=>$status,'default_priority'=>$priority);
+    }
+
+    private static function rollback_error( $code, $message ) {
+        global $wpdb;
+        $database_error = $wpdb->last_error;
+        Schema::rollback();
+        if ( $database_error ) $message .= ' ' . sanitize_text_field( $database_error );
+        return new \WP_Error( $code, $message );
     }
 }
