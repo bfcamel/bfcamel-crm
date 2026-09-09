@@ -53,17 +53,97 @@ final class ContactService {
             'contact',
             $contact_id,
             'form_sync',
-            __( 'Contact synchronized from a form submission.', 'bfcamel-crm' ),
+            'Contact synchronized from a form submission.',
             array( 'status' => $status )
         );
 
         return array( 'contact_id' => $contact_id, 'status' => $status );
     }
 
-    public static function get( $contact_id ) {
+    public static function get( $contact_id, $for_update = false ) {
         global $wpdb;
         $table = Schema::table( 'contacts' );
-        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id=%d LIMIT 1", absint( $contact_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id=%d LIMIT 1" . ( $for_update ? ' FOR UPDATE' : '' ), absint( $contact_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    }
+
+    public static function query( $filters = array(), $page = 1, $per_page = 25 ) {
+        global $wpdb;
+        $contacts = Schema::table( 'contacts' );
+        $emails = Schema::table( 'contact_emails' );
+        $phones = Schema::table( 'contact_phones' );
+        $tags = Schema::table( 'tags' );
+        $links = Schema::table( 'contact_tags' );
+
+        $where = array( '1=1' );
+        $args = array();
+        $search = isset( $filters['search'] ) ? trim( (string) $filters['search'] ) : '';
+        if ( '' !== $search ) {
+            $like = '%' . $wpdb->esc_like( $search ) . '%';
+            $where[] = "(c.display_name LIKE %s OR c.organization LIKE %s
+                OR EXISTS (SELECT 1 FROM {$emails} e1 WHERE e1.contact_id=c.id AND e1.value LIKE %s)
+                OR EXISTS (SELECT 1 FROM {$phones} p1 WHERE p1.contact_id=c.id AND p1.value LIKE %s))";
+            $args = array_merge( $args, array( $like, $like, $like, $like ) );
+        }
+
+        $tag_id = isset( $filters['tag_id'] ) ? absint( $filters['tag_id'] ) : 0;
+        if ( $tag_id ) {
+            $where[] = "EXISTS (SELECT 1 FROM {$links} ctf WHERE ctf.contact_id=c.id AND ctf.tag_id=%d)";
+            $args[] = $tag_id;
+        }
+
+        $where_sql = implode( ' AND ', $where );
+        $count_sql = "SELECT COUNT(*) FROM {$contacts} c WHERE {$where_sql}";
+        $total = (int) $wpdb->get_var( self::prepare_sql( $count_sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $page = max( 1, absint( $page ) );
+        $per_page = min( 500, max( 10, absint( $per_page ) ) );
+        $offset = ( $page - 1 ) * $per_page;
+
+        $select_sql = "SELECT c.*,
+            (SELECT GROUP_CONCAT(e.value ORDER BY e.is_primary DESC,e.id ASC SEPARATOR ', ') FROM {$emails} e WHERE e.contact_id=c.id) AS email_values,
+            (SELECT GROUP_CONCAT(p.value ORDER BY p.is_primary DESC,p.id ASC SEPARATOR ', ') FROM {$phones} p WHERE p.contact_id=c.id) AS phone_values,
+            (SELECT GROUP_CONCAT(t.name ORDER BY t.name SEPARATOR ', ') FROM {$links} ct INNER JOIN {$tags} t ON t.id=ct.tag_id WHERE ct.contact_id=c.id) AS tag_names
+            FROM {$contacts} c
+            WHERE {$where_sql}
+            ORDER BY c.updated_at DESC,c.id DESC
+            LIMIT %d OFFSET %d";
+        $rows = $wpdb->get_results( self::prepare_sql( $select_sql, array_merge( $args, array( $per_page, $offset ) ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+
+        return array(
+            'rows'        => $rows,
+            'total'       => $total,
+            'page'        => $page,
+            'per_page'    => $per_page,
+            'total_pages' => max( 1, (int) ceil( $total / $per_page ) ),
+        );
+    }
+
+    public static function all_for_export( $filters = array() ) {
+        $rows = array();
+        $page = 1;
+        do {
+            $result = self::query( $filters, $page, 500 );
+            $rows = array_merge( $rows, (array) $result['rows'] );
+            $page++;
+        } while ( $page <= $result['total_pages'] );
+        return $rows;
+    }
+
+    public static function count() {
+        global $wpdb;
+        $table = Schema::table( 'contacts' );
+        return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    }
+
+    public static function activity( $contact_id ) {
+        global $wpdb;
+        $activity = Schema::table( 'activity_log' );
+        $users = $wpdb->users;
+        return $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT a.*, u.display_name AS actor_name FROM {$activity} a LEFT JOIN {$users} u ON u.ID=a.user_id WHERE a.entity_type='contact' AND a.entity_id=%d ORDER BY a.created_at DESC,a.id DESC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                absint( $contact_id )
+            )
+        );
     }
 
     public static function get_emails( $contact_id ) {
@@ -93,6 +173,78 @@ final class ContactService {
         return self::find_by_email( self::normalize_email( $email ) );
     }
 
+    public static function create_manual( $data, $tags, $user_id ) {
+        $data = is_array( $data ) ? $data : array();
+        $name = self::truncate_text( sanitize_text_field( $data['name'] ?? '' ), 190 );
+        $email_value = sanitize_email( $data['email'] ?? '' );
+        $phone_value = self::truncate_text( sanitize_text_field( $data['phone'] ?? '' ), 80 );
+        $organization = self::truncate_text( sanitize_text_field( $data['organization'] ?? '' ), 190 );
+
+        if ( '' === $name ) {
+            return new \WP_Error( 'bfcamel_crm_contact_name_required', __( 'Contact name is required.', 'bfcamel-crm' ) );
+        }
+        if ( ! empty( $data['email'] ) && ! self::normalize_email( $email_value ) ) {
+            return new \WP_Error( 'bfcamel_crm_contact_email_invalid', __( 'Enter a valid email address.', 'bfcamel-crm' ) );
+        }
+        if ( '' !== $phone_value && ! self::normalize_phone( $phone_value ) ) {
+            return new \WP_Error( 'bfcamel_crm_contact_phone_invalid', __( 'Enter a valid phone number.', 'bfcamel-crm' ) );
+        }
+
+        $duplicates = array_unique(
+            array_merge(
+                $email_value ? self::find_by_email( self::normalize_email( $email_value ) ) : array(),
+                $phone_value ? self::find_by_phone( self::normalize_phone( $phone_value ) ) : array()
+            )
+        );
+        if ( $duplicates ) {
+            return new \WP_Error(
+                'bfcamel_crm_contact_duplicate',
+                sprintf(
+                    /* translators: %s: existing contact IDs. */
+                    __( 'A contact with this email or phone already exists: #%s.', 'bfcamel-crm' ),
+                    implode( ', #', array_map( 'absint', $duplicates ) )
+                )
+            );
+        }
+
+        if ( ! Schema::begin_transaction() ) {
+            return new \WP_Error( 'bfcamel_crm_contact_transaction', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
+        }
+
+        $contact_id = self::create_contact(
+            array(
+                'name'         => $name,
+                'email'        => $email_value,
+                'phone'        => $phone_value,
+                'organization' => $organization,
+                'custom'       => array(),
+            )
+        );
+        if ( ! $contact_id ) {
+            return self::rollback_error( __( 'The contact could not be created.', 'bfcamel-crm' ) );
+        }
+        if ( $email_value && ! self::add_email( $contact_id, $email_value ) ) {
+            return self::rollback_error( __( 'The contact email could not be saved.', 'bfcamel-crm' ) );
+        }
+        if ( $phone_value && ! self::add_phone( $contact_id, $phone_value ) ) {
+            return self::rollback_error( __( 'The contact phone could not be saved.', 'bfcamel-crm' ) );
+        }
+
+        $tag_result = TagService::sync_contact( $contact_id, $tags );
+        if ( is_wp_error( $tag_result ) ) {
+            Schema::rollback();
+            return $tag_result;
+        }
+        if ( ! Schema::log( 'contact', $contact_id, 'contact_created_manual', 'Contact created manually.', array(), absint( $user_id ) ) ) {
+            return self::rollback_error( __( 'Could not record contact history.', 'bfcamel-crm' ) );
+        }
+        if ( ! Schema::commit() ) {
+            return self::rollback_error( __( 'The contact transaction could not be committed.', 'bfcamel-crm' ) );
+        }
+
+        return $contact_id;
+    }
+
     public static function anonymize( $contact_id ) {
         global $wpdb;
         $contact_id = absint( $contact_id );
@@ -116,7 +268,7 @@ final class ContactService {
             array( '%d' )
         );
 
-        Schema::log( 'contact', $contact_id, 'anonymized', __( 'Contact personal data anonymized.', 'bfcamel-crm' ) );
+        Schema::log( 'contact', $contact_id, 'anonymized', 'Contact personal data anonymized.' );
         return true;
     }
 
@@ -165,12 +317,12 @@ final class ContactService {
     private static function create_contact( $mapped ) {
         global $wpdb;
         $now  = current_time( 'mysql' );
-        $name = sanitize_text_field( $mapped['name'] );
+        $name = self::truncate_text( sanitize_text_field( $mapped['name'] ), 190 );
         if ( '' === $name ) {
-            $name = sanitize_email( $mapped['email'] );
+            $name = self::truncate_text( sanitize_email( $mapped['email'] ), 190 );
         }
         if ( '' === $name ) {
-            $name = sanitize_text_field( $mapped['phone'] );
+            $name = self::truncate_text( sanitize_text_field( $mapped['phone'] ), 190 );
         }
         if ( '' === $name ) {
             $name = __( 'Website contact', 'bfcamel-crm' );
@@ -180,7 +332,7 @@ final class ContactService {
             Schema::table( 'contacts' ),
             array(
                 'display_name' => $name,
-                'organization' => sanitize_text_field( $mapped['organization'] ),
+                'organization' => self::truncate_text( sanitize_text_field( $mapped['organization'] ), 190 ),
                 'status'       => 'active',
                 'created_at'   => $now,
                 'updated_at'   => $now,
@@ -198,8 +350,8 @@ final class ContactService {
             return;
         }
 
-        $name = sanitize_text_field( $mapped['name'] );
-        $org  = sanitize_text_field( $mapped['organization'] );
+        $name = self::truncate_text( sanitize_text_field( $mapped['name'] ), 190 );
+        $org  = self::truncate_text( sanitize_text_field( $mapped['organization'] ), 190 );
         $data = array( 'updated_at' => current_time( 'mysql' ) );
         $formats = array( '%s' );
 
@@ -219,16 +371,16 @@ final class ContactService {
         global $wpdb;
         $normalized = self::normalize_email( $value );
         if ( ! $normalized ) {
-            return;
+            return false;
         }
 
         $table = Schema::table( 'contact_emails' );
         $exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE contact_id=%d AND normalized=%s LIMIT 1", absint( $contact_id ), $normalized ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         if ( $exists ) {
-            return;
+            return true;
         }
         $primary = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE contact_id=%d", absint( $contact_id ) ) ) ? 0 : 1; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        $wpdb->insert(
+        return (bool) $wpdb->insert(
             $table,
             array(
                 'contact_id' => absint( $contact_id ),
@@ -244,20 +396,20 @@ final class ContactService {
         global $wpdb;
         $normalized = self::normalize_phone( $value );
         if ( ! $normalized ) {
-            return;
+            return false;
         }
 
         $table = Schema::table( 'contact_phones' );
         $exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE contact_id=%d AND normalized=%s LIMIT 1", absint( $contact_id ), $normalized ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         if ( $exists ) {
-            return;
+            return true;
         }
         $primary = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE contact_id=%d", absint( $contact_id ) ) ) ? 0 : 1; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        $wpdb->insert(
+        return (bool) $wpdb->insert(
             $table,
             array(
                 'contact_id' => absint( $contact_id ),
-                'value'      => sanitize_text_field( $value ),
+                'value'      => self::truncate_text( sanitize_text_field( $value ), 80 ),
                 'normalized' => $normalized,
                 'is_primary' => $primary,
             ),
@@ -317,12 +469,12 @@ final class ContactService {
 
     public static function normalize_email( $email ) {
         $email = sanitize_email( $email );
-        return $email && is_email( $email ) ? strtolower( $email ) : '';
+        return $email && strlen( $email ) <= 190 && is_email( $email ) ? strtolower( $email ) : '';
     }
 
     public static function normalize_phone( $phone ) {
         $digits = preg_replace( '/\D+/', '', (string) $phone );
-        return is_string( $digits ) && strlen( $digits ) >= 7 ? $digits : '';
+        return is_string( $digits ) && strlen( $digits ) >= 7 && strlen( $digits ) <= 40 ? $digits : '';
     }
 
     private static function scalar( $value ) {
@@ -339,5 +491,38 @@ final class ContactService {
             return sanitize_textarea_field( implode( ', ', $flat ) );
         }
         return is_scalar( $value ) ? sanitize_textarea_field( (string) $value ) : '';
+    }
+
+    private static function truncate_text( $value, $length ) {
+        $value = (string) $value;
+        $length = max( 1, absint( $length ) );
+        if ( function_exists( 'mb_substr' ) ) {
+            return mb_substr( $value, 0, $length, 'UTF-8' );
+        }
+        if ( function_exists( 'iconv_substr' ) ) {
+            $truncated = iconv_substr( $value, 0, $length, 'UTF-8' );
+            if ( false !== $truncated ) {
+                return $truncated;
+            }
+        }
+        if ( preg_match_all( '/./us', $value, $characters ) ) {
+            return implode( '', array_slice( $characters[0], 0, $length ) );
+        }
+        return substr( $value, 0, $length );
+    }
+
+    private static function prepare_sql( $sql, $args ) {
+        global $wpdb;
+        return $args ? $wpdb->prepare( $sql, $args ) : $sql;
+    }
+
+    private static function rollback_error( $message ) {
+        global $wpdb;
+        $database_error = $wpdb->last_error;
+        Schema::rollback();
+        if ( $database_error ) {
+            $message .= ' ' . sanitize_text_field( $database_error );
+        }
+        return new \WP_Error( 'bfcamel_crm_contact_database_error', $message );
     }
 }

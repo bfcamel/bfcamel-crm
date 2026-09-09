@@ -6,13 +6,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class Schema {
-    const VERSION = '1';
+    const VERSION = '3';
     const OPTION  = 'bfcamel_crm_db_version';
+    const ERROR_OPTION = 'bfcamel_crm_schema_error';
+
+    private static $install_errors = array();
 
     public static function maybe_upgrade() {
         if ( self::VERSION !== (string) get_option( self::OPTION, '' ) ) {
-            self::install();
+            return self::install();
         }
+
+        return true;
+    }
+
+    public static function is_current() {
+        return self::VERSION === (string) get_option( self::OPTION, '' );
+    }
+
+    public static function readiness_message() {
+        $details = get_option( self::ERROR_OPTION, array() );
+        if ( current_user_can( 'manage_options' ) && is_array( $details ) && $details ) {
+            return sprintf(
+                /* translators: %s: database error details. */
+                __( 'BfCamel CRM database upgrade failed: %s', 'bfcamel-crm' ),
+                implode( '; ', array_map( 'sanitize_text_field', $details ) )
+            );
+        }
+        if ( current_user_can( 'manage_options' ) && is_string( $details ) && '' !== $details ) {
+            return $details;
+        }
+        return __( 'The BfCamel CRM database update is not complete.', 'bfcamel-crm' );
     }
 
     public static function install() {
@@ -20,10 +44,11 @@ final class Schema {
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-        $cc = $wpdb->get_charset_collate();
+        self::$install_errors = array();
+        $cc = 'ENGINE=InnoDB ' . $wpdb->get_charset_collate();
 
         $forms = self::table( 'forms' );
-        dbDelta(
+        self::run_delta(
             "CREATE TABLE {$forms} (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 name VARCHAR(190) NOT NULL,
@@ -42,7 +67,7 @@ final class Schema {
         );
 
         $revisions = self::table( 'form_revisions' );
-        dbDelta(
+        self::run_delta(
             "CREATE TABLE {$revisions} (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 form_id BIGINT UNSIGNED NOT NULL,
@@ -59,7 +84,7 @@ final class Schema {
         );
 
         $contacts = self::table( 'contacts' );
-        dbDelta(
+        self::run_delta(
             "CREATE TABLE {$contacts} (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 display_name VARCHAR(190) NOT NULL,
@@ -76,7 +101,7 @@ final class Schema {
         );
 
         $emails = self::table( 'contact_emails' );
-        dbDelta(
+        self::run_delta(
             "CREATE TABLE {$emails} (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 contact_id BIGINT UNSIGNED NOT NULL,
@@ -91,7 +116,7 @@ final class Schema {
         );
 
         $phones = self::table( 'contact_phones' );
-        dbDelta(
+        self::run_delta(
             "CREATE TABLE {$phones} (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 contact_id BIGINT UNSIGNED NOT NULL,
@@ -106,7 +131,7 @@ final class Schema {
         );
 
         $contact_fields = self::table( 'contact_fields' );
-        dbDelta(
+        self::run_delta(
             "CREATE TABLE {$contact_fields} (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 contact_id BIGINT UNSIGNED NOT NULL,
@@ -121,7 +146,7 @@ final class Schema {
         );
 
         $submissions = self::table( 'submissions' );
-        dbDelta(
+        self::run_delta(
             "CREATE TABLE {$submissions} (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 form_id BIGINT UNSIGNED NOT NULL,
@@ -130,6 +155,8 @@ final class Schema {
                 contact_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
                 status VARCHAR(40) NOT NULL DEFAULT 'new',
                 contact_sync_status VARCHAR(40) NOT NULL DEFAULT '',
+                assigned_to BIGINT UNSIGNED NOT NULL DEFAULT 0,
+                priority VARCHAR(20) NOT NULL DEFAULT 'normal',
                 payload_json LONGTEXT NOT NULL,
                 source_url TEXT NULL,
                 source_ip VARCHAR(100) NOT NULL DEFAULT '',
@@ -142,12 +169,14 @@ final class Schema {
                 KEY contact_id (contact_id),
                 KEY status (status),
                 KEY contact_sync_status (contact_sync_status),
+                KEY assigned_to (assigned_to),
+                KEY priority (priority),
                 KEY submitted_at (submitted_at)
             ) {$cc};"
         );
 
         $consents = self::table( 'consent_events' );
-        dbDelta(
+        self::run_delta(
             "CREATE TABLE {$consents} (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 contact_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
@@ -170,8 +199,44 @@ final class Schema {
             ) {$cc};"
         );
 
+        $tags = self::table( 'tags' );
+        self::run_delta(
+            "CREATE TABLE {$tags} (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                name VARCHAR(120) NOT NULL,
+                slug VARCHAR(120) NOT NULL,
+                created_at DATETIME NOT NULL,
+                updated_at DATETIME NOT NULL,
+                PRIMARY KEY (id),
+                UNIQUE KEY slug (slug),
+                KEY name (name)
+            ) {$cc};"
+        );
+
+        $submission_tags = self::table( 'submission_tags' );
+        self::run_delta(
+            "CREATE TABLE {$submission_tags} (
+                submission_id BIGINT UNSIGNED NOT NULL,
+                tag_id BIGINT UNSIGNED NOT NULL,
+                created_at DATETIME NOT NULL,
+                PRIMARY KEY (submission_id,tag_id),
+                KEY tag_id (tag_id)
+            ) {$cc};"
+        );
+
+        $contact_tags = self::table( 'contact_tags' );
+        self::run_delta(
+            "CREATE TABLE {$contact_tags} (
+                contact_id BIGINT UNSIGNED NOT NULL,
+                tag_id BIGINT UNSIGNED NOT NULL,
+                created_at DATETIME NOT NULL,
+                PRIMARY KEY (contact_id,tag_id),
+                KEY tag_id (tag_id)
+            ) {$cc};"
+        );
+
         $activity = self::table( 'activity_log' );
-        dbDelta(
+        self::run_delta(
             "CREATE TABLE {$activity} (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 entity_type VARCHAR(30) NOT NULL,
@@ -188,7 +253,198 @@ final class Schema {
             ) {$cc};"
         );
 
+        self::ensure_transactional_tables();
+
+        $verification = self::verify();
+        if ( is_wp_error( $verification ) ) {
+            self::$install_errors[] = $verification->get_error_message();
+        }
+
+        $errors = array_values( array_unique( array_filter( array_map( 'sanitize_text_field', self::$install_errors ) ) ) );
+        if ( $errors ) {
+            $error = new \WP_Error(
+                'bfcamel_crm_schema_upgrade_failed',
+                sprintf(
+                    /* translators: %s: database error details. */
+                    __( 'BfCamel CRM database upgrade failed: %s', 'bfcamel-crm' ),
+                    implode( '; ', $errors )
+                )
+            );
+            update_option( self::ERROR_OPTION, $errors, false );
+            return $error;
+        }
+
         update_option( self::OPTION, self::VERSION, false );
+        delete_option( self::ERROR_OPTION );
+        return true;
+    }
+
+    private static function run_delta( $sql ) {
+        global $wpdb;
+        $wpdb->last_error = '';
+        dbDelta( $sql );
+        if ( $wpdb->last_error ) {
+            self::$install_errors[] = $wpdb->last_error;
+        }
+    }
+
+    private static function ensure_transactional_tables() {
+        global $wpdb;
+
+        foreach ( self::required_tables() as $suffix ) {
+            $table = self::table( $suffix );
+            $engine = self::table_engine( $table );
+            if ( ! $engine || 0 === strcasecmp( 'InnoDB', $engine ) ) {
+                continue;
+            }
+
+            $wpdb->last_error = '';
+            $changed = $wpdb->query( "ALTER TABLE `{$table}` ENGINE=InnoDB" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            if ( false === $changed || $wpdb->last_error ) {
+                self::$install_errors[] = $wpdb->last_error ?: sprintf( 'Could not enable transactions for %s.', $table );
+            }
+        }
+    }
+
+    public static function verify() {
+        global $wpdb;
+
+        $required_tables = self::required_tables();
+        $missing = array();
+
+        foreach ( $required_tables as $suffix ) {
+            $table = self::table( $suffix );
+            $found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
+            if ( $table !== $found ) {
+                $missing[] = $table;
+            }
+        }
+
+        if ( ! $missing ) {
+            $required_columns = array(
+                'submissions'     => array( 'assigned_to', 'priority' ),
+                'tags'            => array( 'id', 'name', 'slug' ),
+                'submission_tags' => array( 'submission_id', 'tag_id' ),
+                'contact_tags'    => array( 'contact_id', 'tag_id' ),
+                'activity_log'    => array( 'meta_json', 'user_id' ),
+            );
+            foreach ( $required_columns as $suffix => $expected ) {
+                $table = self::table( $suffix );
+                $columns = $wpdb->get_col( "SHOW COLUMNS FROM `{$table}`", 0 ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                foreach ( $expected as $column ) {
+                    if ( ! in_array( $column, (array) $columns, true ) ) {
+                        $missing[] = $table . '.' . $column;
+                    }
+                }
+            }
+        }
+
+        if ( ! $missing ) {
+            $required_indexes = array(
+                array( 'tags', 'slug', array( 'slug' ) ),
+                array( 'submission_tags', 'PRIMARY', array( 'submission_id', 'tag_id' ) ),
+                array( 'contact_tags', 'PRIMARY', array( 'contact_id', 'tag_id' ) ),
+            );
+            foreach ( $required_indexes as $index ) {
+                $table = self::table( $index[0] );
+                if ( $index[2] !== self::index_columns( $table, $index[1] ) || ! self::index_is_unique( $table, $index[1] ) ) {
+                    $missing[] = $table . '.' . $index[1];
+                }
+            }
+        }
+
+        if ( ! $missing ) {
+            foreach ( $required_tables as $suffix ) {
+                $table = self::table( $suffix );
+                $engine = self::table_engine( $table );
+                if ( 0 !== strcasecmp( 'InnoDB', (string) $engine ) ) {
+                    $missing[] = $table . ' (InnoDB)';
+                }
+            }
+        }
+
+        if ( $missing ) {
+            return new \WP_Error(
+                'bfcamel_crm_schema_incomplete',
+                sprintf(
+                    /* translators: %s: comma-separated database tables or columns. */
+                    __( 'Required database objects are missing: %s', 'bfcamel-crm' ),
+                    implode( ', ', $missing )
+                )
+            );
+        }
+
+        return true;
+    }
+
+    private static function required_tables() {
+        return array(
+            'forms',
+            'form_revisions',
+            'contacts',
+            'contact_emails',
+            'contact_phones',
+            'contact_fields',
+            'submissions',
+            'consent_events',
+            'tags',
+            'submission_tags',
+            'contact_tags',
+            'activity_log',
+        );
+    }
+
+    private static function table_engine( $table ) {
+        global $wpdb;
+        $status = $wpdb->get_row( $wpdb->prepare( 'SHOW TABLE STATUS LIKE %s', $wpdb->esc_like( $table ) ) );
+        return $status && isset( $status->Engine ) ? (string) $status->Engine : '';
+    }
+
+    private static function index_columns( $table, $index_name ) {
+        global $wpdb;
+        $rows = $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $columns = array();
+        foreach ( (array) $rows as $row ) {
+            if ( isset( $row['Key_name'], $row['Column_name'] ) && (string) $row['Key_name'] === (string) $index_name ) {
+                $sequence = isset( $row['Seq_in_index'] ) ? absint( $row['Seq_in_index'] ) : count( $columns ) + 1;
+                $columns[ $sequence ] = (string) $row['Column_name'];
+            }
+        }
+        ksort( $columns );
+        return array_values( $columns );
+    }
+
+    private static function index_is_unique( $table, $index_name ) {
+        global $wpdb;
+        $rows = $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        foreach ( (array) $rows as $row ) {
+            if ( isset( $row['Key_name'], $row['Non_unique'] ) && (string) $row['Key_name'] === (string) $index_name ) {
+                return 0 === absint( $row['Non_unique'] );
+            }
+        }
+        return false;
+    }
+
+    public static function admin_notice() {
+        if ( ! get_option( self::ERROR_OPTION, array() ) || ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+        echo '<div class="notice notice-error"><p>' . esc_html( self::readiness_message() ) . '</p></div>';
+    }
+
+    public static function begin_transaction() {
+        global $wpdb;
+        return false !== $wpdb->query( 'START TRANSACTION' );
+    }
+
+    public static function commit() {
+        global $wpdb;
+        return false !== $wpdb->query( 'COMMIT' );
+    }
+
+    public static function rollback() {
+        global $wpdb;
+        $wpdb->query( 'ROLLBACK' );
     }
 
     public static function table( $name ) {
@@ -199,7 +455,7 @@ final class Schema {
     public static function log( $entity_type, $entity_id, $event_type, $message, $meta = array(), $user_id = 0 ) {
         global $wpdb;
 
-        $wpdb->insert(
+        return (bool) $wpdb->insert(
             self::table( 'activity_log' ),
             array(
                 'entity_type' => sanitize_key( $entity_type ),

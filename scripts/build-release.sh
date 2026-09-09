@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-for cmd in msgfmt msgunfmt zip rsync php unzip; do
+for cmd in msgfmt msgunfmt msgattrib msgcmp zip rsync php unzip; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "$cmd is required." >&2
     exit 1
@@ -14,6 +14,28 @@ done
 VERSION="$(php -r '$data=file_get_contents("bfcamel-crm.php"); if (preg_match("/^[[:space:]]*\\*[[:space:]]*Version:[[:space:]]*([^[:space:]]+)/mi", $data, $m)) { echo $m[1]; }')"
 if [[ -z "$VERSION" ]]; then
   echo "Could not read plugin version from bfcamel-crm.php" >&2
+  exit 1
+fi
+
+CONSTANT_VERSION="$(php -r '$data=file_get_contents("bfcamel-crm.php"); if (preg_match("/define\\(\\s*[\"\x27]BFCAMEL_CRM_VERSION[\"\x27]\\s*,\\s*[\"\x27]([^\"\x27]+)[\"\x27]/", $data, $m)) { echo $m[1]; }')"
+STABLE_TAG="$(sed -n 's/^Stable tag:[[:space:]]*//p' readme.txt | head -n1)"
+if [[ "$VERSION" != "$CONSTANT_VERSION" || "$VERSION" != "$STABLE_TAG" ]]; then
+  echo "Plugin header, BFCAMEL_CRM_VERSION and Stable tag must match." >&2
+  exit 1
+fi
+
+if ! grep -Fq 'Plugin Name: BfCamel CRM' bfcamel-crm.php || ! grep -Fq 'Text Domain: bfcamel-crm' bfcamel-crm.php || ! grep -Fq 'Domain Path: /languages' bfcamel-crm.php || ! grep -Fq 'Update URI: https://github.com/bfcamel/bfcamel-crm' bfcamel-crm.php; then
+  echo "The established WordPress plugin identity changed." >&2
+  exit 1
+fi
+
+msgcmp --use-fuzzy languages/bfcamel-crm-ru_RU.po languages/bfcamel-crm.pot
+if msgattrib --untranslated --no-obsolete languages/bfcamel-crm-ru_RU.po | grep -q '^#:'; then
+  echo "Russian catalog contains untranslated strings." >&2
+  exit 1
+fi
+if msgattrib --only-fuzzy --no-obsolete languages/bfcamel-crm-ru_RU.po | grep -q '^#:'; then
+  echo "Russian catalog contains fuzzy translations." >&2
   exit 1
 fi
 
@@ -28,6 +50,7 @@ rsync -a ./ "$PACKAGE_DIR/" \
   --exclude='.git/' \
   --exclude='.github/' \
   --exclude='scripts/' \
+  --exclude='tests/' \
   --exclude='build/' \
   --exclude='*.zip' \
   --exclude='.DS_Store' \
@@ -42,7 +65,8 @@ MO_FILE="$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.mo"
 
 # Build the binary catalog from the UTF-8 PO source on every release. The MO is
 # intentionally not committed to Git because a stale binary caused mojibake in
-# 0.1.3. Runtime Russian localization also has a PO fallback for safety.
+# 0.1.3. WordPress loads this freshly compiled catalog through its standard
+# text-domain mechanism.
 msgfmt --check --check-format "$PO_FILE" -o "$MO_FILE"
 
 # Fail the release if the generated catalog cannot be decoded or if a known

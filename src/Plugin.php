@@ -1,7 +1,8 @@
 <?php
 namespace BfCamel\CRM;
 
-use BfCamel\CRM\Admin\Admin;
+use BfCamel\CRM\Access\RoleManager;
+use BfCamel\CRM\Admin\Bootstrap;
 use BfCamel\CRM\Database\Schema;
 use BfCamel\CRM\Forms\Renderer;
 use BfCamel\CRM\Forms\SubmissionHandler;
@@ -32,48 +33,39 @@ final class Plugin {
 
         $this->booted = true;
 
-        Schema::maybe_upgrade();
+        if ( is_admin() || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+            add_action( 'init', array( $this, 'upgrade' ), 1 );
+        }
+        RoleManager::register();
 
         Renderer::instance()->register();
         SubmissionHandler::instance()->register();
         Privacy::instance()->register();
 
         if ( is_admin() ) {
-            Admin::instance()->register();
+            add_action( 'admin_notices', array( 'BfCamel\\CRM\\Database\\Schema', 'admin_notice' ) );
+            Bootstrap::instance()->register();
         }
+    }
+
+    public function upgrade() {
+        Schema::maybe_upgrade();
+        RoleManager::ensure_roles();
     }
 
     public static function activate() {
-        Schema::install();
-        self::grant_capabilities();
+        $installed = Schema::install();
+        if ( is_wp_error( $installed ) ) {
+            wp_die( esc_html( $installed->get_error_message() ) );
+        }
         self::seed_defaults();
+        RoleManager::ensure_roles();
     }
 
-    public static function deactivate() {
-        // No scheduled jobs in 0.1.0.
-    }
-
-    private static function grant_capabilities() {
-        $administrator = get_role( 'administrator' );
-        if ( ! $administrator ) {
-            return;
-        }
-
-        foreach ( self::capabilities() as $capability ) {
-            $administrator->add_cap( $capability );
-        }
-    }
+    public static function deactivate() {}
 
     public static function capabilities() {
-        return array(
-            'bfcamel_crm_manage_forms',
-            'bfcamel_crm_view_submissions',
-            'bfcamel_crm_edit_submissions',
-            'bfcamel_crm_manage_contacts',
-            'bfcamel_crm_manage_consents',
-            'bfcamel_crm_export_data',
-            'bfcamel_crm_manage_settings',
-        );
+        return RoleManager::all_capabilities();
     }
 
     private static function seed_defaults() {

@@ -6,61 +6,7 @@
     else document.addEventListener('DOMContentLoaded', fn);
   }
 
-  function applyRuntimeTranslations() {
-    var runtime = (window.BfCamelCRMI18n && window.BfCamelCRMI18n.runtime) || {};
-    var statuses = runtime.statuses || {};
-    var sync = runtime.sync || {};
-    var consentTypes = runtime.consentTypes || {};
-    var consentStatuses = runtime.consentStatuses || {};
-    var stats = runtime.stats || {};
-
-    document.querySelectorAll('.bfcamel-crm-stat span').forEach(function (node) {
-      var raw = node.textContent.trim();
-      if (stats[raw]) node.textContent = stats[raw];
-    });
-
-    document.querySelectorAll('.bfcamel-crm-badge').forEach(function (node) {
-      var raw = node.textContent.trim();
-      if (statuses[raw]) node.textContent = statuses[raw];
-    });
-
-    document.querySelectorAll('select[name="status"] option').forEach(function (option) {
-      if (statuses[option.value]) option.textContent = statuses[option.value];
-    });
-
-    document.querySelectorAll('.bfcamel-crm-admin table td').forEach(function (node) {
-      var raw = node.textContent.trim();
-      if (statuses[raw]) node.textContent = statuses[raw];
-    });
-
-    document.querySelectorAll('.bfcamel-crm-admin p').forEach(function (node) {
-      Array.prototype.forEach.call(node.childNodes, function (child) {
-        if (child.nodeType !== 3) return;
-        var raw = child.nodeValue.trim();
-        if (sync[raw]) child.nodeValue = ' ' + sync[raw];
-      });
-    });
-
-    document.querySelectorAll('.bfcamel-crm-timeline li').forEach(function (item) {
-      var strong = item.querySelector('strong');
-      if (strong) {
-        var type = strong.textContent.trim();
-        if (consentTypes[type]) strong.textContent = consentTypes[type];
-      }
-      Array.prototype.forEach.call(item.childNodes, function (child) {
-        if (child.nodeType !== 3) return;
-        var text = child.nodeValue;
-        Object.keys(consentStatuses).forEach(function (status) {
-          text = text.replace(status, consentStatuses[status]);
-        });
-        child.nodeValue = text;
-      });
-    });
-  }
-
   ready(function () {
-    applyRuntimeTranslations();
-
     var root = document.getElementById('bfcamel-crm-builder');
     var hidden = document.getElementById('bfcamel-crm-schema-json');
     if (!root || !hidden || typeof window.BfCamelCRMBuilder === 'undefined') return;

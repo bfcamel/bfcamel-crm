@@ -59,7 +59,7 @@ final class ConsentService {
                 'contact',
                 absint( $contact_id ),
                 'consent_' . sanitize_key( $status ),
-                sprintf( __( '%1$s consent: %2$s.', 'bfcamel-crm' ), sanitize_text_field( $consent_type ), sanitize_text_field( $status ) ),
+                'Consent status recorded.',
                 array( 'submission_id' => absint( $submission_id ), 'consent_type' => sanitize_key( $consent_type ) )
             );
         }
