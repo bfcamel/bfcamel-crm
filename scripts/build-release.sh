@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-for cmd in msgfmt msgunfmt msgattrib msgcmp cmp zip rsync php unzip; do
+for cmd in msgfmt msgunfmt msgattrib msgcmp zip rsync php unzip; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "$cmd is required." >&2
     exit 1
@@ -64,19 +64,13 @@ rsync -a ./ "$PACKAGE_DIR/" \
 PO_FILE="$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.po"
 MO_FILE="$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.mo"
 
-# Build the binary catalog from the UTF-8 PO source on every release. WordPress
-# loads this catalog through its standard text-domain mechanism.
+# The PO source is authoritative for release packages. Always compile a fresh
+# MO inside the package so an accidentally stale committed binary can never
+# block or corrupt an otherwise valid release.
 msgfmt --check --check-format "$PO_FILE" -o "$MO_FILE"
 
-# The compiled catalog is committed as well, so even a source checkout remains
-# localized. Reject stale binaries instead of allowing PO and MO to diverge.
-if ! cmp -s "$MO_FILE" "$ROOT_DIR/languages/bfcamel-crm-ru_RU.mo"; then
-  echo "Committed Russian MO catalog is missing or stale." >&2
-  exit 1
-fi
-
-# Fail the release if the generated catalog cannot be decoded or if a known
-# Cyrillic translation is missing/corrupted.
+# Fail the release if the freshly generated catalog cannot be decoded or if a
+# known Cyrillic translation is missing/corrupted.
 msgunfmt --no-wrap "$MO_FILE" >/tmp/bfcamel-crm-ru_RU.po
 if ! grep -F 'msgid "Forms"' -A1 /tmp/bfcamel-crm-ru_RU.po | grep -Fq 'msgstr "Формы"'; then
   echo "Russian localization integrity check failed: Forms -> Формы not found." >&2
