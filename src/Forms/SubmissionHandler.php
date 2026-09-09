@@ -23,13 +23,16 @@ final class SubmissionHandler {
         $schema=Repository::decode_schema($revision);$result=$this->validate_payload($schema,$_POST); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         if(is_wp_error($result))$this->redirect($return_url,$form_id,'error');
         $payload=$result;$settings=Repository::decode_settings($revision);$workflow=WorkflowService::evaluate($form_id,$settings,$payload);$source=$this->source_context($return_url);$uuid=wp_generate_uuid4();
+        if(!Schema::begin_transaction())$this->redirect($return_url,$form_id,'error');
         global $wpdb;$inserted=$wpdb->insert(Schema::table('submissions'),array('form_id'=>$form_id,'revision_id'=>$revision_id,'submission_uuid'=>$uuid,'contact_id'=>0,'status'=>$workflow['status'],'contact_sync_status'=>'pending','assigned_to'=>0,'priority'=>$workflow['priority'],'payload_json'=>wp_json_encode($payload),'source_url'=>$source['source_url'],'source_ip'=>$source['source_ip'],'user_agent'=>$source['user_agent'],'submitted_at'=>current_time('mysql')),array('%d','%d','%s','%d','%s','%s','%d','%s','%s','%s','%s','%s','%s'));
-        if(!$inserted)$this->redirect($return_url,$form_id,'error');
+        if(!$inserted)$this->rollback_and_redirect($return_url,$form_id);
         $submission_id=absint($wpdb->insert_id);$contact=ContactService::resolve_and_sync($schema,$payload);$contact_id=absint($contact['contact_id']??0);$sync_status=sanitize_key($contact['status']??'error');
+        if('error'===$sync_status)$this->rollback_and_redirect($return_url,$form_id);
         $status=$workflow['status'];if('conflict'===$sync_status){$status=WorkflowService::is_valid('status','needs_review')?'needs_review':WorkflowService::default_status();}
-        $wpdb->update(Schema::table('submissions'),array('contact_id'=>$contact_id,'contact_sync_status'=>$sync_status,'status'=>$status),array('id'=>$submission_id),array('%d','%s','%s'),array('%d'));
-        ConsentService::capture_from_submission($submission_id,$contact_id,$form_id,$revision_id,$schema,$payload,$source);
-        Schema::log('submission',$submission_id,'created','Form submission received.',array('form_id'=>$form_id,'revision_id'=>$revision_id,'submission_uuid'=>$uuid,'contact_id'=>$contact_id,'contact_sync_status'=>$sync_status,'status'=>$status,'priority'=>$workflow['priority']));
+        if(false===$wpdb->update(Schema::table('submissions'),array('contact_id'=>$contact_id,'contact_sync_status'=>$sync_status,'status'=>$status),array('id'=>$submission_id),array('%d','%s','%s'),array('%d')))$this->rollback_and_redirect($return_url,$form_id);
+        if(!ConsentService::capture_from_submission($submission_id,$contact_id,$form_id,$revision_id,$schema,$payload,$source))$this->rollback_and_redirect($return_url,$form_id);
+        if(!Schema::log('submission',$submission_id,'created','Form submission received.',array('form_id'=>$form_id,'revision_id'=>$revision_id,'submission_uuid'=>$uuid,'contact_id'=>$contact_id,'contact_sync_status'=>$sync_status,'status'=>$status,'priority'=>$workflow['priority'])))$this->rollback_and_redirect($return_url,$form_id);
+        if(!Schema::commit())$this->rollback_and_redirect($return_url,$form_id);
         do_action('bfcamel_crm_submission_created',$submission_id,$contact_id,$form_id,$revision_id);$this->redirect($return_url,$form_id,'success');
     }
 
@@ -38,5 +41,6 @@ final class SubmissionHandler {
     private function is_empty($value){if(is_array($value))return 0===count($value);if(is_bool($value))return false===$value;return''===trim((string)$value);}
     private function source_context($source_url){$settings=get_option('bfcamel_crm_settings',array());$store_ip=!empty($settings['store_ip']);$ip='';if($store_ip&&!empty($_SERVER['REMOTE_ADDR'])){$candidate=sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR']));if(filter_var($candidate,FILTER_VALIDATE_IP))$ip=$candidate;}return array('source_url'=>esc_url_raw($source_url),'source_ip'=>$ip,'user_agent'=>isset($_SERVER['HTTP_USER_AGENT'])?substr(sanitize_textarea_field(wp_unslash($_SERVER['HTTP_USER_AGENT'])),0,1000):'');}
     private function is_rate_limited($form_id){$ip=isset($_SERVER['REMOTE_ADDR'])?sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])):'';$key='bfcamel_crm_rl_'.md5($form_id.'|'.$ip);if(get_transient($key))return true;set_transient($key,1,5);return false;}
+    private function rollback_and_redirect($url,$form_id){Schema::rollback();$this->redirect($url,$form_id,'error');}
     private function redirect($url,$form_id,$state){$url=remove_query_arg(array('bfcamel_crm_form','bfcamel_crm_form_id'),$url);$url=add_query_arg(array('bfcamel_crm_form'=>sanitize_key($state),'bfcamel_crm_form_id'=>absint($form_id)),$url);wp_safe_redirect($url);exit;}
 }

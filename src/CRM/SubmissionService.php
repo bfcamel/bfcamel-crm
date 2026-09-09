@@ -65,19 +65,29 @@ final class SubmissionService {
         global $wpdb;
         $ids = array_values( array_unique( array_filter( array_map( 'absint', (array) $submission_ids ) ) ) );
         if ( ! $ids ) return new \WP_Error( 'bfcamel_crm_bulk_empty', __( 'Select at least one submission.', 'bfcamel-crm' ) );
+        $action = sanitize_key( $action );
+        if ( 'status' === $action && ! isset( self::statuses()[ sanitize_key( $value ) ] ) ) return new \WP_Error( 'bfcamel_crm_bulk_status', __( 'Choose status', 'bfcamel-crm' ) );
+        if ( 'priority' === $action && ! isset( self::priorities()[ sanitize_key( $value ) ] ) ) return new \WP_Error( 'bfcamel_crm_bulk_priority', __( 'Choose priority', 'bfcamel-crm' ) );
+        if ( 'assigned_to' === $action ) {
+            $assignee = absint( $value );
+            $allowed = array_map( 'absint', wp_list_pluck( self::assignees(), 'ID' ) );
+            if ( $assignee && ! in_array( $assignee, $allowed, true ) ) return new \WP_Error( 'bfcamel_crm_bulk_assignee', __( 'Choose a bulk action.', 'bfcamel-crm' ) );
+        }
+        if ( in_array( $action, array( 'add_tags','remove_tags' ), true ) && '' === trim( (string) $value ) ) return new \WP_Error( 'bfcamel_crm_bulk_tags', __( 'Select tags', 'bfcamel-crm' ) );
+        if ( ! in_array( $action, array( 'status','priority','assigned_to','add_tags','remove_tags' ), true ) ) return new \WP_Error( 'bfcamel_crm_bulk_action', __( 'Choose a bulk action.', 'bfcamel-crm' ) );
         if ( ! Schema::begin_transaction() ) return new \WP_Error( 'bfcamel_crm_bulk_transaction', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
         foreach ( $ids as $id ) {
             $current = self::get( $id, true );
             if ( ! $current ) { Schema::rollback(); return new \WP_Error( 'bfcamel_crm_bulk_missing', __( 'One of the selected submissions no longer exists.', 'bfcamel-crm' ) ); }
             if ( 'status' === $action ) {
-                $new = sanitize_key( $value ); if ( ! isset( self::statuses()[ $new ] ) ) continue;
+                $new = sanitize_key( $value );
                 if ( (string) $current->status !== $new && ( false === $wpdb->update( Schema::table('submissions'), array('status'=>$new), array('id'=>$id), array('%s'), array('%d') ) || ! Schema::log('submission',$id,'status_changed','Submission status changed.',array('from'=>$current->status,'to'=>$new),$user_id) ) ) { Schema::rollback(); return new \WP_Error('bfcamel_crm_bulk_failed',__( 'Could not update selected submissions.', 'bfcamel-crm' )); }
             } elseif ( 'priority' === $action ) {
-                $new = sanitize_key( $value ); if ( ! isset( self::priorities()[ $new ] ) ) continue;
+                $new = sanitize_key( $value );
                 $old = $current->priority ?: WorkflowService::default_priority();
                 if ( $old !== $new && ( false === $wpdb->update( Schema::table('submissions'), array('priority'=>$new), array('id'=>$id), array('%s'), array('%d') ) || ! Schema::log('submission',$id,'priority_changed','Submission priority changed.',array('from'=>$old,'to'=>$new),$user_id) ) ) { Schema::rollback(); return new \WP_Error('bfcamel_crm_bulk_failed',__( 'Could not update selected submissions.', 'bfcamel-crm' )); }
             } elseif ( 'assigned_to' === $action ) {
-                $new = absint( $value ); $allowed = array_map( 'absint', wp_list_pluck( self::assignees(), 'ID' ) ); if ( $new && ! in_array( $new, $allowed, true ) ) continue;
+                $new = absint( $value );
                 if ( absint( $current->assigned_to ) !== $new && ( false === $wpdb->update( Schema::table('submissions'), array('assigned_to'=>$new), array('id'=>$id), array('%d'), array('%d') ) || ! Schema::log('submission',$id,'assignee_changed','Submission assignee changed.',array('from'=>absint($current->assigned_to),'to'=>$new),$user_id) ) ) { Schema::rollback(); return new \WP_Error('bfcamel_crm_bulk_failed',__( 'Could not update selected submissions.', 'bfcamel-crm' )); }
             } elseif ( in_array( $action, array( 'add_tags','remove_tags' ), true ) ) {
                 $old = TagService::names_for_submission( $id ); $incoming = array_values( array_filter( array_map( 'trim', preg_split( '/[,;\n\r]+/u', (string) $value ) ) ) );
@@ -97,14 +107,17 @@ final class SubmissionService {
     }
 
     public static function dashboard_counts() {
-        global $wpdb; $table=Schema::table('submissions'); $default=WorkflowService::default_status(); $review=isset(self::statuses()['needs_review'])?'needs_review':$default; $top=WorkflowService::highest_priority();
+        global $wpdb; $table=Schema::table('submissions'); $default=WorkflowService::default_status(); $review=WorkflowService::is_valid('status','needs_review')?'needs_review':''; $top=WorkflowService::highest_priority();
         $completed = isset( self::statuses()['completed'] ) ? 'completed' : '';
         return array(
             'total'=>(int)$wpdb->get_var("SELECT COUNT(*) FROM {$table}"),
             'new'=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE status=%s",$default)),
-            'needs_review'=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE status=%s",$review)),
+            'needs_review'=>$review?(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE status=%s",$review)):0,
             'urgent'=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE priority=%s",$top)),
             'unassigned'=>(int)$wpdb->get_var($completed ? $wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE assigned_to=0 AND status<>%s",$completed) : "SELECT COUNT(*) FROM {$table} WHERE assigned_to=0"),
+            'default_status'=>$default,
+            'review_status'=>$review,
+            'top_priority'=>$top,
         );
     }
 

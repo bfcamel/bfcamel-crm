@@ -33,8 +33,8 @@ final class ActivityFormatter {
                 return sprintf(
                     /* translators: 1: previous priority, 2: new priority. */
                     __( 'Priority: %1$s → %2$s', 'bfcamel-crm' ),
-                    SubmissionService::priority_label( $meta['from'] ?? 'normal' ),
-                    SubmissionService::priority_label( $meta['to'] ?? 'normal' )
+                    SubmissionService::priority_label( $meta['from'] ?? WorkflowService::default_priority() ),
+                    SubmissionService::priority_label( $meta['to'] ?? WorkflowService::default_priority() )
                 );
             case 'assignee_changed':
                 return sprintf(

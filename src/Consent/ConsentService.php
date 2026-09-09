@@ -46,7 +46,10 @@ final class ConsentService {
             $field_status = self::status_from_form_value( $payload[ $name ] ?? '' );
             if ( ! isset( $choices[ $consent_type ] ) || 'granted' === $field_status ) $choices[ $consent_type ] = $field_status;
         }
-        foreach ( $choices as $consent_type => $status ) self::record( $contact_id, $submission_id, $consent_type, $status, $form_id, $revision_id, self::document_snapshot( $consent_type ), $source, 0, 'form' );
+        foreach ( $choices as $consent_type => $status ) {
+            if ( ! self::record( $contact_id, $submission_id, $consent_type, $status, $form_id, $revision_id, self::document_snapshot( $consent_type ), $source, 0, 'form' ) ) return false;
+        }
+        return true;
     }
 
     public static function record_manual( $contact_id, $consent_type, $status, $user_id ) {

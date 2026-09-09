@@ -92,7 +92,7 @@
       var styleSelect = editor.querySelector('select[name="settings[style_mode]"]');
       if (styleSelect) {
         var themeOption = styleSelect.querySelector('option[value="theme"]');
-        if (themeOption) themeOption.textContent = 'Theme / unstyled (CSS-first)';
+        if (themeOption) themeOption.textContent = strings.styleModeTheme || 'Theme / unstyled';
       }
       editor.addEventListener('submit', function () {
         if (!schemaHidden) return;

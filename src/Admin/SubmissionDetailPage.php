@@ -5,6 +5,7 @@ use BfCamel\CRM\CRM\ActivityFormatter;
 use BfCamel\CRM\CRM\SubmissionService;
 use BfCamel\CRM\CRM\NoteService;
 use BfCamel\CRM\CRM\TagService;
+use BfCamel\CRM\CRM\WorkflowService;
 use BfCamel\CRM\Database\Schema;
 use BfCamel\CRM\Forms\Repository;
 
@@ -27,6 +28,9 @@ final class SubmissionDetailPage {
         $can_edit = current_user_can( 'bfcamel_crm_edit_submissions' );
         $statuses = $can_edit ? SubmissionService::statuses() : array();
         $priorities = $can_edit ? SubmissionService::priorities() : array();
+        if ( $can_edit && ! isset( $statuses[ $row->status ] ) ) $statuses[ $row->status ] = SubmissionService::status_label( $row->status );
+        $current_priority = $row->priority ?: WorkflowService::default_priority();
+        if ( $can_edit && ! isset( $priorities[ $current_priority ] ) ) $priorities[ $current_priority ] = SubmissionService::priority_label( $current_priority );
         $assignees = $can_edit ? SubmissionService::assignees() : array();
         $submission_tags = TagService::names_for_submission( $id );
         $all_tags = $can_edit ? TagService::all() : array();
@@ -112,7 +116,7 @@ final class SubmissionDetailPage {
                             <?php wp_nonce_field( 'bfcamel_crm_update_submission_' . $id ); ?>
 
                             <p><label><strong><?php esc_html_e( 'Status', 'bfcamel-crm' ); ?></strong><select name="status"><?php foreach ( $statuses as $value => $label ) : ?><option value="<?php echo esc_attr( $value ); ?>" <?php selected( $row->status, $value ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></label></p>
-                            <p><label><strong><?php esc_html_e( 'Priority', 'bfcamel-crm' ); ?></strong><select name="priority"><?php foreach ( $priorities as $value => $label ) : ?><option value="<?php echo esc_attr( $value ); ?>" <?php selected( $row->priority ?: 'normal', $value ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></label></p>
+                            <p><label><strong><?php esc_html_e( 'Priority', 'bfcamel-crm' ); ?></strong><select name="priority"><?php foreach ( $priorities as $value => $label ) : ?><option value="<?php echo esc_attr( $value ); ?>" <?php selected( $current_priority, $value ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></label></p>
                             <p><label><strong><?php esc_html_e( 'Responsible', 'bfcamel-crm' ); ?></strong><select name="assigned_to"><option value="0"><?php esc_html_e( 'Unassigned', 'bfcamel-crm' ); ?></option><?php foreach ( $assignees as $user ) : ?><option value="<?php echo esc_attr( $user->ID ); ?>" <?php selected( absint( $row->assigned_to ), absint( $user->ID ) ); ?>><?php echo esc_html( $user->display_name ); ?></option><?php endforeach; ?></select></label></p>
                             <p><label><strong><?php esc_html_e( 'Tags', 'bfcamel-crm' ); ?></strong><input type="text" name="tags" value="<?php echo esc_attr( implode( ', ', $submission_tags ) ); ?>" list="bfcamel-crm-tags-list" placeholder="<?php echo esc_attr__( 'e.g. urgent, transport, volunteer', 'bfcamel-crm' ); ?>"></label></p>
                             <datalist id="bfcamel-crm-tags-list"><?php foreach ( $all_tags as $tag ) : ?><option value="<?php echo esc_attr( $tag->name ); ?>"><?php endforeach; ?></datalist>
@@ -122,7 +126,7 @@ final class SubmissionDetailPage {
                         <?php else : ?>
                             <dl class="bfcamel-crm-dl">
                                 <dt><?php esc_html_e( 'Status', 'bfcamel-crm' ); ?></dt><dd><?php echo esc_html( SubmissionService::status_label( $row->status ) ); ?></dd>
-                                <dt><?php esc_html_e( 'Priority', 'bfcamel-crm' ); ?></dt><dd><?php echo esc_html( SubmissionService::priority_label( $row->priority ?: 'normal' ) ); ?></dd>
+                                <dt><?php esc_html_e( 'Priority', 'bfcamel-crm' ); ?></dt><dd><?php echo esc_html( SubmissionService::priority_label( $current_priority ) ); ?></dd>
                                 <dt><?php esc_html_e( 'Responsible', 'bfcamel-crm' ); ?></dt><dd><?php echo esc_html( $row->assignee_name ?: __( 'Unassigned', 'bfcamel-crm' ) ); ?></dd>
                                 <dt><?php esc_html_e( 'Tags', 'bfcamel-crm' ); ?></dt><dd><?php echo esc_html( $submission_tags ? implode( ', ', $submission_tags ) : '—' ); ?></dd>
                             </dl>
@@ -157,16 +161,12 @@ final class SubmissionDetailPage {
         }
 
         $statuses = SubmissionService::statuses();
-        $status = isset( $_POST['status'] ) ? sanitize_key( $_POST['status'] ) : 'new';
-        if ( ! isset( $statuses[ $status ] ) ) {
-            $status = 'new';
-        }
+        $status = isset( $_POST['status'] ) ? sanitize_key( $_POST['status'] ) : WorkflowService::default_status();
+        if ( ! isset( $statuses[ $status ] ) && $status !== sanitize_key( $current->status ) ) $status = WorkflowService::default_status();
 
         $priorities = SubmissionService::priorities();
-        $priority = isset( $_POST['priority'] ) ? sanitize_key( $_POST['priority'] ) : 'normal';
-        if ( ! isset( $priorities[ $priority ] ) ) {
-            $priority = 'normal';
-        }
+        $priority = isset( $_POST['priority'] ) ? sanitize_key( $_POST['priority'] ) : WorkflowService::default_priority();
+        if ( ! isset( $priorities[ $priority ] ) && $priority !== sanitize_key( $current->priority ) ) $priority = WorkflowService::default_priority();
 
         $assigned_to = isset( $_POST['assigned_to'] ) ? absint( $_POST['assigned_to'] ) : 0;
         if ( $assigned_to ) {
@@ -199,7 +199,8 @@ final class SubmissionDetailPage {
         if ( (string) $current->status !== $status && ! Schema::log( 'submission', $id, 'status_changed', 'Submission status changed.', array( 'from' => $current->status, 'to' => $status ), $user_id ) ) {
             self::rollback_error( __( 'Could not record submission history.', 'bfcamel-crm' ) );
         }
-        if ( (string) ( $current->priority ?: 'normal' ) !== $priority && ! Schema::log( 'submission', $id, 'priority_changed', 'Submission priority changed.', array( 'from' => $current->priority ?: 'normal', 'to' => $priority ), $user_id ) ) {
+        $previous_priority = $current->priority ?: WorkflowService::default_priority();
+        if ( (string) $previous_priority !== $priority && ! Schema::log( 'submission', $id, 'priority_changed', 'Submission priority changed.', array( 'from' => $previous_priority, 'to' => $priority ), $user_id ) ) {
             self::rollback_error( __( 'Could not record submission history.', 'bfcamel-crm' ) );
         }
         if ( absint( $current->assigned_to ) !== $assigned_to && ! Schema::log( 'submission', $id, 'assignee_changed', 'Submission assignee changed.', array( 'from' => absint( $current->assigned_to ), 'to' => $assigned_to ), $user_id ) ) {

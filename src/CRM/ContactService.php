@@ -35,28 +35,24 @@ final class ContactService {
             }
             $status = 'created';
         } else {
-            self::update_contact( $contact_id, $mapped );
+            if ( ! self::update_contact( $contact_id, $mapped ) ) return array( 'contact_id' => 0, 'status' => 'error' );
             $status = 'linked';
         }
 
-        if ( $email ) {
-            self::add_email( $contact_id, $mapped['email'] );
-        }
-        if ( $phone ) {
-            self::add_phone( $contact_id, $mapped['phone'] );
-        }
+        if ( $email && ! self::add_email( $contact_id, $mapped['email'] ) ) return array( 'contact_id' => 0, 'status' => 'error' );
+        if ( $phone && ! self::add_phone( $contact_id, $mapped['phone'] ) ) return array( 'contact_id' => 0, 'status' => 'error' );
 
         foreach ( $mapped['custom'] as $key => $value ) {
-            self::upsert_custom_field( $contact_id, $key, $value );
+            if ( ! self::upsert_custom_field( $contact_id, $key, $value ) ) return array( 'contact_id' => 0, 'status' => 'error' );
         }
 
-        Schema::log(
+        if ( ! Schema::log(
             'contact',
             $contact_id,
             'form_sync',
             'Contact synchronized from a form submission.',
             array( 'status' => $status )
-        );
+        ) ) return array( 'contact_id' => 0, 'status' => 'error' );
 
         return array( 'contact_id' => $contact_id, 'status' => $status );
     }
@@ -470,7 +466,7 @@ final class ContactService {
         global $wpdb;
         $contact = self::get( $contact_id );
         if ( ! $contact ) {
-            return;
+            return false;
         }
 
         $name = self::truncate_text( sanitize_text_field( $mapped['name'] ), 190 );
@@ -487,7 +483,7 @@ final class ContactService {
             $formats[] = '%s';
         }
 
-        $wpdb->update( Schema::table( 'contacts' ), $data, array( 'id' => absint( $contact_id ) ), $formats, array( '%d' ) );
+        return false !== $wpdb->update( Schema::table( 'contacts' ), $data, array( 'id' => absint( $contact_id ) ), $formats, array( '%d' ) );
     }
 
     private static function add_email( $contact_id, $value ) {
@@ -546,12 +542,12 @@ final class ContactService {
         $key   = sanitize_key( $key );
         $value = self::scalar( $value );
         if ( ! $key || '' === $value ) {
-            return;
+            return true;
         }
 
         $exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE contact_id=%d AND field_key=%s LIMIT 1", absint( $contact_id ), $key ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         if ( $exists ) {
-            $wpdb->update(
+            return false !== $wpdb->update(
                 $table,
                 array( 'field_value' => $value, 'updated_at' => current_time( 'mysql' ) ),
                 array( 'id' => $exists ),
@@ -559,7 +555,7 @@ final class ContactService {
                 array( '%d' )
             );
         } else {
-            $wpdb->insert(
+            return (bool) $wpdb->insert(
                 $table,
                 array(
                     'contact_id'  => absint( $contact_id ),
