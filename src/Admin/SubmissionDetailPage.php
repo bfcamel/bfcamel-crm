@@ -1,6 +1,7 @@
 <?php
 namespace BfCamel\CRM\Admin;
 
+use BfCamel\CRM\CRM\ActivityFormatter;
 use BfCamel\CRM\CRM\SubmissionService;
 use BfCamel\CRM\CRM\TagService;
 use BfCamel\CRM\Database\Schema;
@@ -22,11 +23,12 @@ final class SubmissionDetailPage {
         $schema = Repository::decode_schema( $revision );
         $payload = json_decode( $row->payload_json, true );
         $payload = is_array( $payload ) ? $payload : array();
-        $statuses = SubmissionService::statuses();
-        $priorities = SubmissionService::priorities();
-        $assignees = SubmissionService::assignees();
+        $can_edit = current_user_can( 'bfcamel_crm_edit_submissions' );
+        $statuses = $can_edit ? SubmissionService::statuses() : array();
+        $priorities = $can_edit ? SubmissionService::priorities() : array();
+        $assignees = $can_edit ? SubmissionService::assignees() : array();
         $submission_tags = TagService::names_for_submission( $id );
-        $all_tags = TagService::all();
+        $all_tags = $can_edit ? TagService::all() : array();
         $activity = SubmissionService::activity( $id );
         $updated = isset( $_GET['updated'] ) ? sanitize_key( $_GET['updated'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         ?>
@@ -70,7 +72,7 @@ final class SubmissionDetailPage {
                                     <li>
                                         <div class="bfcamel-crm-activity__dot"></div>
                                         <div>
-                                            <strong><?php echo esc_html( $event->message ); ?></strong>
+                                            <strong><?php echo esc_html( ActivityFormatter::message( $event ) ); ?></strong>
                                             <div class="bfcamel-crm-activity__meta"><?php echo esc_html( $event->actor_name ?: __( 'System', 'bfcamel-crm' ) ); ?> · <?php echo esc_html( mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $event->created_at ) ); ?></div>
                                         </div>
                                     </li>
@@ -83,9 +85,10 @@ final class SubmissionDetailPage {
                 <aside>
                     <div class="bfcamel-crm-panel bfcamel-crm-sticky">
                         <h2><?php esc_html_e( 'CRM', 'bfcamel-crm' ); ?></h2>
-                        <p><strong><?php esc_html_e( 'Contact sync', 'bfcamel-crm' ); ?>:</strong> <?php echo esc_html( $row->contact_sync_status ); ?></p>
-                        <?php if ( $row->contact_id ) : ?><p><a href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-contacts&id=' . absint( $row->contact_id ) ) ); ?>"><?php esc_html_e( 'Open contact', 'bfcamel-crm' ); ?></a></p><?php endif; ?>
+                        <p><strong><?php esc_html_e( 'Contact sync', 'bfcamel-crm' ); ?>:</strong> <?php echo esc_html( ActivityFormatter::sync_label( $row->contact_sync_status ) ); ?></p>
+                        <?php if ( $row->contact_id && current_user_can( 'bfcamel_crm_manage_contacts' ) ) : ?><p><a href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-contacts&id=' . absint( $row->contact_id ) ) ); ?>"><?php esc_html_e( 'Open contact', 'bfcamel-crm' ); ?></a></p><?php endif; ?>
 
+                        <?php if ( $can_edit ) : ?>
                         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                             <input type="hidden" name="action" value="bfcamel_crm_update_submission">
                             <input type="hidden" name="submission_id" value="<?php echo esc_attr( $id ); ?>">
@@ -99,6 +102,15 @@ final class SubmissionDetailPage {
                             <p class="description"><?php esc_html_e( 'Separate tags with commas.', 'bfcamel-crm' ); ?></p>
                             <?php submit_button( __( 'Update', 'bfcamel-crm' ), 'primary', 'submit', false ); ?>
                         </form>
+                        <?php else : ?>
+                            <dl class="bfcamel-crm-dl">
+                                <dt><?php esc_html_e( 'Status', 'bfcamel-crm' ); ?></dt><dd><?php echo esc_html( SubmissionService::status_label( $row->status ) ); ?></dd>
+                                <dt><?php esc_html_e( 'Priority', 'bfcamel-crm' ); ?></dt><dd><?php echo esc_html( SubmissionService::priority_label( $row->priority ?: 'normal' ) ); ?></dd>
+                                <dt><?php esc_html_e( 'Responsible', 'bfcamel-crm' ); ?></dt><dd><?php echo esc_html( $row->assignee_name ?: __( 'Unassigned', 'bfcamel-crm' ) ); ?></dd>
+                                <dt><?php esc_html_e( 'Tags', 'bfcamel-crm' ); ?></dt><dd><?php echo esc_html( $submission_tags ? implode( ', ', $submission_tags ) : '—' ); ?></dd>
+                            </dl>
+                            <p class="description"><?php esc_html_e( 'You have read-only access to this submission.', 'bfcamel-crm' ); ?></p>
+                        <?php endif; ?>
                     </div>
 
                     <div class="bfcamel-crm-panel">
@@ -117,8 +129,13 @@ final class SubmissionDetailPage {
         $id = isset( $_POST['submission_id'] ) ? absint( $_POST['submission_id'] ) : 0;
         check_admin_referer( 'bfcamel_crm_update_submission_' . $id );
 
-        $current = SubmissionService::get( $id );
+        if ( ! Schema::begin_transaction() ) {
+            wp_die( esc_html__( 'Could not start a database transaction.', 'bfcamel-crm' ) );
+        }
+
+        $current = SubmissionService::get( $id, true );
         if ( ! $current ) {
+            Schema::rollback();
             wp_die( esc_html__( 'Submission not found.', 'bfcamel-crm' ) );
         }
 
@@ -142,11 +159,11 @@ final class SubmissionDetailPage {
             }
         }
 
-        $raw_tags = isset( $_POST['tags'] ) ? sanitize_text_field( wp_unslash( $_POST['tags'] ) ) : '';
+        $raw_tags = isset( $_POST['tags'] ) ? wp_unslash( $_POST['tags'] ) : '';
         $old_tags = TagService::names_for_submission( $id );
 
         global $wpdb;
-        $wpdb->update(
+        $updated = $wpdb->update(
             Schema::table( 'submissions' ),
             array(
                 'status'      => $status,
@@ -157,28 +174,44 @@ final class SubmissionDetailPage {
             array( '%s', '%s', '%d' ),
             array( '%d' )
         );
+        if ( false === $updated ) {
+            self::rollback_error( __( 'The submission could not be updated.', 'bfcamel-crm' ) );
+        }
 
         $user_id = get_current_user_id();
-        if ( (string) $current->status !== $status ) {
-            Schema::log( 'submission', $id, 'status_changed', __( 'Submission status changed.', 'bfcamel-crm' ), array( 'from' => $current->status, 'to' => $status ), $user_id );
+        if ( (string) $current->status !== $status && ! Schema::log( 'submission', $id, 'status_changed', 'Submission status changed.', array( 'from' => $current->status, 'to' => $status ), $user_id ) ) {
+            self::rollback_error( __( 'Could not record submission history.', 'bfcamel-crm' ) );
         }
-        if ( (string) ( $current->priority ?: 'normal' ) !== $priority ) {
-            Schema::log( 'submission', $id, 'priority_changed', __( 'Submission priority changed.', 'bfcamel-crm' ), array( 'from' => $current->priority, 'to' => $priority ), $user_id );
+        if ( (string) ( $current->priority ?: 'normal' ) !== $priority && ! Schema::log( 'submission', $id, 'priority_changed', 'Submission priority changed.', array( 'from' => $current->priority ?: 'normal', 'to' => $priority ), $user_id ) ) {
+            self::rollback_error( __( 'Could not record submission history.', 'bfcamel-crm' ) );
         }
-        if ( absint( $current->assigned_to ) !== $assigned_to ) {
-            Schema::log( 'submission', $id, 'assignee_changed', __( 'Submission assignee changed.', 'bfcamel-crm' ), array( 'from' => absint( $current->assigned_to ), 'to' => $assigned_to ), $user_id );
+        if ( absint( $current->assigned_to ) !== $assigned_to && ! Schema::log( 'submission', $id, 'assignee_changed', 'Submission assignee changed.', array( 'from' => absint( $current->assigned_to ), 'to' => $assigned_to ), $user_id ) ) {
+            self::rollback_error( __( 'Could not record submission history.', 'bfcamel-crm' ) );
         }
 
-        $new_tags = wp_list_pluck( TagService::sync_submission( $id, $raw_tags ), 'name' );
+        $tag_result = TagService::sync_submission( $id, $raw_tags );
+        if ( is_wp_error( $tag_result ) ) {
+            self::rollback_error( $tag_result->get_error_message() );
+        }
+        $new_tags = wp_list_pluck( $tag_result, 'name' );
         $old_compare = $old_tags;
         $new_compare = $new_tags;
         sort( $old_compare );
         sort( $new_compare );
-        if ( $old_compare !== $new_compare ) {
-            Schema::log( 'submission', $id, 'tags_changed', __( 'Submission tags changed.', 'bfcamel-crm' ), array( 'from' => $old_tags, 'to' => $new_tags ), $user_id );
+        if ( $old_compare !== $new_compare && ! Schema::log( 'submission', $id, 'tags_changed', 'Submission tags changed.', array( 'from' => $old_tags, 'to' => $new_tags ), $user_id ) ) {
+            self::rollback_error( __( 'Could not record submission history.', 'bfcamel-crm' ) );
+        }
+
+        if ( ! Schema::commit() ) {
+            self::rollback_error( __( 'The submission transaction could not be committed.', 'bfcamel-crm' ) );
         }
 
         wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-submissions&id=' . $id . '&updated=1' ) );
         exit;
+    }
+
+    private static function rollback_error( $message ) {
+        Schema::rollback();
+        wp_die( esc_html( $message ), esc_html__( 'Could not update submission', 'bfcamel-crm' ), array( 'back_link' => true ) );
     }
 }

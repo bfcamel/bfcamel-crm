@@ -115,7 +115,7 @@ final class SubmissionHandler {
             'submission',
             $submission_id,
             'created',
-            __( 'Form submission received.', 'bfcamel-crm' ),
+            'Form submission received.',
             array(
                 'form_id'             => $form_id,
                 'revision_id'         => $revision_id,

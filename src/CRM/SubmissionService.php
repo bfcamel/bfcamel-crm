@@ -35,14 +35,14 @@ final class SubmissionService {
         );
         $result = array();
         foreach ( $users as $user ) {
-            if ( user_can( $user, 'bfcamel_crm_edit_submissions' ) || user_can( $user, 'edit_posts' ) ) {
+            if ( user_can( $user, 'bfcamel_crm_view_submissions' ) && user_can( $user, 'bfcamel_crm_edit_submissions' ) ) {
                 $result[] = $user;
             }
         }
         return $result;
     }
 
-    public static function get( $submission_id ) {
+    public static function get( $submission_id, $for_update = false ) {
         global $wpdb;
         $submissions = Schema::table( 'submissions' );
         $forms = Schema::table( 'forms' );
@@ -56,7 +56,7 @@ final class SubmissionService {
                  LEFT JOIN {$forms} f ON f.id=s.form_id
                  LEFT JOIN {$contacts} c ON c.id=s.contact_id
                  LEFT JOIN {$users} u ON u.ID=s.assigned_to
-                 WHERE s.id=%d LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                 WHERE s.id=%d LIMIT 1" . ( $for_update ? ' FOR UPDATE' : '' ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 absint( $submission_id )
             )
         );
@@ -149,7 +149,7 @@ final class SubmissionService {
         $total = (int) $wpdb->get_var( self::prepare_sql( $count_sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
         $page = max( 1, absint( $page ) );
-        $per_page = min( 100, max( 10, absint( $per_page ) ) );
+        $per_page = min( 500, max( 1, absint( $per_page ) ) );
         $offset = ( $page - 1 ) * $per_page;
 
         $select_sql = "SELECT s.*, f.name AS form_name, c.display_name AS contact_name, u.display_name AS assignee_name,
@@ -167,6 +167,43 @@ final class SubmissionService {
             'page'       => $page,
             'per_page'   => $per_page,
             'total_pages'=> max( 1, (int) ceil( $total / $per_page ) ),
+        );
+    }
+
+    public static function all_for_export( $filters = array() ) {
+        $rows = array();
+        $page = 1;
+        do {
+            $result = self::query( $filters, $page, 500 );
+            $rows = array_merge( $rows, (array) $result['rows'] );
+            $page++;
+        } while ( $page <= $result['total_pages'] );
+        return $rows;
+    }
+
+    public static function dashboard_counts() {
+        global $wpdb;
+        $table = Schema::table( 'submissions' );
+        return array(
+            'total'        => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            'new'          => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE status='new'" ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            'needs_review' => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE status='needs_review'" ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            'urgent'       => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE priority='urgent'" ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            'unassigned'   => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE assigned_to=0 AND status<>'completed'" ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        );
+    }
+
+    public static function workload() {
+        global $wpdb;
+        $table = Schema::table( 'submissions' );
+        $users = $wpdb->users;
+        return $wpdb->get_results(
+            "SELECT s.assigned_to, COALESCE(u.display_name, '') AS assignee_name, COUNT(*) AS total
+             FROM {$table} s
+             LEFT JOIN {$users} u ON u.ID=s.assigned_to
+             WHERE s.status<>'completed'
+             GROUP BY s.assigned_to,u.display_name
+             ORDER BY total DESC,assignee_name ASC" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         );
     }
 

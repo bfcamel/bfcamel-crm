@@ -3,6 +3,7 @@ namespace BfCamel\CRM\Admin;
 
 use BfCamel\CRM\CRM\SubmissionService;
 use BfCamel\CRM\CRM\TagService;
+use BfCamel\CRM\Database\Schema;
 use BfCamel\CRM\Forms\Repository;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -44,6 +45,17 @@ final class SubmissionsPage {
                     <h1><?php esc_html_e( 'Submissions', 'bfcamel-crm' ); ?></h1>
                     <p class="description"><?php esc_html_e( 'Search, filter and manage incoming submissions.', 'bfcamel-crm' ); ?></p>
                 </div>
+                <?php if ( current_user_can( 'bfcamel_crm_export_data' ) ) : ?>
+                    <div class="bfcamel-crm-actions">
+                        <?php foreach ( array( 'csv' => __( 'Export CSV', 'bfcamel-crm' ), 'xlsx' => __( 'Export XLSX', 'bfcamel-crm' ) ) as $format => $label ) : ?>
+                            <?php
+                            $args = array_merge( array( 'action' => 'bfcamel_crm_export', 'type' => 'submissions', 'format' => $format, 's' => $filters['search'] ), array_diff_key( $filters, array( 'search' => true ) ) );
+                            $url = wp_nonce_url( add_query_arg( $args, admin_url( 'admin-post.php' ) ), 'bfcamel_crm_export_submissions_' . $format );
+                            ?>
+                            <a class="button" href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $label ); ?></a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <form method="get" class="bfcamel-crm-filters">
@@ -189,6 +201,9 @@ final class SubmissionsPage {
     private function guard( $capability ) {
         if ( ! current_user_can( $capability ) ) {
             wp_die( esc_html__( 'You do not have permission to access this page.', 'bfcamel-crm' ) );
+        }
+        if ( ! Schema::is_current() ) {
+            wp_die( esc_html( Schema::readiness_message() ), esc_html__( 'CRM database update required', 'bfcamel-crm' ), array( 'back_link' => true ) );
         }
     }
 }

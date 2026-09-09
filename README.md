@@ -2,7 +2,7 @@
 
 **BfCamel CRM** is an open-source WordPress form builder and lightweight CRM developed by the People & Camels Charity Foundation.
 
-Version `0.2.0` turns incoming form submissions into a practical CRM work queue: staff can search and filter submissions, assign responsible employees, set priorities, add tags and review a complete activity history.
+Version `0.3.0` adds manual contact creation, contact tags, CSV/XLSX exports, a workload-focused Dashboard and administrator-controlled permissions for every WordPress role. It also hardens the 0.2.0 submissions workflow with verified migrations, atomic updates and detailed activity history.
 
 ## Upgrade compatibility
 
@@ -15,7 +15,16 @@ The WordPress technical identity remains unchanged:
 - options/capabilities/actions: `bfcamel_crm_*`
 - database tables: `wp_bfcamel_crm_*`
 
-Version `0.2.0` keeps the same plugin basename as earlier releases, so an installable release ZIP replaces the existing plugin rather than creating a second copy. Existing forms, contacts, consent history and settings remain attached to the same installation.
+Version `0.3.0` keeps the same plugin basename as every earlier release, so an installable release ZIP replaces the existing plugin rather than creating a second copy. Existing forms, submissions, contacts, tags, consent history and settings remain attached to the same installation. The release build fails if the plugin header, version constant, stable tag, update URI, main file or top-level ZIP directory no longer match this identity.
+
+## CRM workspace in 0.3.0
+
+- Create contacts manually with name, organization, email, phone and tags.
+- Search and filter contacts by tag; edit tags from the contact record.
+- Export the current contacts or submissions filter to UTF-8 CSV or native XLSX.
+- Review new, urgent, unassigned and conflict submissions from the updated Dashboard.
+- Configure CRM permissions for every WordPress role. All current and newly detected roles receive the main CRM permissions by default; only administrators can open Settings.
+- Read detailed activity changes, including previous and new status, priority, responsible employee and tags.
 
 ## Submissions workflow in 0.2.0
 
@@ -30,19 +39,20 @@ Version `0.2.0` keeps the same plugin basename as earlier releases, so an instal
 
 ## Data model
 
-Schema version 2 adds `assigned_to` and `priority` to submissions plus two tag tables:
+Schema version 3 includes the version 2 workflow columns/tables and adds contact/tag relationships:
 
 - `wp_bfcamel_crm_tags`
 - `wp_bfcamel_crm_submission_tags`
+- `wp_bfcamel_crm_contact_tags`
 
-There is no legacy submission backfill or data conversion logic in 0.2.0. The normal schema installer/dbDelta path only ensures the required columns and tables exist.
+The updater checks every required table and workflow column before advancing the stored schema version. A failed migration leaves the previous schema version in place, displays an administrator notice and is retried. CRM tables use InnoDB so changes to a submission and its tags/history are committed or rolled back together.
 
 ## Localization
 
 - English is the source language.
 - Russian (`ru_RU`) is bundled as editable UTF-8 PO source.
-- Russian locales use the deterministic PO fallback introduced in 0.1.4, preventing stale global MO catalogs from corrupting Cyrillic text.
-- Release builds compile a fresh MO catalog from the PO source and validate it before packaging.
+- WordPress loads translations through the standard text-domain mechanism, respecting site/user locales and normal language-pack behavior.
+- Release builds require a complete Russian catalog, compile a fresh MO from the UTF-8 PO source and validate it before packaging.
 
 ## Core features
 
