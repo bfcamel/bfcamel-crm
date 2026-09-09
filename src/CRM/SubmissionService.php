@@ -3,305 +3,124 @@ namespace BfCamel\CRM\CRM;
 
 use BfCamel\CRM\Database\Schema;
 
-if ( ! defined( 'ABSPATH' ) ) {
-    exit;
-}
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 final class SubmissionService {
-    public static function statuses() {
-        return array(
-            'new'          => __( 'New', 'bfcamel-crm' ),
-            'in_progress'  => __( 'In progress', 'bfcamel-crm' ),
-            'waiting'      => __( 'Waiting', 'bfcamel-crm' ),
-            'completed'    => __( 'Completed', 'bfcamel-crm' ),
-            'needs_review' => __( 'Needs review', 'bfcamel-crm' ),
-        );
-    }
-
-    public static function priorities() {
-        return array(
-            'normal' => __( 'Normal', 'bfcamel-crm' ),
-            'high'   => __( 'High', 'bfcamel-crm' ),
-            'urgent' => __( 'Urgent', 'bfcamel-crm' ),
-        );
-    }
+    public static function statuses() { return WorkflowService::statuses(); }
+    public static function priorities() { return WorkflowService::priorities(); }
 
     public static function assignees() {
-        $users = get_users(
-            array(
-                'orderby' => 'display_name',
-                'order'   => 'ASC',
-            )
-        );
+        $users = get_users( array( 'orderby' => 'display_name', 'order' => 'ASC' ) );
         $result = array();
         foreach ( $users as $user ) {
-            if ( user_can( $user, 'bfcamel_crm_view_submissions' ) && user_can( $user, 'bfcamel_crm_edit_submissions' ) ) {
-                $result[] = $user;
-            }
+            if ( user_can( $user, 'bfcamel_crm_view_submissions' ) && user_can( $user, 'bfcamel_crm_edit_submissions' ) ) $result[] = $user;
         }
         return $result;
     }
 
     public static function get( $submission_id, $for_update = false ) {
         global $wpdb;
-        $submissions = Schema::table( 'submissions' );
-        $forms = Schema::table( 'forms' );
-        $contacts = Schema::table( 'contacts' );
-        $users = $wpdb->users;
-
-        return $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT s.*, f.name AS form_name, c.display_name AS contact_name, u.display_name AS assignee_name
-                 FROM {$submissions} s
-                 LEFT JOIN {$forms} f ON f.id=s.form_id
-                 LEFT JOIN {$contacts} c ON c.id=s.contact_id
-                 LEFT JOIN {$users} u ON u.ID=s.assigned_to
-                 WHERE s.id=%d LIMIT 1" . ( $for_update ? ' FOR UPDATE' : '' ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                absint( $submission_id )
-            )
-        );
+        $submissions = Schema::table( 'submissions' ); $forms = Schema::table( 'forms' ); $contacts = Schema::table( 'contacts' ); $users = $wpdb->users;
+        return $wpdb->get_row( $wpdb->prepare(
+            "SELECT s.*, f.name AS form_name, c.display_name AS contact_name, u.display_name AS assignee_name FROM {$submissions} s LEFT JOIN {$forms} f ON f.id=s.form_id LEFT JOIN {$contacts} c ON c.id=s.contact_id LEFT JOIN {$users} u ON u.ID=s.assigned_to WHERE s.id=%d LIMIT 1" . ( $for_update ? ' FOR UPDATE' : '' ), absint( $submission_id )
+        ) );
     }
 
     public static function query( $filters = array(), $page = 1, $per_page = 25 ) {
         global $wpdb;
-        $submissions = Schema::table( 'submissions' );
-        $forms = Schema::table( 'forms' );
-        $contacts = Schema::table( 'contacts' );
-        $emails = Schema::table( 'contact_emails' );
-        $phones = Schema::table( 'contact_phones' );
-        $tags = Schema::table( 'tags' );
-        $links = Schema::table( 'submission_tags' );
-        $users = $wpdb->users;
-
-        $where = array( '1=1' );
-        $args = array();
-
+        $submissions = Schema::table( 'submissions' ); $forms = Schema::table( 'forms' ); $contacts = Schema::table( 'contacts' );
+        $emails = Schema::table( 'contact_emails' ); $phones = Schema::table( 'contact_phones' ); $tags = Schema::table( 'tags' ); $links = Schema::table( 'submission_tags' ); $users = $wpdb->users;
+        $where = array( '1=1' ); $args = array();
         $search = isset( $filters['search'] ) ? trim( (string) $filters['search'] ) : '';
         if ( '' !== $search ) {
             $like = '%' . $wpdb->esc_like( $search ) . '%';
-            $parts = array(
-                's.submission_uuid LIKE %s',
-                'f.name LIKE %s',
-                'c.display_name LIKE %s',
-                's.payload_json LIKE %s',
-                "EXISTS (SELECT 1 FROM {$emails} e WHERE e.contact_id=s.contact_id AND e.value LIKE %s)",
-                "EXISTS (SELECT 1 FROM {$phones} p WHERE p.contact_id=s.contact_id AND p.value LIKE %s)",
-            );
-            $search_args = array( $like, $like, $like, $like, $like, $like );
-            if ( ctype_digit( $search ) ) {
-                array_unshift( $parts, 's.id=%d' );
-                array_unshift( $search_args, absint( $search ) );
-            }
-            $where[] = '(' . implode( ' OR ', $parts ) . ')';
-            $args = array_merge( $args, $search_args );
+            $parts = array( 's.submission_uuid LIKE %s','f.name LIKE %s','c.display_name LIKE %s','s.payload_json LIKE %s',"EXISTS (SELECT 1 FROM {$emails} e WHERE e.contact_id=s.contact_id AND e.value LIKE %s)","EXISTS (SELECT 1 FROM {$phones} p WHERE p.contact_id=s.contact_id AND p.value LIKE %s)" );
+            $search_args = array( $like,$like,$like,$like,$like,$like );
+            if ( ctype_digit( $search ) ) { array_unshift( $parts, 's.id=%d' ); array_unshift( $search_args, absint( $search ) ); }
+            $where[] = '(' . implode( ' OR ', $parts ) . ')'; $args = array_merge( $args, $search_args );
         }
-
-        $statuses = self::statuses();
         $status = isset( $filters['status'] ) ? sanitize_key( $filters['status'] ) : '';
-        if ( isset( $statuses[ $status ] ) ) {
-            $where[] = 's.status=%s';
-            $args[] = $status;
-        }
-
-        $priorities = self::priorities();
+        if ( isset( self::statuses()[ $status ] ) ) { $where[] = 's.status=%s'; $args[] = $status; }
         $priority = isset( $filters['priority'] ) ? sanitize_key( $filters['priority'] ) : '';
-        if ( isset( $priorities[ $priority ] ) ) {
-            $where[] = 's.priority=%s';
-            $args[] = $priority;
-        }
-
+        if ( isset( self::priorities()[ $priority ] ) ) { $where[] = 's.priority=%s'; $args[] = $priority; }
         $form_id = isset( $filters['form_id'] ) ? absint( $filters['form_id'] ) : 0;
-        if ( $form_id ) {
-            $where[] = 's.form_id=%d';
-            $args[] = $form_id;
-        }
-
-        if ( isset( $filters['assigned_to'] ) && '' !== (string) $filters['assigned_to'] ) {
-            $assigned_to = absint( $filters['assigned_to'] );
-            $where[] = 's.assigned_to=%d';
-            $args[] = $assigned_to;
-        }
-
+        if ( $form_id ) { $where[] = 's.form_id=%d'; $args[] = $form_id; }
+        if ( isset( $filters['assigned_to'] ) && '' !== (string) $filters['assigned_to'] ) { $where[] = 's.assigned_to=%d'; $args[] = absint( $filters['assigned_to'] ); }
         $tag_id = isset( $filters['tag_id'] ) ? absint( $filters['tag_id'] ) : 0;
-        if ( $tag_id ) {
-            $where[] = "EXISTS (SELECT 1 FROM {$links} stf WHERE stf.submission_id=s.id AND stf.tag_id=%d)";
-            $args[] = $tag_id;
-        }
-
+        if ( $tag_id ) { $where[] = "EXISTS (SELECT 1 FROM {$links} stf WHERE stf.submission_id=s.id AND stf.tag_id=%d)"; $args[] = $tag_id; }
         $date_from = isset( $filters['date_from'] ) ? self::date_value( $filters['date_from'] ) : '';
-        if ( $date_from ) {
-            $where[] = 's.submitted_at >= %s';
-            $args[] = $date_from . ' 00:00:00';
-        }
+        if ( $date_from ) { $where[] = 's.submitted_at >= %s'; $args[] = $date_from . ' 00:00:00'; }
         $date_to = isset( $filters['date_to'] ) ? self::date_value( $filters['date_to'] ) : '';
-        if ( $date_to ) {
-            $where[] = 's.submitted_at <= %s';
-            $args[] = $date_to . ' 23:59:59';
-        }
-
+        if ( $date_to ) { $where[] = 's.submitted_at <= %s'; $args[] = $date_to . ' 23:59:59'; }
         $where_sql = implode( ' AND ', $where );
-        $base_from = "FROM {$submissions} s
-            LEFT JOIN {$forms} f ON f.id=s.form_id
-            LEFT JOIN {$contacts} c ON c.id=s.contact_id
-            LEFT JOIN {$users} u ON u.ID=s.assigned_to";
-
-        $count_sql = "SELECT COUNT(*) {$base_from} WHERE {$where_sql}";
-        $total = (int) $wpdb->get_var( self::prepare_sql( $count_sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-
-        $page = max( 1, absint( $page ) );
-        $per_page = min( 500, max( 1, absint( $per_page ) ) );
-        $offset = ( $page - 1 ) * $per_page;
-
-        $select_sql = "SELECT s.*, f.name AS form_name, c.display_name AS contact_name, u.display_name AS assignee_name,
-            (SELECT GROUP_CONCAT(t.name ORDER BY t.name SEPARATOR ', ') FROM {$links} st INNER JOIN {$tags} t ON t.id=st.tag_id WHERE st.submission_id=s.id) AS tag_names
-            {$base_from}
-            WHERE {$where_sql}
-            ORDER BY s.submitted_at DESC,s.id DESC
-            LIMIT %d OFFSET %d";
-        $select_args = array_merge( $args, array( $per_page, $offset ) );
-        $rows = $wpdb->get_results( self::prepare_sql( $select_sql, $select_args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-
-        return array(
-            'rows'       => $rows,
-            'total'      => $total,
-            'page'       => $page,
-            'per_page'   => $per_page,
-            'total_pages'=> max( 1, (int) ceil( $total / $per_page ) ),
-        );
+        $base_from = "FROM {$submissions} s LEFT JOIN {$forms} f ON f.id=s.form_id LEFT JOIN {$contacts} c ON c.id=s.contact_id LEFT JOIN {$users} u ON u.ID=s.assigned_to";
+        $total = (int) $wpdb->get_var( self::prepare_sql( "SELECT COUNT(*) {$base_from} WHERE {$where_sql}", $args ) );
+        $page = max( 1, absint( $page ) ); $per_page = min( 500, max( 1, absint( $per_page ) ) ); $offset = ( $page - 1 ) * $per_page;
+        $select_sql = "SELECT s.*, f.name AS form_name, c.display_name AS contact_name, u.display_name AS assignee_name, (SELECT GROUP_CONCAT(t.name ORDER BY t.name SEPARATOR ', ') FROM {$links} st INNER JOIN {$tags} t ON t.id=st.tag_id WHERE st.submission_id=s.id) AS tag_names {$base_from} WHERE {$where_sql} ORDER BY s.submitted_at DESC,s.id DESC LIMIT %d OFFSET %d";
+        $rows = $wpdb->get_results( self::prepare_sql( $select_sql, array_merge( $args, array( $per_page, $offset ) ) ) );
+        return array( 'rows'=>$rows,'total'=>$total,'page'=>$page,'per_page'=>$per_page,'total_pages'=>max( 1, (int) ceil( $total / $per_page ) ) );
     }
 
     public static function bulk_apply( $submission_ids, $action, $value, $user_id ) {
         global $wpdb;
         $ids = array_values( array_unique( array_filter( array_map( 'absint', (array) $submission_ids ) ) ) );
-        if ( ! $ids ) {
-            return new \WP_Error( 'bfcamel_crm_bulk_empty', __( 'Select at least one submission.', 'bfcamel-crm' ) );
-        }
-        if ( ! Schema::begin_transaction() ) {
-            return new \WP_Error( 'bfcamel_crm_bulk_transaction', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
-        }
+        if ( ! $ids ) return new \WP_Error( 'bfcamel_crm_bulk_empty', __( 'Select at least one submission.', 'bfcamel-crm' ) );
+        if ( ! Schema::begin_transaction() ) return new \WP_Error( 'bfcamel_crm_bulk_transaction', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
         foreach ( $ids as $id ) {
             $current = self::get( $id, true );
-            if ( ! $current ) {
-                Schema::rollback();
-                return new \WP_Error( 'bfcamel_crm_bulk_missing', __( 'One of the selected submissions no longer exists.', 'bfcamel-crm' ) );
-            }
+            if ( ! $current ) { Schema::rollback(); return new \WP_Error( 'bfcamel_crm_bulk_missing', __( 'One of the selected submissions no longer exists.', 'bfcamel-crm' ) ); }
             if ( 'status' === $action ) {
-                $new = sanitize_key( $value );
-                if ( ! isset( self::statuses()[ $new ] ) ) continue;
-                if ( (string) $current->status !== $new ) {
-                    if ( false === $wpdb->update( Schema::table( 'submissions' ), array( 'status' => $new ), array( 'id' => $id ), array( '%s' ), array( '%d' ) ) || ! Schema::log( 'submission', $id, 'status_changed', 'Submission status changed.', array( 'from' => $current->status, 'to' => $new ), $user_id ) ) {
-                        Schema::rollback(); return new \WP_Error( 'bfcamel_crm_bulk_failed', __( 'Could not update selected submissions.', 'bfcamel-crm' ) );
-                    }
-                }
+                $new = sanitize_key( $value ); if ( ! isset( self::statuses()[ $new ] ) ) continue;
+                if ( (string) $current->status !== $new && ( false === $wpdb->update( Schema::table('submissions'), array('status'=>$new), array('id'=>$id), array('%s'), array('%d') ) || ! Schema::log('submission',$id,'status_changed','Submission status changed.',array('from'=>$current->status,'to'=>$new),$user_id) ) ) { Schema::rollback(); return new \WP_Error('bfcamel_crm_bulk_failed',__( 'Could not update selected submissions.', 'bfcamel-crm' )); }
             } elseif ( 'priority' === $action ) {
-                $new = sanitize_key( $value );
-                if ( ! isset( self::priorities()[ $new ] ) ) continue;
-                $old = $current->priority ?: 'normal';
-                if ( $old !== $new ) {
-                    if ( false === $wpdb->update( Schema::table( 'submissions' ), array( 'priority' => $new ), array( 'id' => $id ), array( '%s' ), array( '%d' ) ) || ! Schema::log( 'submission', $id, 'priority_changed', 'Submission priority changed.', array( 'from' => $old, 'to' => $new ), $user_id ) ) {
-                        Schema::rollback(); return new \WP_Error( 'bfcamel_crm_bulk_failed', __( 'Could not update selected submissions.', 'bfcamel-crm' ) );
-                    }
-                }
+                $new = sanitize_key( $value ); if ( ! isset( self::priorities()[ $new ] ) ) continue;
+                $old = $current->priority ?: WorkflowService::default_priority();
+                if ( $old !== $new && ( false === $wpdb->update( Schema::table('submissions'), array('priority'=>$new), array('id'=>$id), array('%s'), array('%d') ) || ! Schema::log('submission',$id,'priority_changed','Submission priority changed.',array('from'=>$old,'to'=>$new),$user_id) ) ) { Schema::rollback(); return new \WP_Error('bfcamel_crm_bulk_failed',__( 'Could not update selected submissions.', 'bfcamel-crm' )); }
             } elseif ( 'assigned_to' === $action ) {
-                $new = absint( $value );
-                $allowed = array_map( 'absint', wp_list_pluck( self::assignees(), 'ID' ) );
-                if ( $new && ! in_array( $new, $allowed, true ) ) continue;
-                if ( absint( $current->assigned_to ) !== $new ) {
-                    if ( false === $wpdb->update( Schema::table( 'submissions' ), array( 'assigned_to' => $new ), array( 'id' => $id ), array( '%d' ), array( '%d' ) ) || ! Schema::log( 'submission', $id, 'assignee_changed', 'Submission assignee changed.', array( 'from' => absint( $current->assigned_to ), 'to' => $new ), $user_id ) ) {
-                        Schema::rollback(); return new \WP_Error( 'bfcamel_crm_bulk_failed', __( 'Could not update selected submissions.', 'bfcamel-crm' ) );
-                    }
-                }
-            } elseif ( in_array( $action, array( 'add_tags', 'remove_tags' ), true ) ) {
-                $old = TagService::names_for_submission( $id );
-                $incoming = array_values( array_filter( array_map( 'trim', preg_split( '/[,;\n\r]+/u', (string) $value ) ) ) );
-                if ( 'add_tags' === $action ) {
-                    $new_names = array_values( array_unique( array_merge( $old, $incoming ) ) );
-                } else {
-                    $lower = array_map( 'strtolower', $incoming );
-                    $new_names = array_values( array_filter( $old, static function ( $name ) use ( $lower ) { return ! in_array( strtolower( $name ), $lower, true ); } ) );
-                }
-                $tag_result = TagService::sync_submission( $id, implode( ', ', $new_names ) );
-                if ( is_wp_error( $tag_result ) ) { Schema::rollback(); return $tag_result; }
-                $actual = wp_list_pluck( $tag_result, 'name' );
-                $a = $old; $b = $actual; sort( $a ); sort( $b );
-                if ( $a !== $b && ! Schema::log( 'submission', $id, 'tags_changed', 'Submission tags changed.', array( 'from' => $old, 'to' => $actual ), $user_id ) ) {
-                    Schema::rollback(); return new \WP_Error( 'bfcamel_crm_bulk_failed', __( 'Could not update selected submissions.', 'bfcamel-crm' ) );
-                }
+                $new = absint( $value ); $allowed = array_map( 'absint', wp_list_pluck( self::assignees(), 'ID' ) ); if ( $new && ! in_array( $new, $allowed, true ) ) continue;
+                if ( absint( $current->assigned_to ) !== $new && ( false === $wpdb->update( Schema::table('submissions'), array('assigned_to'=>$new), array('id'=>$id), array('%d'), array('%d') ) || ! Schema::log('submission',$id,'assignee_changed','Submission assignee changed.',array('from'=>absint($current->assigned_to),'to'=>$new),$user_id) ) ) { Schema::rollback(); return new \WP_Error('bfcamel_crm_bulk_failed',__( 'Could not update selected submissions.', 'bfcamel-crm' )); }
+            } elseif ( in_array( $action, array( 'add_tags','remove_tags' ), true ) ) {
+                $old = TagService::names_for_submission( $id ); $incoming = array_values( array_filter( array_map( 'trim', preg_split( '/[,;\n\r]+/u', (string) $value ) ) ) );
+                if ( 'add_tags' === $action ) $new_names = array_values( array_unique( array_merge( $old, $incoming ) ) );
+                else { $lower = array_map( 'strtolower', $incoming ); $new_names = array_values( array_filter( $old, static function($name) use($lower){ return ! in_array(strtolower($name),$lower,true); } ) ); }
+                $tag_result = TagService::sync_submission( $id, implode( ', ', $new_names ) ); if ( is_wp_error( $tag_result ) ) { Schema::rollback(); return $tag_result; }
+                $actual = wp_list_pluck( $tag_result, 'name' ); $a=$old; $b=$actual; sort($a); sort($b);
+                if ( $a !== $b && ! Schema::log('submission',$id,'tags_changed','Submission tags changed.',array('from'=>$old,'to'=>$actual),$user_id) ) { Schema::rollback(); return new \WP_Error('bfcamel_crm_bulk_failed',__( 'Could not update selected submissions.', 'bfcamel-crm' )); }
             }
         }
-        if ( ! Schema::commit() ) {
-            Schema::rollback();
-            return new \WP_Error( 'bfcamel_crm_bulk_commit', __( 'Could not update selected submissions.', 'bfcamel-crm' ) );
-        }
+        if ( ! Schema::commit() ) { Schema::rollback(); return new \WP_Error('bfcamel_crm_bulk_commit',__( 'Could not update selected submissions.', 'bfcamel-crm' )); }
         return count( $ids );
     }
 
     public static function all_for_export( $filters = array() ) {
-        $rows = array();
-        $page = 1;
-        do {
-            $result = self::query( $filters, $page, 500 );
-            $rows = array_merge( $rows, (array) $result['rows'] );
-            $page++;
-        } while ( $page <= $result['total_pages'] );
-        return $rows;
+        $rows=array(); $page=1; do { $result=self::query($filters,$page,500); $rows=array_merge($rows,(array)$result['rows']); $page++; } while($page <= $result['total_pages']); return $rows;
     }
 
     public static function dashboard_counts() {
-        global $wpdb;
-        $table = Schema::table( 'submissions' );
+        global $wpdb; $table=Schema::table('submissions'); $default=WorkflowService::default_status(); $review=isset(self::statuses()['needs_review'])?'needs_review':$default; $top=WorkflowService::highest_priority();
+        $completed = isset( self::statuses()['completed'] ) ? 'completed' : '';
         return array(
-            'total'        => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            'new'          => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE status='new'" ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            'needs_review' => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE status='needs_review'" ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            'urgent'       => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE priority='urgent'" ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            'unassigned'   => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE assigned_to=0 AND status<>'completed'" ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            'total'=>(int)$wpdb->get_var("SELECT COUNT(*) FROM {$table}"),
+            'new'=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE status=%s",$default)),
+            'needs_review'=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE status=%s",$review)),
+            'urgent'=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE priority=%s",$top)),
+            'unassigned'=>(int)$wpdb->get_var($completed ? $wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE assigned_to=0 AND status<>%s",$completed) : "SELECT COUNT(*) FROM {$table} WHERE assigned_to=0"),
         );
     }
 
     public static function workload() {
-        global $wpdb;
-        $table = Schema::table( 'submissions' );
-        $users = $wpdb->users;
-        return $wpdb->get_results(
-            "SELECT s.assigned_to, COALESCE(u.display_name, '') AS assignee_name, COUNT(*) AS total
-             FROM {$table} s
-             LEFT JOIN {$users} u ON u.ID=s.assigned_to
-             WHERE s.status<>'completed'
-             GROUP BY s.assigned_to,u.display_name
-             ORDER BY total DESC,assignee_name ASC" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        );
+        global $wpdb; $table=Schema::table('submissions'); $users=$wpdb->users; $completed=isset(self::statuses()['completed'])?'completed':'';
+        $where = $completed ? $wpdb->prepare('WHERE s.status<>%s',$completed) : '';
+        return $wpdb->get_results("SELECT s.assigned_to, COALESCE(u.display_name, '') AS assignee_name, COUNT(*) AS total FROM {$table} s LEFT JOIN {$users} u ON u.ID=s.assigned_to {$where} GROUP BY s.assigned_to,u.display_name ORDER BY total DESC,assignee_name ASC");
     }
 
     public static function activity( $submission_id ) {
-        global $wpdb;
-        $activity = Schema::table( 'activity_log' );
-        $users = $wpdb->users;
-        return $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT a.*, u.display_name AS actor_name FROM {$activity} a LEFT JOIN {$users} u ON u.ID=a.user_id WHERE a.entity_type='submission' AND a.entity_id=%d ORDER BY a.created_at DESC,a.id DESC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                absint( $submission_id )
-            )
-        );
+        global $wpdb; $activity=Schema::table('activity_log'); $users=$wpdb->users;
+        return $wpdb->get_results($wpdb->prepare("SELECT a.*,u.display_name AS actor_name FROM {$activity} a LEFT JOIN {$users} u ON u.ID=a.user_id WHERE a.entity_type='submission' AND a.entity_id=%d ORDER BY a.created_at DESC,a.id DESC",absint($submission_id)));
     }
 
-    public static function status_label( $status ) {
-        $items = self::statuses();
-        return isset( $items[ $status ] ) ? $items[ $status ] : (string) $status;
-    }
-
-    public static function priority_label( $priority ) {
-        $items = self::priorities();
-        return isset( $items[ $priority ] ) ? $items[ $priority ] : (string) $priority;
-    }
-
-    private static function date_value( $value ) {
-        $value = sanitize_text_field( (string) $value );
-        return preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ? $value : '';
-    }
-
-    private static function prepare_sql( $sql, $args ) {
-        global $wpdb;
-        return $args ? $wpdb->prepare( $sql, $args ) : $sql;
-    }
+    public static function status_label( $status ) { return WorkflowService::label( 'status', $status ); }
+    public static function priority_label( $priority ) { return WorkflowService::label( 'priority', $priority ); }
+    private static function date_value( $value ) { $value=sanitize_text_field((string)$value); return preg_match('/^\d{4}-\d{2}-\d{2}$/',$value)?$value:''; }
+    private static function prepare_sql( $sql, $args ) { global $wpdb; return $args ? $wpdb->prepare($sql,$args) : $sql; }
 }

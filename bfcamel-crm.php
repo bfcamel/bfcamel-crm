@@ -3,7 +3,7 @@
  * Plugin Name: BfCamel CRM
  * Plugin URI: https://github.com/bfcamel/bfcamel-crm
  * Description: Native form builder and lightweight CRM for WordPress: forms, submissions, contacts, consent evidence and privacy tools.
- * Version: 0.3.2
+ * Version: 0.4.0
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: BfCamel / People & Camels Charity Foundation
@@ -19,11 +19,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-/*
- * A GitHub source archive is extracted as bfcamel-crm-main and can therefore
- * be activated beside the real bfcamel-crm installation. Do not let two
- * copies register competing autoloaders, constants and hooks in one request.
- */
 if ( defined( 'BFCAMEL_CRM_FILE' ) ) {
     $bfcamel_crm_duplicate_notice = static function () {
         if ( ! current_user_can( 'activate_plugins' ) ) {
@@ -36,7 +31,7 @@ if ( defined( 'BFCAMEL_CRM_FILE' ) ) {
     return;
 }
 
-define( 'BFCAMEL_CRM_VERSION', '0.3.2' );
+define( 'BFCAMEL_CRM_VERSION', '0.4.0' );
 define( 'BFCAMEL_CRM_FILE', __FILE__ );
 define( 'BFCAMEL_CRM_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BFCAMEL_CRM_URL', plugin_dir_url( __FILE__ ) );
@@ -47,11 +42,9 @@ spl_autoload_register(
         if ( 0 !== strpos( $class, $prefix ) ) {
             return;
         }
-
         $relative = substr( $class, strlen( $prefix ) );
         $relative = str_replace( '\\', DIRECTORY_SEPARATOR, $relative );
-        $file     = BFCAMEL_CRM_DIR . 'src/' . $relative . '.php';
-
+        $file = BFCAMEL_CRM_DIR . 'src/' . $relative . '.php';
         if ( is_readable( $file ) ) {
             require_once $file;
         }
@@ -61,19 +54,12 @@ spl_autoload_register(
 register_activation_hook( __FILE__, array( 'BfCamel\\CRM\\Plugin', 'activate' ) );
 register_deactivation_hook( __FILE__, array( 'BfCamel\\CRM\\Plugin', 'deactivate' ) );
 
-add_action(
-    'plugins_loaded',
-    static function () {
-        BfCamel\CRM\Plugin::instance()->boot();
-    }
-);
+add_action('plugins_loaded', static function () {
+    BfCamel\CRM\Plugin::instance()->boot();
+});
 
-add_action(
-    'init',
-    static function () {
-        if ( is_callable( array( 'BfCamel\\CRM\\I18n', 'load' ) ) ) {
-            BfCamel\CRM\I18n::load();
-        }
-    },
-    0
-);
+add_action('init', static function () {
+    if ( is_callable( array( 'BfCamel\\CRM\\I18n', 'load' ) ) ) {
+        BfCamel\CRM\I18n::load();
+    }
+}, 0);
