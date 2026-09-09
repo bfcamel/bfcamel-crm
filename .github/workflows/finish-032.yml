@@ -20,7 +20,7 @@ jobs:
       - name: Materialize prepared 0.3.2 source
         run: |
           cat .bfcamel-payload/chunk* | base64 -d > /tmp/bfcamel032.tar.xz
-          echo "9f7fcc886a208d1b83f7830bcd62e43bbfe5b9fd74409d7d6c49bf7668bfb19e  /tmp/bfcamel032.tar.xz" | sha256sum -c -
+          echo "e6b5ebc6cf60cfa7426f5d75d1d1348deefdd688f30e01f4cdfeab3a82b14d6a  /tmp/bfcamel032.tar.xz" | sha256sum -c -
           tar -xJf /tmp/bfcamel032.tar.xz
           rm -rf .bfcamel-payload
           rm -f .github/workflows/finish-032.yml
