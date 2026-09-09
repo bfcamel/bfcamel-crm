@@ -1,0 +1,40 @@
+name: Finish 0.3.2 workspace
+
+on:
+  push:
+    branches:
+      - release/0.3.2-crm-workspace
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Materialize prepared 0.3.2 source
+        run: |
+          cat .bfcamel-payload/chunk* | base64 -d > /tmp/bfcamel032.tar.xz
+          echo "9f7fcc886a208d1b83f7830bcd62e43bbfe5b9fd74409d7d6c49bf7668bfb19e  /tmp/bfcamel032.tar.xz" | sha256sum -c -
+          tar -xJf /tmp/bfcamel032.tar.xz
+          rm -rf .bfcamel-payload
+          rm -f .github/workflows/finish-032.yml
+
+      - name: Verify prepared source
+        run: |
+          find . -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php tests/smoke.php
+          php tests/duplicate-load.php
+
+      - name: Commit materialized 0.3.2
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "BfCamel CRM 0.3.2: CRM workspace improvements"
+          git push origin HEAD:release/0.3.2-crm-workspace
