@@ -30,7 +30,12 @@ final class Bootstrap {
         add_action( 'admin_post_bfcamel_crm_save_form', array( $admin, 'save_form' ) );
         add_action( 'admin_post_bfcamel_crm_save_settings', array( $admin, 'save_settings' ) );
         add_action( 'admin_post_bfcamel_crm_update_submission', array( $submissions, 'update_submission' ) );
+        add_action( 'admin_post_bfcamel_crm_bulk_submissions', array( $submissions, 'bulk_submissions' ) );
+        add_action( 'admin_post_bfcamel_crm_add_submission_note', array( $submissions, 'add_note' ) );
         add_action( 'admin_post_bfcamel_crm_create_contact', array( $contacts, 'create_contact' ) );
+        add_action( 'admin_post_bfcamel_crm_update_contact', array( $contacts, 'update_contact' ) );
+        add_action( 'admin_post_bfcamel_crm_bulk_contacts', array( $contacts, 'bulk_contacts' ) );
+        add_action( 'admin_post_bfcamel_crm_add_contact_note', array( $contacts, 'add_note' ) );
         add_action( 'admin_post_bfcamel_crm_update_contact_tags', array( $contacts, 'update_tags' ) );
         add_action( 'admin_post_bfcamel_crm_update_contact_consents', array( $contacts, 'update_consents' ) );
         add_action( 'admin_post_bfcamel_crm_export', array( Exporter::class, 'handle' ) );

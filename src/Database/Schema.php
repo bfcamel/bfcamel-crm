@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class Schema {
-    const VERSION = '4';
+    const VERSION = '5';
     const OPTION  = 'bfcamel_crm_db_version';
     const ERROR_OPTION = 'bfcamel_crm_schema_error';
 
@@ -239,6 +239,22 @@ final class Schema {
             ) {$cc};"
         );
 
+        $notes = self::table( 'notes' );
+        self::run_delta(
+            "CREATE TABLE {$notes} (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                entity_type VARCHAR(30) NOT NULL,
+                entity_id BIGINT UNSIGNED NOT NULL,
+                note_text LONGTEXT NOT NULL,
+                user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+                created_at DATETIME NOT NULL,
+                PRIMARY KEY (id),
+                KEY entity (entity_type,entity_id),
+                KEY user_id (user_id),
+                KEY created_at (created_at)
+            ) {$cc};"
+        );
+
         $activity = self::table( 'activity_log' );
         self::run_delta(
             "CREATE TABLE {$activity} (
@@ -331,6 +347,7 @@ final class Schema {
                 'submission_tags' => array( 'submission_id', 'tag_id' ),
                 'contact_tags'    => array( 'contact_id', 'tag_id' ),
                 'consent_events'  => array( 'source_type', 'recorded_by' ),
+                'notes'           => array( 'entity_type', 'entity_id', 'note_text', 'user_id' ),
                 'activity_log'    => array( 'meta_json', 'user_id' ),
             );
             foreach ( $required_columns as $suffix => $expected ) {
@@ -395,6 +412,7 @@ final class Schema {
             'tags',
             'submission_tags',
             'contact_tags',
+            'notes',
             'activity_log',
         );
     }

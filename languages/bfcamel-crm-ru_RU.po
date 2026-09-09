@@ -1,18 +1,19 @@
+
 msgid ""
 msgstr ""
-"Project-Id-Version: BfCamel CRM 0.3.1\n"
+"Project-Id-Version: BfCamel CRM 0.3.2\n"
 "Report-Msgid-Bugs-To: https://github.com/bfcamel/bfcamel-crm/issues\n"
 "POT-Creation-Date: 2026-09-09 11:08+0100\n"
-"PO-Revision-Date: 2026-09-09 09:30+0000\n"
+"PO-Revision-Date: 2026-09-09 11:22+0000\n"
 "Last-Translator: BfCamel CRM contributors\n"
-"Language-Team: Russian\n"
 "Language: ru_RU\n"
+"Language-Team: Russian\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || "
+"n%100>=20) ? 1 : 2);\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Domain: bfcamel-crm\n"
+"Generated-By: Babel 2.18.0\n"
 
 #. translators: %s: existing contact IDs.
 #: src/CRM/ContactService.php:208
@@ -20,8 +21,7 @@ msgstr ""
 msgid "A contact with this email or phone already exists: #%s."
 msgstr "Контакт с этим адресом эл. почты или телефоном уже существует: #%s."
 
-#: src/Admin/ContactsPage.php:50 src/Admin/ContactsPage.php:168
-#: src/Admin/DashboardPage.php:54
+#: src/Admin/ContactsPage.php:50 src/Admin/ContactsPage.php:168 src/Admin/DashboardPage.php:54
 msgid "Add contact"
 msgstr "Добавить контакт"
 
@@ -29,8 +29,7 @@ msgstr "Добавить контакт"
 msgid "Add explanatory text here."
 msgstr "Добавьте поясняющий текст здесь."
 
-#: src/Admin/Admin.php:87 src/Admin/Admin.php:125
-#: src/Admin/DashboardPage.php:57
+#: src/Admin/Admin.php:87 src/Admin/Admin.php:125 src/Admin/DashboardPage.php:57
 msgid "Add form"
 msgstr "Добавить форму"
 
@@ -71,8 +70,7 @@ msgstr "Этот ярлык уже используется другой фор�
 msgid "Appearance"
 msgstr "Внешний вид"
 
-#: src/Admin/ContactsPage.php:168 src/Admin/ContactsPage.php:217
-#: src/Admin/SubmissionDetailPage.php:41
+#: src/Admin/ContactsPage.php:168 src/Admin/ContactsPage.php:217 src/Admin/SubmissionDetailPage.php:41
 msgid "Back"
 msgstr "Назад"
 
@@ -80,9 +78,8 @@ msgstr "Назад"
 msgid "Back to forms"
 msgstr "К списку форм"
 
-#: src/Admin/Bootstrap.php:45 src/Admin/Bootstrap.php:46
-#: src/Admin/DashboardPage.php:49 src/Privacy/Privacy.php:32
-#: src/Privacy/Privacy.php:40
+#: src/Admin/Bootstrap.php:45 src/Admin/Bootstrap.php:46 src/Admin/DashboardPage.php:49
+#: src/Privacy/Privacy.php:32 src/Privacy/Privacy.php:40
 msgid "BfCamel CRM"
 msgstr "BfCamel CRM"
 
@@ -92,13 +89,11 @@ msgstr "Контакт BfCamel CRM"
 
 #: src/Privacy/Privacy.php:125
 msgid ""
-"BfCamel CRM contact identifiers and mapped submission fields were "
-"anonymized. Consent event timestamps and document snapshots were retained as "
-"non-contact audit records."
+"BfCamel CRM contact identifiers and mapped submission fields were anonymized. Consent event "
+"timestamps and document snapshots were retained as non-contact audit records."
 msgstr ""
-"Идентификаторы контакта BfCamel CRM и связанные персональные поля обращений "
-"были обезличены. Даты событий согласий и снимки документов сохранены как "
-"обезличенные записи аудита."
+"Идентификаторы контакта BfCamel CRM и связанные персональные поля обращений были обезличены. Даты"
+" событий согласий и снимки документов сохранены как обезличенные записи аудита."
 
 #. translators: %s: database error details.
 #: src/Database/Schema.php:32 src/Database/Schema.php:273
@@ -142,9 +137,8 @@ msgstr "CRM"
 msgid "CRM activity recorded."
 msgstr "Действие CRM зарегистрировано."
 
-#: src/Admin/Admin.php:313 src/Admin/ContactsPage.php:318
-#: src/Admin/DashboardPage.php:19 src/Admin/SubmissionsPage.php:206
-#: src/Export/Exporter.php:20
+#: src/Admin/Admin.php:313 src/Admin/ContactsPage.php:318 src/Admin/DashboardPage.php:19
+#: src/Admin/SubmissionsPage.php:206 src/Export/Exporter.php:20
 msgid "CRM database update required"
 msgstr "Требуется обновление базы данных CRM"
 
@@ -158,12 +152,11 @@ msgstr "Флажки"
 
 #: src/Admin/Admin.php:238
 msgid ""
-"Choose which CRM areas each WordPress role can use. New roles receive all "
-"main CRM permissions by default; settings remain administrator-only."
+"Choose which CRM areas each WordPress role can use. New roles receive all main CRM permissions by"
+" default; settings remain administrator-only."
 msgstr ""
-"Выберите, какие разделы CRM доступны каждой роли WordPress. Новые роли по "
-"умолчанию получают все основные права CRM; настройки доступны только "
-"администраторам."
+"Выберите, какие разделы CRM доступны каждой роли WordPress. Новые роли по умолчанию получают все "
+"основные права CRM; настройки доступны только администраторам."
 
 #: src/Admin/Admin.php:164
 msgid "Columns"
@@ -195,8 +188,7 @@ msgstr "Статус согласий"
 msgid "Consent status updated."
 msgstr "Статусы согласий обновлены."
 
-#: src/Admin/DashboardPage.php:108 src/Admin/SubmissionsPage.php:129
-#: src/Export/Exporter.php:87
+#: src/Admin/DashboardPage.php:108 src/Admin/SubmissionsPage.php:129 src/Export/Exporter.php:87
 msgid "Contact"
 msgstr "Контакт"
 
@@ -228,8 +220,7 @@ msgstr "Контакт найден и связан"
 msgid "Contact name is required."
 msgstr "Укажите имя контакта."
 
-#: src/Admin/ContactsPage.php:96 src/Admin/ContactsPage.php:133
-#: src/Admin/ContactsPage.php:200
+#: src/Admin/ContactsPage.php:96 src/Admin/ContactsPage.php:133 src/Admin/ContactsPage.php:200
 msgid "Contact not found."
 msgstr "Контакт не найден."
 
@@ -285,8 +276,7 @@ msgstr "Контакт: организация"
 msgid "Contact: phone"
 msgstr "Контакт: телефон"
 
-#: src/Admin/Bootstrap.php:66 src/Admin/ContactsPage.php:47
-#: src/Admin/DashboardPage.php:40
+#: src/Admin/Bootstrap.php:66 src/Admin/ContactsPage.php:47 src/Admin/DashboardPage.php:40
 msgid "Contacts"
 msgstr "Контакты"
 
@@ -322,10 +312,8 @@ msgstr "Не удалось записать статус согласия."
 msgid "Could not record contact history."
 msgstr "Не удалось записать историю контакта."
 
-#: src/Admin/SubmissionDetailPage.php:183
-#: src/Admin/SubmissionDetailPage.php:186
-#: src/Admin/SubmissionDetailPage.php:189
-#: src/Admin/SubmissionDetailPage.php:202
+#: src/Admin/SubmissionDetailPage.php:183 src/Admin/SubmissionDetailPage.php:186
+#: src/Admin/SubmissionDetailPage.php:189 src/Admin/SubmissionDetailPage.php:202
 msgid "Could not record submission history."
 msgstr "Не удалось записать историю заявки."
 
@@ -341,8 +329,8 @@ msgstr "Не удалось сохранить форму"
 msgid "Could not save role permissions"
 msgstr "Не удалось сохранить права ролей"
 
-#: src/Admin/ContactsPage.php:92 src/Admin/ContactsPage.php:129
-#: src/Admin/SubmissionDetailPage.php:133 src/CRM/ContactService.php:215
+#: src/Admin/ContactsPage.php:92 src/Admin/ContactsPage.php:129 src/Admin/SubmissionDetailPage.php:133
+#: src/CRM/ContactService.php:215
 msgid "Could not start a database transaction."
 msgstr "Не удалось начать транзакцию базы данных."
 
@@ -412,12 +400,8 @@ msgid "Delete all BfCamel CRM data when the plugin is uninstalled"
 msgstr "Удалять все данные BfCamel CRM при удалении плагина"
 
 #: src/Admin/Admin.php:236
-msgid ""
-"Disabled by default. User-Agent and source URL are still stored with "
-"submissions."
-msgstr ""
-"По умолчанию отключено. User-Agent и URL источника по-прежнему сохраняются "
-"вместе с обращениями."
+msgid "Disabled by default. User-Agent and source URL are still stored with submissions."
+msgstr "По умолчанию отключено. User-Agent и URL источника по-прежнему сохраняются вместе с обращениями."
 
 #: src/Privacy/Privacy.php:57
 msgid "Display name"
@@ -437,9 +421,8 @@ msgstr "Редактировать форму: %s"
 msgid "Edit submissions"
 msgstr "Редактировать заявки"
 
-#: src/Admin/Admin.php:284 src/Admin/ContactsPage.php:175
-#: src/Admin/ContactsPage.php:223 src/Admin/ContactsPage.php:238
-#: src/Export/Exporter.php:58 src/Forms/Repository.php:205
+#: src/Admin/Admin.php:284 src/Admin/ContactsPage.php:175 src/Admin/ContactsPage.php:223
+#: src/Admin/ContactsPage.php:238 src/Export/Exporter.php:58 src/Forms/Repository.php:205
 #: src/Privacy/Privacy.php:63
 msgid "Email"
 msgstr "E-mail"
@@ -465,11 +448,8 @@ msgid "Error message"
 msgstr "Сообщение об ошибке"
 
 #: src/Admin/ContactsPage.php:256
-msgid ""
-"Every change creates a new audit event; previous consent history is retained."
-msgstr ""
-"Каждое изменение создаёт новое событие аудита; предыдущая история согласий "
-"сохраняется."
+msgid "Every change creates a new audit event; previous consent history is retained."
+msgstr "Каждое изменение создаёт новое событие аудита; предыдущая история согласий сохраняется."
 
 #: src/Forms/Repository.php:299
 msgid "Every form field needs a unique field key."
@@ -516,9 +496,8 @@ msgstr "Поля"
 msgid "Filter"
 msgstr "Фильтровать"
 
-#: src/Admin/Admin.php:141 src/Admin/DashboardPage.php:108
-#: src/Admin/SubmissionsPage.php:75 src/Admin/SubmissionsPage.php:128
-#: src/Export/Exporter.php:87
+#: src/Admin/Admin.php:141 src/Admin/DashboardPage.php:108 src/Admin/SubmissionsPage.php:75
+#: src/Admin/SubmissionsPage.php:128 src/Export/Exporter.php:87
 msgid "Form"
 msgstr "Форма"
 
@@ -562,8 +541,7 @@ msgstr "Получено новое обращение из формы."
 msgid "Form submission received; contact sync: %s."
 msgstr "Получена заявка формы; синхронизация контакта: %s."
 
-#: src/Admin/Admin.php:86 src/Admin/Bootstrap.php:64
-#: src/Admin/DashboardPage.php:43
+#: src/Admin/Admin.php:86 src/Admin/Bootstrap.php:64 src/Admin/DashboardPage.php:43
 msgid "Forms"
 msgstr "Формы"
 
@@ -593,20 +571,18 @@ msgid "How should we address you?"
 msgstr "Как к вам обращаться?"
 
 #: src/Admin/Admin.php:64 src/Forms/Repository.php:238
-msgid ""
-"I consent to receive informational and marketing messages under the "
-"{marketing_consent}."
+#, python-brace-format
+msgid "I consent to receive informational and marketing messages under the {marketing_consent}."
 msgstr ""
-"Я даю согласие на получение информационных и рекламных сообщений в "
-"соответствии с {marketing_consent}."
+"Я даю согласие на получение информационных и рекламных сообщений в соответствии с "
+"{marketing_consent}."
 
 #: src/Admin/Admin.php:63 src/Forms/Repository.php:227
-msgid ""
-"I consent to {personal_data_consent} and confirm that I have read the "
-"{privacy_policy}."
+#, python-brace-format
+msgid "I consent to {personal_data_consent} and confirm that I have read the {privacy_policy}."
 msgstr ""
-"Я даю согласие в соответствии с документом {personal_data_consent} и "
-"подтверждаю, что ознакомлен(а) с {privacy_policy}."
+"Я даю согласие в соответствии с документом {personal_data_consent} и подтверждаю, что "
+"ознакомлен(а) с {privacy_policy}."
 
 #: src/Admin/SubmissionDetailPage.php:120
 msgid "IP stored"
@@ -614,17 +590,15 @@ msgstr "Сохранённый IP"
 
 #: src/Privacy/Privacy.php:142
 msgid ""
-"If forms created with BfCamel CRM are used on this site, the plugin may "
-"store submitted form data, CRM contacts, consent events, source URLs and "
-"browser User-Agent strings. IP address storage is optional and disabled by "
-"default. Administrators should describe the actual forms, purposes, "
-"retention periods and legal basis used on their site."
+"If forms created with BfCamel CRM are used on this site, the plugin may store submitted form "
+"data, CRM contacts, consent events, source URLs and browser User-Agent strings. IP address "
+"storage is optional and disabled by default. Administrators should describe the actual forms, "
+"purposes, retention periods and legal basis used on their site."
 msgstr ""
-"Если на сайте используются формы BfCamel CRM, плагин может сохранять "
-"отправленные данные форм, контакты CRM, события согласий, URL источника и "
-"строки User-Agent браузера. Сохранение IP-адресов является необязательным и "
-"по умолчанию отключено. Администратору следует описать используемые формы, "
-"цели обработки, сроки хранения и применимые правовые основания."
+"Если на сайте используются формы BfCamel CRM, плагин может сохранять отправленные данные форм, "
+"контакты CRM, события согласий, URL источника и строки User-Agent браузера. Сохранение IP-адресов"
+" является необязательным и по умолчанию отключено. Администратору следует описать используемые "
+"формы, цели обработки, сроки хранения и применимые правовые основания."
 
 #: src/CRM/SubmissionService.php:14
 msgid "In progress"
@@ -651,12 +625,10 @@ msgid "Invalid tag target."
 msgstr "Некорректный объект для метки."
 
 #: src/Admin/Admin.php:236
-msgid ""
-"Keep this disabled unless you explicitly want uninstall.php to remove CRM "
-"tables and settings."
+msgid "Keep this disabled unless you explicitly want uninstall.php to remove CRM tables and settings."
 msgstr ""
-"Оставьте эту настройку выключенной, если вы явно не хотите, чтобы uninstall."
-"php удалял таблицы и настройки CRM."
+"Оставьте эту настройку выключенной, если вы явно не хотите, чтобы uninstall.php удалял таблицы и "
+"настройки CRM."
 
 #: src/Admin/Admin.php:49
 msgid "Label / text"
@@ -672,11 +644,11 @@ msgstr "Юридические документы"
 
 #: src/Admin/Admin.php:231
 msgid ""
-"Links and versions are copied into consent evidence at submission time, so "
-"later edits do not rewrite history."
+"Links and versions are copied into consent evidence at submission time, so later edits do not "
+"rewrite history."
 msgstr ""
-"Ссылки и версии документов фиксируются в доказательстве согласия в момент "
-"отправки формы, поэтому последующие изменения не переписывают историю."
+"Ссылки и версии документов фиксируются в доказательстве согласия в момент отправки формы, поэтому"
+" последующие изменения не переписывают историю."
 
 #: src/Access/RoleManager.php:25
 msgid "Manage consents"
@@ -722,9 +694,8 @@ msgstr "Переместить вниз"
 msgid "Move up"
 msgstr "Переместить вверх"
 
-#: src/Admin/Admin.php:92 src/Admin/Admin.php:143
-#: src/Admin/ContactsPage.php:173 src/Admin/ContactsPage.php:238
-#: src/Export/Exporter.php:58 src/Forms/Repository.php:183
+#: src/Admin/Admin.php:92 src/Admin/Admin.php:143 src/Admin/ContactsPage.php:173
+#: src/Admin/ContactsPage.php:238 src/Export/Exporter.php:58 src/Forms/Repository.php:183
 msgid "Name"
 msgstr "Имя"
 
@@ -808,8 +779,8 @@ msgstr "Открытые заявки"
 msgid "Options, one per line"
 msgstr "Варианты, по одному в строке"
 
-#: src/Admin/ContactsPage.php:174 src/Admin/ContactsPage.php:238
-#: src/Export/Exporter.php:58 src/Privacy/Privacy.php:58
+#: src/Admin/ContactsPage.php:174 src/Admin/ContactsPage.php:238 src/Export/Exporter.php:58
+#: src/Privacy/Privacy.php:58
 msgid "Organization"
 msgstr "Организация"
 
@@ -833,9 +804,8 @@ msgstr "Согласие на обработку персональных дан
 msgid "Personal data processing"
 msgstr "Обработка персональных данных"
 
-#: src/Admin/Admin.php:285 src/Admin/ContactsPage.php:176
-#: src/Admin/ContactsPage.php:223 src/Admin/ContactsPage.php:238
-#: src/Export/Exporter.php:58 src/Forms/Repository.php:194
+#: src/Admin/Admin.php:285 src/Admin/ContactsPage.php:176 src/Admin/ContactsPage.php:223
+#: src/Admin/ContactsPage.php:238 src/Export/Exporter.php:58 src/Forms/Repository.php:194
 #: src/Privacy/Privacy.php:66
 msgid "Phone"
 msgstr "Телефон"
@@ -853,8 +823,7 @@ msgid "Primary / focus color"
 msgstr "Основной цвет / цвет фокуса"
 
 #: src/Admin/SubmissionDetailPage.php:98 src/Admin/SubmissionDetailPage.php:108
-#: src/Admin/SubmissionsPage.php:90 src/Admin/SubmissionsPage.php:131
-#: src/Export/Exporter.php:87
+#: src/Admin/SubmissionsPage.php:90 src/Admin/SubmissionsPage.php:131 src/Export/Exporter.php:87
 msgid "Priority"
 msgstr "Приоритет"
 
@@ -873,19 +842,17 @@ msgid "Privacy Policy"
 msgstr "Политика обработки персональных данных"
 
 #: src/Admin/Admin.php:86
-msgid ""
-"Published form schemas are the CRM contracts. Every save creates an "
-"immutable revision."
+msgid "Published form schemas are the CRM contracts. Every save creates an immutable revision."
 msgstr ""
-"Опубликованные схемы форм являются контрактами CRM. Каждое сохранение "
-"создаёт неизменяемую редакцию."
+"Опубликованные схемы форм являются контрактами CRM. Каждое сохранение создаёт неизменяемую "
+"редакцию."
 
 #: src/Admin/Admin.php:290
 msgid "Radio"
 msgstr "Переключатели"
 
-#: src/Admin/ContactsPage.php:224 src/Admin/DashboardPage.php:108
-#: src/Admin/SubmissionsPage.php:134 src/Export/Exporter.php:87
+#: src/Admin/ContactsPage.php:224 src/Admin/DashboardPage.php:108 src/Admin/SubmissionsPage.php:134
+#: src/Export/Exporter.php:87
 msgid "Received"
 msgstr "Получено"
 
@@ -921,8 +888,7 @@ msgid "Reset"
 msgstr "Сбросить"
 
 #: src/Admin/SubmissionDetailPage.php:99 src/Admin/SubmissionDetailPage.php:109
-#: src/Admin/SubmissionsPage.php:82 src/Admin/SubmissionsPage.php:132
-#: src/Export/Exporter.php:87
+#: src/Admin/SubmissionsPage.php:82 src/Admin/SubmissionsPage.php:132 src/Export/Exporter.php:87
 msgid "Responsible"
 msgstr "Ответственный"
 
@@ -986,14 +952,13 @@ msgstr "Выберите вариант"
 
 #: src/Admin/ContactsPage.php:188
 msgid ""
-"Selected consent values will be stored as manual audit events. Form "
-"submissions record consent choices automatically."
+"Selected consent values will be stored as manual audit events. Form submissions record consent "
+"choices automatically."
 msgstr ""
-"Выбранные значения согласий будут сохранены как ручные события аудита. "
-"Выбор согласия в формах регистрируется автоматически."
+"Выбранные значения согласий будут сохранены как ручные события аудита. Выбор согласия в формах "
+"регистрируется автоматически."
 
-#: src/Admin/ContactsPage.php:180 src/Admin/ContactsPage.php:228
-#: src/Admin/SubmissionDetailPage.php:102
+#: src/Admin/ContactsPage.php:180 src/Admin/ContactsPage.php:228 src/Admin/SubmissionDetailPage.php:102
 msgid "Separate tags with commas."
 msgstr "Разделяйте метки запятыми."
 
@@ -1013,15 +978,13 @@ msgstr "Шорткод"
 msgid "Slug"
 msgstr "Ярлык"
 
-#: src/Admin/SubmissionDetailPage.php:119 src/Export/Exporter.php:87
-#: src/Privacy/Privacy.php:84
+#: src/Admin/SubmissionDetailPage.php:119 src/Export/Exporter.php:87 src/Privacy/Privacy.php:84
 msgid "Source URL"
 msgstr "URL источника"
 
-#: src/Admin/ContactsPage.php:224 src/Admin/DashboardPage.php:108
-#: src/Admin/SubmissionDetailPage.php:97 src/Admin/SubmissionDetailPage.php:107
-#: src/Admin/SubmissionsPage.php:68 src/Admin/SubmissionsPage.php:130
-#: src/Export/Exporter.php:58 src/Export/Exporter.php:87
+#: src/Admin/ContactsPage.php:224 src/Admin/DashboardPage.php:108 src/Admin/SubmissionDetailPage.php:97
+#: src/Admin/SubmissionDetailPage.php:107 src/Admin/SubmissionsPage.php:68
+#: src/Admin/SubmissionsPage.php:130 src/Export/Exporter.php:58 src/Export/Exporter.php:87
 #: src/Privacy/Privacy.php:59
 msgid "Status"
 msgstr "Статус"
@@ -1034,9 +997,7 @@ msgstr "Статус: %1$s → %2$s"
 
 #: src/Admin/Admin.php:236
 msgid "Store visitor IP addresses as submission and consent evidence"
-msgstr ""
-"Сохранять IP-адреса посетителей как доказательство отправки формы и "
-"предоставления согласий"
+msgstr "Сохранять IP-адреса посетителей как доказательство отправки формы и предоставления согласий"
 
 #: src/Admin/Admin.php:163
 msgid "Style mode"
@@ -1063,8 +1024,7 @@ msgstr "Только в обращении"
 msgid "Submission updated."
 msgstr "Заявка обновлена."
 
-#: src/Admin/Bootstrap.php:65 src/Admin/ContactsPage.php:224
-#: src/Admin/SubmissionsPage.php:45
+#: src/Admin/Bootstrap.php:65 src/Admin/ContactsPage.php:224 src/Admin/SubmissionsPage.php:45
 msgid "Submissions"
 msgstr "Обращения"
 
@@ -1096,11 +1056,10 @@ msgstr "Система"
 msgid "Tag"
 msgstr "Метка"
 
-#: src/Admin/ContactsPage.php:178 src/Admin/ContactsPage.php:223
-#: src/Admin/ContactsPage.php:228 src/Admin/ContactsPage.php:238
-#: src/Admin/SubmissionDetailPage.php:100
-#: src/Admin/SubmissionDetailPage.php:110 src/Admin/SubmissionsPage.php:133
-#: src/Export/Exporter.php:58 src/Export/Exporter.php:87
+#: src/Admin/ContactsPage.php:178 src/Admin/ContactsPage.php:223 src/Admin/ContactsPage.php:228
+#: src/Admin/ContactsPage.php:238 src/Admin/SubmissionDetailPage.php:100
+#: src/Admin/SubmissionDetailPage.php:110 src/Admin/SubmissionsPage.php:133 src/Export/Exporter.php:58
+#: src/Export/Exporter.php:87
 msgid "Tags"
 msgstr "Метки"
 
@@ -1220,8 +1179,7 @@ msgstr "Обновить статус согласий"
 msgid "Update tags"
 msgstr "Обновить метки"
 
-#: src/Admin/Admin.php:92 src/Admin/ContactsPage.php:238
-#: src/Export/Exporter.php:58
+#: src/Admin/Admin.php:92 src/Admin/ContactsPage.php:238 src/Export/Exporter.php:58
 msgid "Updated"
 msgstr "Обновлено"
 
@@ -1270,9 +1228,8 @@ msgstr "Ширина"
 msgid "WordPress roles are unavailable."
 msgstr "Роли WordPress недоступны."
 
-#: src/Admin/Admin.php:310 src/Admin/Bootstrap.php:87
-#: src/Admin/ContactsPage.php:315 src/Admin/DashboardPage.php:16
-#: src/Admin/SubmissionsPage.php:203
+#: src/Admin/Admin.php:310 src/Admin/Bootstrap.php:87 src/Admin/ContactsPage.php:315
+#: src/Admin/DashboardPage.php:16 src/Admin/SubmissionsPage.php:203
 msgid "You do not have permission to access this page."
 msgstr "У вас нет прав для доступа к этой странице."
 
@@ -1300,7 +1257,143 @@ msgstr "например, донор, волонтёр, партнёр"
 msgid "e.g. urgent, transport, volunteer"
 msgstr "например, срочно, перевозка, волонтёр"
 
-#, php-format
+msgid "Add an internal note…"
+msgstr "Добавьте внутреннюю заметку…"
+
+msgid "Add note"
+msgstr "Добавить заметку"
+
+msgid "Add tags"
+msgstr "Добавить метки"
+
+msgid "Apply"
+msgstr "Применить"
+
+msgid ""
+"BfCamel CRM contact identifiers and mapped submission fields were anonymized, and internal notes "
+"linked to the contact were removed. Consent event timestamps and document snapshots were retained"
+" as non-contact audit records."
+msgstr ""
+"Идентификаторы контакта BfCamel CRM и связанные поля заявок были обезличены, а внутренние "
+"заметки, связанные с контактом, удалены. Даты событий согласий и снимки документов сохранены как "
+"обезличенные записи аудита."
+
+msgid "Bulk actions"
+msgstr "Массовые действия"
+
+msgid "Choose a bulk action."
+msgstr "Выберите массовое действие."
+
+msgid "Choose priority"
+msgstr "Выберите приоритет"
+
+msgid "Choose status"
+msgstr "Выберите статус"
+
+msgid "Contact details updated."
+msgstr "Данные контакта обновлены."
+
+msgid "Could not save note"
+msgstr "Не удалось сохранить заметку"
+
+msgid "Could not save the note."
+msgstr "Не удалось сохранить заметку."
+
+msgid "Could not update selected submissions."
+msgstr "Не удалось обновить выбранные заявки."
+
+msgid "Could not update submissions"
+msgstr "Не удалось обновить заявки"
+
+msgid "Enter a note."
+msgstr "Введите заметку."
+
+msgid "Export selected CSV"
+msgstr "Экспорт выбранных CSV"
+
+msgid "Export selected XLSX"
+msgstr "Экспорт выбранных XLSX"
+
+msgid ""
+"If forms created with BfCamel CRM are used on this site, the plugin may store submitted form "
+"data, CRM contacts, internal notes, consent events, source URLs and browser User-Agent strings. "
+"IP address storage is optional and disabled by default. Administrators should describe the actual"
+" forms, purposes, retention periods and legal basis used on their site."
+msgstr ""
+"Если на сайте используются формы BfCamel CRM, плагин может хранить отправленные данные форм, "
+"контакты CRM, внутренние заметки, события согласий, URL источников и строки User-Agent браузера. "
+"Хранение IP-адресов необязательно и по умолчанию отключено. Администраторы должны описать "
+"фактически используемые формы, цели обработки, сроки хранения и правовые основания."
+
+msgid "Internal note"
+msgstr "Внутренняя заметка"
+
+msgid "Internal note added."
+msgstr "Внутренняя заметка добавлена."
+
+msgid "Internal notes"
+msgstr "Внутренние заметки"
+
+msgid "Marketing: all"
+msgstr "Рассылки: все"
+
+msgid "My submissions"
+msgstr "Мои заявки"
+
+msgid "No internal notes yet."
+msgstr "Внутренних заметок пока нет."
+
+msgid "One of the selected submissions no longer exists."
+msgstr "Одна из выбранных заявок больше не существует."
+
+msgid "Personal data: all"
+msgstr "Персональные данные: все"
+
+msgid "Primary email"
+msgstr "Основной e-mail"
+
+msgid "Primary phone"
+msgstr "Основной телефон"
+
+msgid "Remove tags"
+msgstr "Удалить метки"
+
+msgid "Save contact"
+msgstr "Сохранить контакт"
+
+msgid "Search, filter and manage CRM contacts."
+msgstr "Ищите, фильтруйте и управляйте контактами CRM."
+
+msgid "Select at least one contact."
+msgstr "Выберите хотя бы один контакт."
+
+msgid "Select at least one submission."
+msgstr "Выберите хотя бы одну заявку."
+
+msgid "Selected contacts updated."
+msgstr "Выбранные контакты обновлены."
+
+msgid "Selected submissions updated."
+msgstr "Выбранные заявки обновлены."
+
+msgid "Set priority"
+msgstr "Изменить приоритет"
+
+msgid "Set responsible"
+msgstr "Назначить ответственного"
+
+msgid "Set status"
+msgstr "Изменить статус"
+
+msgid "Tags, separated by commas"
+msgstr "Метки через запятую"
+
+msgid "The contact could not be updated."
+msgstr "Не удалось обновить контакт."
+
+msgid "The contact email or phone could not be updated."
+msgstr "Не удалось обновить e-mail или телефон контакта."
+
 #~ msgid "%1$s consent: %2$s."
 #~ msgstr "Согласие «%1$s»: %2$s."
 
@@ -1308,27 +1401,28 @@ msgstr "например, срочно, перевозка, волонтёр"
 #~ msgstr "Согласия"
 
 #~ msgid ""
-#~ "Contacts are matched by normalized email and phone. Conflicting "
-#~ "identifiers are never merged automatically."
+#~ "Contacts are matched by normalized email and phone."
+#~ " Conflicting identifiers are never merged automatically."
 #~ msgstr ""
-#~ "Контакты сопоставляются по нормализованным e-mail и телефону. "
-#~ "Конфликтующие идентификаторы никогда не объединяются автоматически."
+#~ "Контакты сопоставляются по нормализованным e-mail и "
+#~ "телефону. Конфликтующие идентификаторы никогда не объединяются"
+#~ " автоматически."
 
 #~ msgid ""
-#~ "Native form builder and lightweight CRM for WordPress: forms, "
-#~ "submissions, contacts, consent evidence and privacy tools."
+#~ "Native form builder and lightweight CRM for "
+#~ "WordPress: forms, submissions, contacts, consent evidence "
+#~ "and privacy tools."
 #~ msgstr ""
-#~ "Встроенный конструктор форм и лёгкая CRM для WordPress: формы, обращения, "
-#~ "контакты, фиксация согласий и инструменты конфиденциальности."
+#~ "Встроенный конструктор форм и лёгкая CRM для "
+#~ "WordPress: формы, обращения, контакты, фиксация согласий и"
+#~ " инструменты конфиденциальности."
 
-#~ msgid ""
-#~ "Native forms, submissions, contacts and consent evidence for WordPress."
-#~ msgstr ""
-#~ "Собственные формы, обращения, контакты и фиксация согласий для WordPress."
+#~ msgid "Native forms, submissions, contacts and consent evidence for WordPress."
+#~ msgstr "Собственные формы, обращения, контакты и фиксация согласий для WordPress."
 
 #~ msgid "Submission status changed."
 #~ msgstr "Статус обращения изменён."
 
-#~ msgid ""
-#~ "The first 250 most recent submissions are shown in this alpha release."
+#~ msgid "The first 250 most recent submissions are shown in this alpha release."
 #~ msgstr "В этой альфа-версии отображаются 250 последних обращений."
+

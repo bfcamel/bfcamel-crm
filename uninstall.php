@@ -13,6 +13,7 @@ if ( $delete_data ) {
         'contact_tags',
         'consent_events',
         'activity_log',
+        'notes',
         'submissions',
         'contact_emails',
         'contact_phones',

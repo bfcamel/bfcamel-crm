@@ -7,6 +7,16 @@
   }
 
   ready(function () {
+    document.querySelectorAll('.bfcamel-crm-select-all').forEach(function (toggle) {
+      toggle.addEventListener('change', function () {
+        var form = toggle.closest('form');
+        if (!form) return;
+        form.querySelectorAll('tbody .check-column input[type="checkbox"]').forEach(function (checkbox) {
+          checkbox.checked = toggle.checked;
+        });
+      });
+    });
+
     var root = document.getElementById('bfcamel-crm-builder');
     var hidden = document.getElementById('bfcamel-crm-schema-json');
     if (!root || !hidden || typeof window.BfCamelCRMBuilder === 'undefined') return;

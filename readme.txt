@@ -4,7 +4,7 @@ Tags: crm, forms, form builder, contacts, consent
 Requires at least: 6.2
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.3.1
+Stable tag: 0.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,7 +14,7 @@ Native form builder and lightweight CRM for WordPress: forms, submissions, conta
 
 BfCamel CRM combines a native WordPress form builder with a lightweight CRM. Published form revisions act as server-side CRM contracts, so field validation, contact mapping and consent evidence do not depend on browser-controlled hidden values.
 
-Version 0.3.1 is the supported install/update package for the 0.3 release line. It includes duplicate-copy protection, a complete contacts workspace, data exports, role permissions and an updated Dashboard while retaining the 0.2.0 submissions workflow.
+Version 0.3.2 expands the day-to-day CRM workspace with editable contacts, internal notes, bulk actions, consent-aware contact filtering, a My submissions view, top pagination and selected-contact export while preserving the 0.3.1 update and localization hardening.
 
 Features include:
 
@@ -23,8 +23,13 @@ Features include:
 * Normal, high and urgent submission priorities.
 * Tags for submissions with filtering.
 * Submission history built from the CRM activity log.
-* Manual contact creation and reusable contact tags.
-* Filtered contacts and submissions exports in CSV and XLSX.
+* Manual contact creation, contact editing and reusable contact tags.
+* Internal notes for contacts and submissions with author and timestamp history.
+* Bulk actions for submission workflow fields and contact tags.
+* Consent-status filters and consent badges in the contacts list.
+* My submissions quick view for the current WordPress user.
+* Pagination controls above and below CRM tables.
+* Filtered contacts and submissions exports in CSV and XLSX, plus selected-contact export.
 * Dashboard cards for new, urgent, unassigned and review-required work.
 * Administrator-configurable CRM permissions for each WordPress role.
 * Native forms without Contact Form 7.
@@ -63,7 +68,7 @@ Not for an in-place update. GitHub source archives normally contain a branch-der
 
 = How is the Russian interface loaded? =
 
-Version 0.3.1 uses WordPress' standard text-domain loading. The source and each release ZIP contain an MO catalog compiled from the complete UTF-8 PO source, and the build fails if catalogs are incomplete or inconsistent.
+Version 0.3.2 uses WordPress' standard text-domain loading. The source and each release ZIP contain an MO catalog compiled from the complete UTF-8 PO source, and the build fails if catalogs are incomplete or inconsistent.
 
 = Does it require Contact Form 7? =
 
@@ -84,6 +89,15 @@ The plugin stores form submissions and CRM contact information in the WordPress 
 The plugin integrates with WordPress Personal Data Export and Erase tools. Site operators remain responsible for determining their actual legal basis, disclosures and retention rules.
 
 == Changelog ==
+
+= 0.3.2 =
+* Added contact editing with audited name, organization, primary email and primary phone changes.
+* Added internal notes for contacts and submissions with author and timestamp.
+* Added bulk submission workflow actions and bulk contact tag actions.
+* Added personal-data and marketing-consent filters and consent badges in the contacts list.
+* Added My submissions quick view and pagination above and below CRM tables.
+* Added selected-contact CSV/XLSX export.
+* Updated Russian localization for the expanded CRM workspace.
 
 = 0.3.1 =
 * Added a duplicate-copy guard so accidentally activating a `bfcamel-crm-main` source archive beside the installed plugin no longer causes constant warnings or an I18n fatal error.

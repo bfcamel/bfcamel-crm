@@ -2,6 +2,7 @@
 namespace BfCamel\CRM\Privacy;
 
 use BfCamel\CRM\CRM\ContactService;
+use BfCamel\CRM\CRM\NoteService;
 use BfCamel\CRM\Database\Schema;
 use BfCamel\CRM\Forms\Repository;
 
@@ -69,6 +70,10 @@ final class Privacy {
                 $items[] = array( 'name' => $key, 'value' => $value );
             }
 
+            foreach ( NoteService::for_entity( 'contact', $contact_id ) as $note ) {
+                $items[] = array( 'name' => __( 'Internal note', 'bfcamel-crm' ), 'value' => $note->note_text );
+            }
+
             $data[] = array(
                 'group_id'    => 'bfcamel-crm-contact',
                 'group_label' => __( 'BfCamel CRM contact', 'bfcamel-crm' ),
@@ -88,6 +93,9 @@ final class Privacy {
                         'name'  => $key,
                         'value' => is_array( $value ) ? implode( ', ', $value ) : (string) $value,
                     );
+                }
+                foreach ( NoteService::for_entity( 'submission', $submission->id ) as $note ) {
+                    $submission_data[] = array( 'name' => __( 'Internal note', 'bfcamel-crm' ), 'value' => $note->note_text );
                 }
                 $data[] = array(
                     'group_id'    => 'bfcamel-crm-submissions',
@@ -114,7 +122,9 @@ final class Privacy {
             $submissions = $this->submissions_for_contact( $contact_id );
             foreach ( $submissions as $submission ) {
                 $this->scrub_submission_payload( $submission );
+                NoteService::delete_for_entity( 'submission', $submission->id );
             }
+            NoteService::delete_for_entity( 'contact', $contact_id );
             $this->scrub_consent_metadata( $contact_id );
             if ( ContactService::anonymize( $contact_id ) ) {
                 $removed = true;
@@ -122,7 +132,7 @@ final class Privacy {
         }
 
         if ( $removed ) {
-            $messages[] = __( 'BfCamel CRM contact identifiers and mapped submission fields were anonymized. Consent event timestamps and document snapshots were retained as non-contact audit records.', 'bfcamel-crm' );
+            $messages[] = __( 'BfCamel CRM contact identifiers and mapped submission fields were anonymized, and internal notes linked to the contact were removed. Consent event timestamps and document snapshots were retained as non-contact audit records.', 'bfcamel-crm' );
             $retained = true;
         }
 
@@ -139,7 +149,7 @@ final class Privacy {
             return;
         }
 
-        $content = '<p>' . esc_html__( 'If forms created with BfCamel CRM are used on this site, the plugin may store submitted form data, CRM contacts, consent events, source URLs and browser User-Agent strings. IP address storage is optional and disabled by default. Administrators should describe the actual forms, purposes, retention periods and legal basis used on their site.', 'bfcamel-crm' ) . '</p>';
+        $content = '<p>' . esc_html__( 'If forms created with BfCamel CRM are used on this site, the plugin may store submitted form data, CRM contacts, internal notes, consent events, source URLs and browser User-Agent strings. IP address storage is optional and disabled by default. Administrators should describe the actual forms, purposes, retention periods and legal basis used on their site.', 'bfcamel-crm' ) . '</p>';
         wp_add_privacy_policy_content( 'BfCamel CRM', wp_kses_post( wpautop( $content ) ) );
     }
 

@@ -170,6 +170,72 @@ final class SubmissionService {
         );
     }
 
+    public static function bulk_apply( $submission_ids, $action, $value, $user_id ) {
+        global $wpdb;
+        $ids = array_values( array_unique( array_filter( array_map( 'absint', (array) $submission_ids ) ) ) );
+        if ( ! $ids ) {
+            return new \WP_Error( 'bfcamel_crm_bulk_empty', __( 'Select at least one submission.', 'bfcamel-crm' ) );
+        }
+        if ( ! Schema::begin_transaction() ) {
+            return new \WP_Error( 'bfcamel_crm_bulk_transaction', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
+        }
+        foreach ( $ids as $id ) {
+            $current = self::get( $id, true );
+            if ( ! $current ) {
+                Schema::rollback();
+                return new \WP_Error( 'bfcamel_crm_bulk_missing', __( 'One of the selected submissions no longer exists.', 'bfcamel-crm' ) );
+            }
+            if ( 'status' === $action ) {
+                $new = sanitize_key( $value );
+                if ( ! isset( self::statuses()[ $new ] ) ) continue;
+                if ( (string) $current->status !== $new ) {
+                    if ( false === $wpdb->update( Schema::table( 'submissions' ), array( 'status' => $new ), array( 'id' => $id ), array( '%s' ), array( '%d' ) ) || ! Schema::log( 'submission', $id, 'status_changed', 'Submission status changed.', array( 'from' => $current->status, 'to' => $new ), $user_id ) ) {
+                        Schema::rollback(); return new \WP_Error( 'bfcamel_crm_bulk_failed', __( 'Could not update selected submissions.', 'bfcamel-crm' ) );
+                    }
+                }
+            } elseif ( 'priority' === $action ) {
+                $new = sanitize_key( $value );
+                if ( ! isset( self::priorities()[ $new ] ) ) continue;
+                $old = $current->priority ?: 'normal';
+                if ( $old !== $new ) {
+                    if ( false === $wpdb->update( Schema::table( 'submissions' ), array( 'priority' => $new ), array( 'id' => $id ), array( '%s' ), array( '%d' ) ) || ! Schema::log( 'submission', $id, 'priority_changed', 'Submission priority changed.', array( 'from' => $old, 'to' => $new ), $user_id ) ) {
+                        Schema::rollback(); return new \WP_Error( 'bfcamel_crm_bulk_failed', __( 'Could not update selected submissions.', 'bfcamel-crm' ) );
+                    }
+                }
+            } elseif ( 'assigned_to' === $action ) {
+                $new = absint( $value );
+                $allowed = array_map( 'absint', wp_list_pluck( self::assignees(), 'ID' ) );
+                if ( $new && ! in_array( $new, $allowed, true ) ) continue;
+                if ( absint( $current->assigned_to ) !== $new ) {
+                    if ( false === $wpdb->update( Schema::table( 'submissions' ), array( 'assigned_to' => $new ), array( 'id' => $id ), array( '%d' ), array( '%d' ) ) || ! Schema::log( 'submission', $id, 'assignee_changed', 'Submission assignee changed.', array( 'from' => absint( $current->assigned_to ), 'to' => $new ), $user_id ) ) {
+                        Schema::rollback(); return new \WP_Error( 'bfcamel_crm_bulk_failed', __( 'Could not update selected submissions.', 'bfcamel-crm' ) );
+                    }
+                }
+            } elseif ( in_array( $action, array( 'add_tags', 'remove_tags' ), true ) ) {
+                $old = TagService::names_for_submission( $id );
+                $incoming = array_values( array_filter( array_map( 'trim', preg_split( '/[,;\n\r]+/u', (string) $value ) ) ) );
+                if ( 'add_tags' === $action ) {
+                    $new_names = array_values( array_unique( array_merge( $old, $incoming ) ) );
+                } else {
+                    $lower = array_map( 'strtolower', $incoming );
+                    $new_names = array_values( array_filter( $old, static function ( $name ) use ( $lower ) { return ! in_array( strtolower( $name ), $lower, true ); } ) );
+                }
+                $tag_result = TagService::sync_submission( $id, implode( ', ', $new_names ) );
+                if ( is_wp_error( $tag_result ) ) { Schema::rollback(); return $tag_result; }
+                $actual = wp_list_pluck( $tag_result, 'name' );
+                $a = $old; $b = $actual; sort( $a ); sort( $b );
+                if ( $a !== $b && ! Schema::log( 'submission', $id, 'tags_changed', 'Submission tags changed.', array( 'from' => $old, 'to' => $actual ), $user_id ) ) {
+                    Schema::rollback(); return new \WP_Error( 'bfcamel_crm_bulk_failed', __( 'Could not update selected submissions.', 'bfcamel-crm' ) );
+                }
+            }
+        }
+        if ( ! Schema::commit() ) {
+            Schema::rollback();
+            return new \WP_Error( 'bfcamel_crm_bulk_commit', __( 'Could not update selected submissions.', 'bfcamel-crm' ) );
+        }
+        return count( $ids );
+    }
+
     public static function all_for_export( $filters = array() ) {
         $rows = array();
         $page = 1;

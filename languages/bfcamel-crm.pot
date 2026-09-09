@@ -1,22 +1,21 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR People & Camels Charity Foundation
+# Copyright (C) 2026 People & Camels Charity Foundation
 # This file is distributed under the same license as the BfCamel CRM package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: BfCamel CRM 0.3.1\n"
+"Project-Id-Version: BfCamel CRM 0.3.2\n"
 "Report-Msgid-Bugs-To: https://github.com/bfcamel/bfcamel-crm/issues\n"
-"POT-Creation-Date: 2026-09-09 11:08+0100\n"
+"POT-Creation-Date: 2026-09-09 11:22+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Domain: bfcamel-crm\n"
+"Generated-By: Babel 2.18.0\n"
 
 #. translators: %s: existing contact IDs.
 #: src/CRM/ContactService.php:208
@@ -24,8 +23,7 @@ msgstr ""
 msgid "A contact with this email or phone already exists: #%s."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:50 src/Admin/ContactsPage.php:168
-#: src/Admin/DashboardPage.php:54
+#: src/Admin/ContactsPage.php:50 src/Admin/ContactsPage.php:168 src/Admin/DashboardPage.php:54
 msgid "Add contact"
 msgstr ""
 
@@ -33,8 +31,7 @@ msgstr ""
 msgid "Add explanatory text here."
 msgstr ""
 
-#: src/Admin/Admin.php:87 src/Admin/Admin.php:125
-#: src/Admin/DashboardPage.php:57
+#: src/Admin/Admin.php:87 src/Admin/Admin.php:125 src/Admin/DashboardPage.php:57
 msgid "Add form"
 msgstr ""
 
@@ -75,8 +72,7 @@ msgstr ""
 msgid "Appearance"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:168 src/Admin/ContactsPage.php:217
-#: src/Admin/SubmissionDetailPage.php:41
+#: src/Admin/ContactsPage.php:168 src/Admin/ContactsPage.php:217 src/Admin/SubmissionDetailPage.php:41
 msgid "Back"
 msgstr ""
 
@@ -84,9 +80,8 @@ msgstr ""
 msgid "Back to forms"
 msgstr ""
 
-#: src/Admin/Bootstrap.php:45 src/Admin/Bootstrap.php:46
-#: src/Admin/DashboardPage.php:49 src/Privacy/Privacy.php:32
-#: src/Privacy/Privacy.php:40
+#: src/Admin/Bootstrap.php:45 src/Admin/Bootstrap.php:46 src/Admin/DashboardPage.php:49
+#: src/Privacy/Privacy.php:32 src/Privacy/Privacy.php:40
 msgid "BfCamel CRM"
 msgstr ""
 
@@ -96,9 +91,8 @@ msgstr ""
 
 #: src/Privacy/Privacy.php:125
 msgid ""
-"BfCamel CRM contact identifiers and mapped submission fields were "
-"anonymized. Consent event timestamps and document snapshots were retained as "
-"non-contact audit records."
+"BfCamel CRM contact identifiers and mapped submission fields were anonymized. Consent event "
+"timestamps and document snapshots were retained as non-contact audit records."
 msgstr ""
 
 #. translators: %s: database error details.
@@ -143,9 +137,8 @@ msgstr ""
 msgid "CRM activity recorded."
 msgstr ""
 
-#: src/Admin/Admin.php:313 src/Admin/ContactsPage.php:318
-#: src/Admin/DashboardPage.php:19 src/Admin/SubmissionsPage.php:206
-#: src/Export/Exporter.php:20
+#: src/Admin/Admin.php:313 src/Admin/ContactsPage.php:318 src/Admin/DashboardPage.php:19
+#: src/Admin/SubmissionsPage.php:206 src/Export/Exporter.php:20
 msgid "CRM database update required"
 msgstr ""
 
@@ -159,8 +152,8 @@ msgstr ""
 
 #: src/Admin/Admin.php:238
 msgid ""
-"Choose which CRM areas each WordPress role can use. New roles receive all "
-"main CRM permissions by default; settings remain administrator-only."
+"Choose which CRM areas each WordPress role can use. New roles receive all main CRM permissions by"
+" default; settings remain administrator-only."
 msgstr ""
 
 #: src/Admin/Admin.php:164
@@ -193,8 +186,7 @@ msgstr ""
 msgid "Consent status updated."
 msgstr ""
 
-#: src/Admin/DashboardPage.php:108 src/Admin/SubmissionsPage.php:129
-#: src/Export/Exporter.php:87
+#: src/Admin/DashboardPage.php:108 src/Admin/SubmissionsPage.php:129 src/Export/Exporter.php:87
 msgid "Contact"
 msgstr ""
 
@@ -226,8 +218,7 @@ msgstr ""
 msgid "Contact name is required."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:96 src/Admin/ContactsPage.php:133
-#: src/Admin/ContactsPage.php:200
+#: src/Admin/ContactsPage.php:96 src/Admin/ContactsPage.php:133 src/Admin/ContactsPage.php:200
 msgid "Contact not found."
 msgstr ""
 
@@ -283,8 +274,7 @@ msgstr ""
 msgid "Contact: phone"
 msgstr ""
 
-#: src/Admin/Bootstrap.php:66 src/Admin/ContactsPage.php:47
-#: src/Admin/DashboardPage.php:40
+#: src/Admin/Bootstrap.php:66 src/Admin/ContactsPage.php:47 src/Admin/DashboardPage.php:40
 msgid "Contacts"
 msgstr ""
 
@@ -320,10 +310,8 @@ msgstr ""
 msgid "Could not record contact history."
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:183
-#: src/Admin/SubmissionDetailPage.php:186
-#: src/Admin/SubmissionDetailPage.php:189
-#: src/Admin/SubmissionDetailPage.php:202
+#: src/Admin/SubmissionDetailPage.php:183 src/Admin/SubmissionDetailPage.php:186
+#: src/Admin/SubmissionDetailPage.php:189 src/Admin/SubmissionDetailPage.php:202
 msgid "Could not record submission history."
 msgstr ""
 
@@ -339,8 +327,8 @@ msgstr ""
 msgid "Could not save role permissions"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:92 src/Admin/ContactsPage.php:129
-#: src/Admin/SubmissionDetailPage.php:133 src/CRM/ContactService.php:215
+#: src/Admin/ContactsPage.php:92 src/Admin/ContactsPage.php:129 src/Admin/SubmissionDetailPage.php:133
+#: src/CRM/ContactService.php:215
 msgid "Could not start a database transaction."
 msgstr ""
 
@@ -410,9 +398,7 @@ msgid "Delete all BfCamel CRM data when the plugin is uninstalled"
 msgstr ""
 
 #: src/Admin/Admin.php:236
-msgid ""
-"Disabled by default. User-Agent and source URL are still stored with "
-"submissions."
+msgid "Disabled by default. User-Agent and source URL are still stored with submissions."
 msgstr ""
 
 #: src/Privacy/Privacy.php:57
@@ -433,9 +419,8 @@ msgstr ""
 msgid "Edit submissions"
 msgstr ""
 
-#: src/Admin/Admin.php:284 src/Admin/ContactsPage.php:175
-#: src/Admin/ContactsPage.php:223 src/Admin/ContactsPage.php:238
-#: src/Export/Exporter.php:58 src/Forms/Repository.php:205
+#: src/Admin/Admin.php:284 src/Admin/ContactsPage.php:175 src/Admin/ContactsPage.php:223
+#: src/Admin/ContactsPage.php:238 src/Export/Exporter.php:58 src/Forms/Repository.php:205
 #: src/Privacy/Privacy.php:63
 msgid "Email"
 msgstr ""
@@ -461,8 +446,7 @@ msgid "Error message"
 msgstr ""
 
 #: src/Admin/ContactsPage.php:256
-msgid ""
-"Every change creates a new audit event; previous consent history is retained."
+msgid "Every change creates a new audit event; previous consent history is retained."
 msgstr ""
 
 #: src/Forms/Repository.php:299
@@ -510,9 +494,8 @@ msgstr ""
 msgid "Filter"
 msgstr ""
 
-#: src/Admin/Admin.php:141 src/Admin/DashboardPage.php:108
-#: src/Admin/SubmissionsPage.php:75 src/Admin/SubmissionsPage.php:128
-#: src/Export/Exporter.php:87
+#: src/Admin/Admin.php:141 src/Admin/DashboardPage.php:108 src/Admin/SubmissionsPage.php:75
+#: src/Admin/SubmissionsPage.php:128 src/Export/Exporter.php:87
 msgid "Form"
 msgstr ""
 
@@ -556,8 +539,7 @@ msgstr ""
 msgid "Form submission received; contact sync: %s."
 msgstr ""
 
-#: src/Admin/Admin.php:86 src/Admin/Bootstrap.php:64
-#: src/Admin/DashboardPage.php:43
+#: src/Admin/Admin.php:86 src/Admin/Bootstrap.php:64 src/Admin/DashboardPage.php:43
 msgid "Forms"
 msgstr ""
 
@@ -587,15 +569,13 @@ msgid "How should we address you?"
 msgstr ""
 
 #: src/Admin/Admin.php:64 src/Forms/Repository.php:238
-msgid ""
-"I consent to receive informational and marketing messages under the "
-"{marketing_consent}."
+#, python-brace-format
+msgid "I consent to receive informational and marketing messages under the {marketing_consent}."
 msgstr ""
 
 #: src/Admin/Admin.php:63 src/Forms/Repository.php:227
-msgid ""
-"I consent to {personal_data_consent} and confirm that I have read the "
-"{privacy_policy}."
+#, python-brace-format
+msgid "I consent to {personal_data_consent} and confirm that I have read the {privacy_policy}."
 msgstr ""
 
 #: src/Admin/SubmissionDetailPage.php:120
@@ -604,11 +584,10 @@ msgstr ""
 
 #: src/Privacy/Privacy.php:142
 msgid ""
-"If forms created with BfCamel CRM are used on this site, the plugin may "
-"store submitted form data, CRM contacts, consent events, source URLs and "
-"browser User-Agent strings. IP address storage is optional and disabled by "
-"default. Administrators should describe the actual forms, purposes, "
-"retention periods and legal basis used on their site."
+"If forms created with BfCamel CRM are used on this site, the plugin may store submitted form "
+"data, CRM contacts, consent events, source URLs and browser User-Agent strings. IP address "
+"storage is optional and disabled by default. Administrators should describe the actual forms, "
+"purposes, retention periods and legal basis used on their site."
 msgstr ""
 
 #: src/CRM/SubmissionService.php:14
@@ -636,9 +615,7 @@ msgid "Invalid tag target."
 msgstr ""
 
 #: src/Admin/Admin.php:236
-msgid ""
-"Keep this disabled unless you explicitly want uninstall.php to remove CRM "
-"tables and settings."
+msgid "Keep this disabled unless you explicitly want uninstall.php to remove CRM tables and settings."
 msgstr ""
 
 #: src/Admin/Admin.php:49
@@ -655,8 +632,8 @@ msgstr ""
 
 #: src/Admin/Admin.php:231
 msgid ""
-"Links and versions are copied into consent evidence at submission time, so "
-"later edits do not rewrite history."
+"Links and versions are copied into consent evidence at submission time, so later edits do not "
+"rewrite history."
 msgstr ""
 
 #: src/Access/RoleManager.php:25
@@ -703,9 +680,8 @@ msgstr ""
 msgid "Move up"
 msgstr ""
 
-#: src/Admin/Admin.php:92 src/Admin/Admin.php:143
-#: src/Admin/ContactsPage.php:173 src/Admin/ContactsPage.php:238
-#: src/Export/Exporter.php:58 src/Forms/Repository.php:183
+#: src/Admin/Admin.php:92 src/Admin/Admin.php:143 src/Admin/ContactsPage.php:173
+#: src/Admin/ContactsPage.php:238 src/Export/Exporter.php:58 src/Forms/Repository.php:183
 msgid "Name"
 msgstr ""
 
@@ -789,8 +765,8 @@ msgstr ""
 msgid "Options, one per line"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:174 src/Admin/ContactsPage.php:238
-#: src/Export/Exporter.php:58 src/Privacy/Privacy.php:58
+#: src/Admin/ContactsPage.php:174 src/Admin/ContactsPage.php:238 src/Export/Exporter.php:58
+#: src/Privacy/Privacy.php:58
 msgid "Organization"
 msgstr ""
 
@@ -814,9 +790,8 @@ msgstr ""
 msgid "Personal data processing"
 msgstr ""
 
-#: src/Admin/Admin.php:285 src/Admin/ContactsPage.php:176
-#: src/Admin/ContactsPage.php:223 src/Admin/ContactsPage.php:238
-#: src/Export/Exporter.php:58 src/Forms/Repository.php:194
+#: src/Admin/Admin.php:285 src/Admin/ContactsPage.php:176 src/Admin/ContactsPage.php:223
+#: src/Admin/ContactsPage.php:238 src/Export/Exporter.php:58 src/Forms/Repository.php:194
 #: src/Privacy/Privacy.php:66
 msgid "Phone"
 msgstr ""
@@ -834,8 +809,7 @@ msgid "Primary / focus color"
 msgstr ""
 
 #: src/Admin/SubmissionDetailPage.php:98 src/Admin/SubmissionDetailPage.php:108
-#: src/Admin/SubmissionsPage.php:90 src/Admin/SubmissionsPage.php:131
-#: src/Export/Exporter.php:87
+#: src/Admin/SubmissionsPage.php:90 src/Admin/SubmissionsPage.php:131 src/Export/Exporter.php:87
 msgid "Priority"
 msgstr ""
 
@@ -854,17 +828,15 @@ msgid "Privacy Policy"
 msgstr ""
 
 #: src/Admin/Admin.php:86
-msgid ""
-"Published form schemas are the CRM contracts. Every save creates an "
-"immutable revision."
+msgid "Published form schemas are the CRM contracts. Every save creates an immutable revision."
 msgstr ""
 
 #: src/Admin/Admin.php:290
 msgid "Radio"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:224 src/Admin/DashboardPage.php:108
-#: src/Admin/SubmissionsPage.php:134 src/Export/Exporter.php:87
+#: src/Admin/ContactsPage.php:224 src/Admin/DashboardPage.php:108 src/Admin/SubmissionsPage.php:134
+#: src/Export/Exporter.php:87
 msgid "Received"
 msgstr ""
 
@@ -900,8 +872,7 @@ msgid "Reset"
 msgstr ""
 
 #: src/Admin/SubmissionDetailPage.php:99 src/Admin/SubmissionDetailPage.php:109
-#: src/Admin/SubmissionsPage.php:82 src/Admin/SubmissionsPage.php:132
-#: src/Export/Exporter.php:87
+#: src/Admin/SubmissionsPage.php:82 src/Admin/SubmissionsPage.php:132 src/Export/Exporter.php:87
 msgid "Responsible"
 msgstr ""
 
@@ -965,12 +936,11 @@ msgstr ""
 
 #: src/Admin/ContactsPage.php:188
 msgid ""
-"Selected consent values will be stored as manual audit events. Form "
-"submissions record consent choices automatically."
+"Selected consent values will be stored as manual audit events. Form submissions record consent "
+"choices automatically."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:180 src/Admin/ContactsPage.php:228
-#: src/Admin/SubmissionDetailPage.php:102
+#: src/Admin/ContactsPage.php:180 src/Admin/ContactsPage.php:228 src/Admin/SubmissionDetailPage.php:102
 msgid "Separate tags with commas."
 msgstr ""
 
@@ -990,15 +960,13 @@ msgstr ""
 msgid "Slug"
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:119 src/Export/Exporter.php:87
-#: src/Privacy/Privacy.php:84
+#: src/Admin/SubmissionDetailPage.php:119 src/Export/Exporter.php:87 src/Privacy/Privacy.php:84
 msgid "Source URL"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:224 src/Admin/DashboardPage.php:108
-#: src/Admin/SubmissionDetailPage.php:97 src/Admin/SubmissionDetailPage.php:107
-#: src/Admin/SubmissionsPage.php:68 src/Admin/SubmissionsPage.php:130
-#: src/Export/Exporter.php:58 src/Export/Exporter.php:87
+#: src/Admin/ContactsPage.php:224 src/Admin/DashboardPage.php:108 src/Admin/SubmissionDetailPage.php:97
+#: src/Admin/SubmissionDetailPage.php:107 src/Admin/SubmissionsPage.php:68
+#: src/Admin/SubmissionsPage.php:130 src/Export/Exporter.php:58 src/Export/Exporter.php:87
 #: src/Privacy/Privacy.php:59
 msgid "Status"
 msgstr ""
@@ -1038,8 +1006,7 @@ msgstr ""
 msgid "Submission updated."
 msgstr ""
 
-#: src/Admin/Bootstrap.php:65 src/Admin/ContactsPage.php:224
-#: src/Admin/SubmissionsPage.php:45
+#: src/Admin/Bootstrap.php:65 src/Admin/ContactsPage.php:224 src/Admin/SubmissionsPage.php:45
 msgid "Submissions"
 msgstr ""
 
@@ -1071,11 +1038,10 @@ msgstr ""
 msgid "Tag"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:178 src/Admin/ContactsPage.php:223
-#: src/Admin/ContactsPage.php:228 src/Admin/ContactsPage.php:238
-#: src/Admin/SubmissionDetailPage.php:100
-#: src/Admin/SubmissionDetailPage.php:110 src/Admin/SubmissionsPage.php:133
-#: src/Export/Exporter.php:58 src/Export/Exporter.php:87
+#: src/Admin/ContactsPage.php:178 src/Admin/ContactsPage.php:223 src/Admin/ContactsPage.php:228
+#: src/Admin/ContactsPage.php:238 src/Admin/SubmissionDetailPage.php:100
+#: src/Admin/SubmissionDetailPage.php:110 src/Admin/SubmissionsPage.php:133 src/Export/Exporter.php:58
+#: src/Export/Exporter.php:87
 msgid "Tags"
 msgstr ""
 
@@ -1195,8 +1161,7 @@ msgstr ""
 msgid "Update tags"
 msgstr ""
 
-#: src/Admin/Admin.php:92 src/Admin/ContactsPage.php:238
-#: src/Export/Exporter.php:58
+#: src/Admin/Admin.php:92 src/Admin/ContactsPage.php:238 src/Export/Exporter.php:58
 msgid "Updated"
 msgstr ""
 
@@ -1245,9 +1210,8 @@ msgstr ""
 msgid "WordPress roles are unavailable."
 msgstr ""
 
-#: src/Admin/Admin.php:310 src/Admin/Bootstrap.php:87
-#: src/Admin/ContactsPage.php:315 src/Admin/DashboardPage.php:16
-#: src/Admin/SubmissionsPage.php:203
+#: src/Admin/Admin.php:310 src/Admin/Bootstrap.php:87 src/Admin/ContactsPage.php:315
+#: src/Admin/DashboardPage.php:16 src/Admin/SubmissionsPage.php:203
 msgid "You do not have permission to access this page."
 msgstr ""
 
@@ -1274,3 +1238,134 @@ msgstr ""
 #: src/Admin/SubmissionDetailPage.php:100
 msgid "e.g. urgent, transport, volunteer"
 msgstr ""
+
+msgid "Add an internal note…"
+msgstr ""
+
+msgid "Add note"
+msgstr ""
+
+msgid "Add tags"
+msgstr ""
+
+msgid "Apply"
+msgstr ""
+
+msgid ""
+"BfCamel CRM contact identifiers and mapped submission fields were anonymized, and internal notes "
+"linked to the contact were removed. Consent event timestamps and document snapshots were retained"
+" as non-contact audit records."
+msgstr ""
+
+msgid "Bulk actions"
+msgstr ""
+
+msgid "Choose a bulk action."
+msgstr ""
+
+msgid "Choose priority"
+msgstr ""
+
+msgid "Choose status"
+msgstr ""
+
+msgid "Contact details updated."
+msgstr ""
+
+msgid "Could not save note"
+msgstr ""
+
+msgid "Could not save the note."
+msgstr ""
+
+msgid "Could not update selected submissions."
+msgstr ""
+
+msgid "Could not update submissions"
+msgstr ""
+
+msgid "Enter a note."
+msgstr ""
+
+msgid "Export selected CSV"
+msgstr ""
+
+msgid "Export selected XLSX"
+msgstr ""
+
+msgid ""
+"If forms created with BfCamel CRM are used on this site, the plugin may store submitted form "
+"data, CRM contacts, internal notes, consent events, source URLs and browser User-Agent strings. "
+"IP address storage is optional and disabled by default. Administrators should describe the actual"
+" forms, purposes, retention periods and legal basis used on their site."
+msgstr ""
+
+msgid "Internal note"
+msgstr ""
+
+msgid "Internal note added."
+msgstr ""
+
+msgid "Internal notes"
+msgstr ""
+
+msgid "Marketing: all"
+msgstr ""
+
+msgid "My submissions"
+msgstr ""
+
+msgid "No internal notes yet."
+msgstr ""
+
+msgid "One of the selected submissions no longer exists."
+msgstr ""
+
+msgid "Personal data: all"
+msgstr ""
+
+msgid "Primary email"
+msgstr ""
+
+msgid "Primary phone"
+msgstr ""
+
+msgid "Remove tags"
+msgstr ""
+
+msgid "Save contact"
+msgstr ""
+
+msgid "Search, filter and manage CRM contacts."
+msgstr ""
+
+msgid "Select at least one contact."
+msgstr ""
+
+msgid "Select at least one submission."
+msgstr ""
+
+msgid "Selected contacts updated."
+msgstr ""
+
+msgid "Selected submissions updated."
+msgstr ""
+
+msgid "Set priority"
+msgstr ""
+
+msgid "Set responsible"
+msgstr ""
+
+msgid "Set status"
+msgstr ""
+
+msgid "Tags, separated by commas"
+msgstr ""
+
+msgid "The contact could not be updated."
+msgstr ""
+
+msgid "The contact email or phone could not be updated."
+msgstr ""
+

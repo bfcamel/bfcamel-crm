@@ -2,13 +2,20 @@
 
 **BfCamel CRM** is an open-source WordPress form builder and lightweight CRM developed by the People & Camels Charity Foundation.
 
-Version `0.3.1` is the supported install/update package for the 0.3 release line. It adds duplicate-copy protection and publishes an official ZIP with the exact WordPress plugin directory.
+Version **0.3.2** expands the everyday CRM workspace while preserving the established WordPress plugin identity and in-place update path introduced in earlier releases.
 
-It also restores Russian localization in source checkouts by bundling a compiled MO catalog verified against the PO source, and fixes the Dashboard being rendered twice.
+## 0.3.2 CRM workspace
 
-**WordPress install/update:** download [`bfcamel-crm.zip`](https://github.com/bfcamel/bfcamel-crm/releases/latest/download/bfcamel-crm.zip). Do not use GitHub's **Code → Download ZIP** or a **Source code** archive; those archives use a `bfcamel-crm-main`/tag-derived directory and WordPress treats them as a second plugin.
-
-Version `0.3.0` added manual contact creation, contact tags, CSV/XLSX exports, a workload-focused Dashboard and administrator-controlled permissions for every WordPress role. It also hardened the 0.2.0 submissions workflow with verified migrations, atomic updates and detailed activity history.
+- Edit contact name, organization, primary email and primary phone with audited changes.
+- Add internal notes to contacts and submissions with author and timestamp history.
+- Run bulk actions on submissions: status, priority, responsible employee, add tags and remove tags.
+- Run bulk tag actions on contacts.
+- Filter contacts by personal-data and marketing consent status.
+- See both consent statuses directly in the contacts list.
+- Open **My submissions** as a one-click view for the current WordPress user.
+- Use pagination above and below contacts and submissions tables.
+- Export selected contacts to UTF-8 CSV or native XLSX in addition to filtered exports.
+- Use the updated complete Russian (`ru_RU`) interface.
 
 ## Upgrade compatibility
 
@@ -21,60 +28,28 @@ The WordPress technical identity remains unchanged:
 - options/capabilities/actions: `bfcamel_crm_*`
 - database tables: `wp_bfcamel_crm_*`
 
-Version `0.3.1` keeps exactly the same plugin basename as `0.2.0`, so the official installable release ZIP replaces the existing plugin rather than creating a second copy. Existing forms, submissions, contacts, tags, consent history and settings remain attached to the same installation. The release build fails if the plugin header, version constant, stable tag, update URI, main file or top-level ZIP directory no longer match this identity.
-
-## CRM workspace in 0.3.0
-
-- Create contacts manually with name, organization, email, phone and tags.
-- Search and filter contacts by tag; edit tags from the contact record.
-- Export the current contacts or submissions filter to UTF-8 CSV or native XLSX.
-- Review new, urgent, unassigned and conflict submissions from the updated Dashboard.
-- Configure CRM permissions for every WordPress role. All current and newly detected roles receive the main CRM permissions by default; only administrators can open Settings.
-- Read detailed activity changes, including previous and new status, priority, responsible employee and tags.
-
-## Submissions workflow in 0.2.0
-
-- Server-side search by ID, name, email, phone, form name and submitted data.
-- Filters by status, form, responsible employee, priority, tag and date range.
-- Server-side pagination instead of the previous hard 250-row limit.
-- Responsible employee assignment using WordPress users.
-- Priorities: normal, high and urgent.
-- Free-form submission tags with automatic tag creation and tag filtering.
-- Activity history for submission creation, status changes, assignment changes, priority changes and tag changes.
-- Existing statuses remain compatible: `new`, `in_progress`, `waiting`, `completed`, `needs_review`.
+Install or update using the official `bfcamel-crm.zip` release asset. Do not use GitHub's generic Source code ZIP for an in-place WordPress update.
 
 ## Data model
 
-Schema version 4 includes the version 2 workflow columns/tables, contact/tag relationships and auditable manual consent events:
-
-- `wp_bfcamel_crm_tags`
-- `wp_bfcamel_crm_submission_tags`
-- `wp_bfcamel_crm_contact_tags`
-
-The updater checks every required table and workflow column before advancing the stored schema version. A failed migration leaves the previous schema version in place, displays an administrator notice and is retried. CRM tables use InnoDB so changes to a submission and its tags/history are committed or rolled back together.
+Schema version 5 keeps the existing forms, contacts, submissions, tags, consent history and activity log and adds `wp_bfcamel_crm_notes` for internal contact/submission notes. CRM tables remain InnoDB-backed and migrations are verified before the stored schema version advances.
 
 ## Localization
 
-- English is the source language.
-- Russian (`ru_RU`) is bundled as editable UTF-8 PO source and a compiled MO catalog.
-- WordPress loads translations through the standard text-domain mechanism, respecting site/user locales and normal language-pack behavior.
-- Release builds require a complete Russian catalog, compile a fresh MO from the UTF-8 PO source and validate it before packaging.
+English remains the source language. Russian (`ru_RU`) is bundled as PO and MO catalogs. Release builds reject incomplete translations and verify that the committed MO is semantically identical to a freshly compiled catalog.
 
 ## Core features
 
 - Native WordPress form builder with immutable published revisions.
-- CRM mapping for name, email, phone, organization and custom contact fields.
+- CRM mapping for name, email, phone, organization and custom fields.
 - Conflict-safe contact matching.
-- Submission UUIDs and source evidence.
-- Personal-data and marketing consent fields with document snapshots.
-- WordPress Privacy Exporter and Eraser support.
+- Submission workflow with statuses, priorities, responsible employees and tags.
+- Audited consent events for personal-data processing and marketing messages.
+- CSV/XLSX exports with formula-injection protection.
+- WordPress Privacy Exporter and Eraser integration.
 - Honeypot and basic per-form rate limiting.
 - Preferred shortcode: `[bfcamel_form id="1"]` or `[bfcamel_form slug="contact-form"]`.
 - `[gfr_form ...]` remains as a compatibility alias for the temporary 0.1.2 rebrand.
-
-## Installable ZIP
-
-Use the release ZIP produced by GitHub Actions. Its top-level directory is exactly `bfcamel-crm/`. Do not use GitHub's generic **Source code (zip)** archive for an in-place WordPress update.
 
 ## Requirements
 
