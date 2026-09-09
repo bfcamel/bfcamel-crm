@@ -52,6 +52,10 @@ final class ActivityFormatter {
                 );
             case 'contact_created_manual':
                 return __( 'Contact created manually.', 'bfcamel-crm' );
+            case 'contact_updated':
+                return self::contact_changes( $meta['changes'] ?? array() );
+            case 'note_added':
+                return __( 'Internal note added.', 'bfcamel-crm' );
             case 'contact_tags_changed':
                 return sprintf(
                     /* translators: 1: previous tags, 2: new tags. */
@@ -83,6 +87,21 @@ final class ActivityFormatter {
         }
 
         return isset( $event->message ) ? (string) $event->message : __( 'CRM activity recorded.', 'bfcamel-crm' );
+    }
+
+    private static function contact_changes( $changes ) {
+        $labels = array(
+            'name'         => __( 'Name', 'bfcamel-crm' ),
+            'organization' => __( 'Organization', 'bfcamel-crm' ),
+            'email'        => __( 'Email', 'bfcamel-crm' ),
+            'phone'        => __( 'Phone', 'bfcamel-crm' ),
+        );
+        $parts = array();
+        foreach ( (array) $changes as $key => $change ) {
+            if ( ! isset( $labels[ $key ] ) || ! is_array( $change ) ) continue;
+            $parts[] = sprintf( '%1$s: %2$s → %3$s', $labels[ $key ], (string) ( $change['from'] ?? '' ), (string) ( $change['to'] ?? '' ) );
+        }
+        return $parts ? implode( '; ', $parts ) : __( 'Contact details updated.', 'bfcamel-crm' );
     }
 
     private static function meta( $event ) {

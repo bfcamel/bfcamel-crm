@@ -36,25 +36,27 @@ final class Exporter {
             list( $headers, $rows ) = self::submissions();
         }
         $filename = 'bfcamel-crm-' . $type . '-' . gmdate( 'Y-m-d-His' ) . '.' . $format;
-        if ( 'csv' === $format ) {
-            self::csv( $filename, $headers, $rows );
-        }
-
-        $path = XlsxWriter::create( $headers, $rows );
-        if ( is_wp_error( $path ) ) {
-            wp_die( esc_html( $path->get_error_message() ), esc_html__( 'Could not export data', 'bfcamel-crm' ), array( 'back_link' => true ) );
-        }
-        nocache_headers();
-        header( 'Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' );
-        header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
-        header( 'Content-Length: ' . filesize( $path ) );
-        readfile( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
-        @unlink( $path );
-        exit;
+        self::download( $filename, $format, $headers, $rows );
     }
 
-    private static function contacts() {
-        $filters = ContactsPage::filters();
+    public static function download_selected_contacts( $ids, $format ) {
+        if ( ! current_user_can( 'bfcamel_crm_export_data' ) || ! current_user_can( 'bfcamel_crm_manage_contacts' ) ) {
+            wp_die( esc_html__( 'You do not have permission to export CRM data.', 'bfcamel-crm' ) );
+        }
+        $format = sanitize_key( $format );
+        if ( ! in_array( $format, array( 'csv', 'xlsx' ), true ) ) {
+            wp_die( esc_html__( 'Invalid export request.', 'bfcamel-crm' ) );
+        }
+        $ids = array_values( array_unique( array_filter( array_map( 'absint', (array) $ids ) ) ) );
+        if ( ! $ids ) {
+            wp_die( esc_html__( 'Select at least one contact.', 'bfcamel-crm' ) );
+        }
+        list( $headers, $rows ) = self::contacts( array( 'ids' => $ids ) );
+        self::download( 'bfcamel-crm-contacts-selected-' . gmdate( 'Y-m-d-His' ) . '.' . $format, $format, $headers, $rows );
+    }
+
+    private static function contacts( $override_filters = null ) {
+        $filters = is_array( $override_filters ) ? $override_filters : ContactsPage::filters();
         $headers = array( 'ID', __( 'Name', 'bfcamel-crm' ), __( 'Email', 'bfcamel-crm' ), __( 'Phone', 'bfcamel-crm' ), __( 'Organization', 'bfcamel-crm' ), __( 'Status', 'bfcamel-crm' ), __( 'Tags', 'bfcamel-crm' ), __( 'Personal data consent', 'bfcamel-crm' ), __( 'Marketing consent', 'bfcamel-crm' ), __( 'Created', 'bfcamel-crm' ), __( 'Updated', 'bfcamel-crm' ) );
         $rows = array();
         $consent_statuses = ConsentService::statuses();
@@ -112,6 +114,23 @@ final class Exporter {
             'date_from'   => isset( $_GET['date_from'] ) ? sanitize_text_field( wp_unslash( $_GET['date_from'] ) ) : '',
             'date_to'     => isset( $_GET['date_to'] ) ? sanitize_text_field( wp_unslash( $_GET['date_to'] ) ) : '',
         ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    }
+
+    private static function download( $filename, $format, $headers, $rows ) {
+        if ( 'csv' === $format ) {
+            self::csv( $filename, $headers, $rows );
+        }
+        $path = XlsxWriter::create( $headers, $rows );
+        if ( is_wp_error( $path ) ) {
+            wp_die( esc_html( $path->get_error_message() ), esc_html__( 'Could not export data', 'bfcamel-crm' ), array( 'back_link' => true ) );
+        }
+        nocache_headers();
+        header( 'Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' );
+        header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+        header( 'Content-Length: ' . filesize( $path ) );
+        readfile( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
+        @unlink( $path );
+        exit;
     }
 
     private static function csv( $filename, $headers, $rows ) {

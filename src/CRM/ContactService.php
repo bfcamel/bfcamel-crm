@@ -93,6 +93,23 @@ final class ContactService {
             $args[] = $tag_id;
         }
 
+        $ids = array_values( array_unique( array_filter( array_map( 'absint', (array) ( $filters['ids'] ?? array() ) ) ) ) );
+        if ( $ids ) {
+            $where[] = 'c.id IN (' . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')';
+            $args = array_merge( $args, $ids );
+        }
+
+        $allowed_consent = array_keys( ConsentService::statuses() );
+        foreach ( array( 'personal_data', 'marketing' ) as $consent_type ) {
+            $filter_key = $consent_type . '_consent';
+            $status = isset( $filters[ $filter_key ] ) ? sanitize_key( $filters[ $filter_key ] ) : '';
+            if ( in_array( $status, $allowed_consent, true ) ) {
+                $where[] = "COALESCE((SELECT ce2.status FROM {$consents} ce2 WHERE ce2.contact_id=c.id AND ce2.consent_type=%s ORDER BY ce2.event_at DESC,ce2.id DESC LIMIT 1),'unknown')=%s";
+                $args[] = $consent_type;
+                $args[] = $status;
+            }
+        }
+
         $where_sql = implode( ' AND ', $where );
         $count_sql = "SELECT COUNT(*) FROM {$contacts} c WHERE {$where_sql}";
         $total = (int) $wpdb->get_var( self::prepare_sql( $count_sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
@@ -259,6 +276,96 @@ final class ContactService {
         }
 
         return $contact_id;
+    }
+
+    public static function update_manual( $contact_id, $data, $user_id ) {
+        global $wpdb;
+        $contact_id = absint( $contact_id );
+        $data = is_array( $data ) ? $data : array();
+        $current = self::get( $contact_id, true );
+        if ( ! $current ) {
+            return new \WP_Error( 'bfcamel_crm_contact_missing', __( 'Contact not found.', 'bfcamel-crm' ) );
+        }
+
+        $name = self::truncate_text( sanitize_text_field( $data['name'] ?? '' ), 190 );
+        $organization = self::truncate_text( sanitize_text_field( $data['organization'] ?? '' ), 190 );
+        $email = sanitize_email( $data['email'] ?? '' );
+        $phone = self::truncate_text( sanitize_text_field( $data['phone'] ?? '' ), 80 );
+        if ( '' === $name ) {
+            return new \WP_Error( 'bfcamel_crm_contact_name_required', __( 'Contact name is required.', 'bfcamel-crm' ) );
+        }
+        if ( ! empty( $data['email'] ) && ! self::normalize_email( $email ) ) {
+            return new \WP_Error( 'bfcamel_crm_contact_email_invalid', __( 'Enter a valid email address.', 'bfcamel-crm' ) );
+        }
+        if ( '' !== $phone && ! self::normalize_phone( $phone ) ) {
+            return new \WP_Error( 'bfcamel_crm_contact_phone_invalid', __( 'Enter a valid phone number.', 'bfcamel-crm' ) );
+        }
+
+        foreach ( array( 'email' => $email, 'phone' => $phone ) as $kind => $value ) {
+            if ( '' === $value ) {
+                continue;
+            }
+            $matches = 'email' === $kind ? self::find_by_email( self::normalize_email( $value ) ) : self::find_by_phone( self::normalize_phone( $value ) );
+            $matches = array_values( array_diff( $matches, array( $contact_id ) ) );
+            if ( $matches ) {
+                return new \WP_Error( 'bfcamel_crm_contact_duplicate', sprintf( __( 'A contact with this email or phone already exists: #%s.', 'bfcamel-crm' ), implode( ', #', array_map( 'absint', $matches ) ) ) );
+            }
+        }
+
+        $old_emails = self::get_emails( $contact_id );
+        $old_phones = self::get_phones( $contact_id );
+        $old_email = $old_emails ? (string) $old_emails[0]->value : '';
+        $old_phone = $old_phones ? (string) $old_phones[0]->value : '';
+        $changes = array();
+        if ( (string) $current->display_name !== $name ) $changes['name'] = array( 'from' => (string) $current->display_name, 'to' => $name );
+        if ( (string) $current->organization !== $organization ) $changes['organization'] = array( 'from' => (string) $current->organization, 'to' => $organization );
+        if ( $old_email !== $email ) $changes['email'] = array( 'from' => $old_email, 'to' => $email );
+        if ( $old_phone !== $phone ) $changes['phone'] = array( 'from' => $old_phone, 'to' => $phone );
+
+        if ( false === $wpdb->update(
+            Schema::table( 'contacts' ),
+            array( 'display_name' => $name, 'organization' => $organization, 'updated_at' => current_time( 'mysql' ) ),
+            array( 'id' => $contact_id ),
+            array( '%s', '%s', '%s' ), array( '%d' )
+        ) ) {
+            return new \WP_Error( 'bfcamel_crm_contact_update_failed', __( 'The contact could not be updated.', 'bfcamel-crm' ) );
+        }
+        if ( ! self::set_primary_identifier( 'email', $contact_id, $email ) || ! self::set_primary_identifier( 'phone', $contact_id, $phone ) ) {
+            return new \WP_Error( 'bfcamel_crm_contact_identifier_failed', __( 'The contact email or phone could not be updated.', 'bfcamel-crm' ) );
+        }
+        if ( $changes && ! Schema::log( 'contact', $contact_id, 'contact_updated', 'Contact details updated.', array( 'changes' => $changes ), absint( $user_id ) ) ) {
+            return new \WP_Error( 'bfcamel_crm_contact_history_failed', __( 'Could not record contact history.', 'bfcamel-crm' ) );
+        }
+        return true;
+    }
+
+    private static function set_primary_identifier( $kind, $contact_id, $value ) {
+        global $wpdb;
+        $contact_id = absint( $contact_id );
+        $table = Schema::table( 'email' === $kind ? 'contact_emails' : 'contact_phones' );
+        $rows = 'email' === $kind ? self::get_emails( $contact_id ) : self::get_phones( $contact_id );
+        $normalized = 'email' === $kind ? self::normalize_email( $value ) : self::normalize_phone( $value );
+
+        $wpdb->update( $table, array( 'is_primary' => 0 ), array( 'contact_id' => $contact_id ), array( '%d' ), array( '%d' ) );
+        if ( '' === $value ) {
+            if ( $rows ) {
+                $primary_id = absint( $rows[0]->id );
+                $wpdb->delete( $table, array( 'id' => $primary_id ), array( '%d' ) );
+            }
+            $next = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE contact_id=%d ORDER BY id ASC LIMIT 1", $contact_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            if ( $next ) $wpdb->update( $table, array( 'is_primary' => 1 ), array( 'id' => $next ), array( '%d' ), array( '%d' ) );
+            return true;
+        }
+
+        $existing = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE contact_id=%d AND normalized=%s LIMIT 1", $contact_id, $normalized ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        if ( $existing ) {
+            return false !== $wpdb->update( $table, array( 'value' => $value, 'is_primary' => 1 ), array( 'id' => $existing ), array( '%s', '%d' ), array( '%d' ) );
+        }
+        if ( $rows ) {
+            $id = absint( $rows[0]->id );
+            return false !== $wpdb->update( $table, array( 'value' => $value, 'normalized' => $normalized, 'is_primary' => 1 ), array( 'id' => $id ), array( '%s', '%s', '%d' ), array( '%d' ) );
+        }
+        return (bool) $wpdb->insert( $table, array( 'contact_id' => $contact_id, 'value' => $value, 'normalized' => $normalized, 'is_primary' => 1 ), array( '%d', '%s', '%s', '%d' ) );
     }
 
     public static function anonymize( $contact_id ) {

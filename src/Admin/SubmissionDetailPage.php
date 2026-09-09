@@ -3,6 +3,7 @@ namespace BfCamel\CRM\Admin;
 
 use BfCamel\CRM\CRM\ActivityFormatter;
 use BfCamel\CRM\CRM\SubmissionService;
+use BfCamel\CRM\CRM\NoteService;
 use BfCamel\CRM\CRM\TagService;
 use BfCamel\CRM\Database\Schema;
 use BfCamel\CRM\Forms\Repository;
@@ -30,6 +31,7 @@ final class SubmissionDetailPage {
         $submission_tags = TagService::names_for_submission( $id );
         $all_tags = $can_edit ? TagService::all() : array();
         $activity = SubmissionService::activity( $id );
+        $notes = NoteService::for_entity( 'submission', $id );
         $updated = isset( $_GET['updated'] ) ? sanitize_key( $_GET['updated'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         ?>
         <div class="wrap bfcamel-crm-admin">
@@ -42,6 +44,7 @@ final class SubmissionDetailPage {
             </div>
 
             <?php if ( '1' === $updated ) : ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Submission updated.', 'bfcamel-crm' ); ?></p></div><?php endif; ?>
+            <?php if ( isset( $_GET['note_added'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Internal note added.', 'bfcamel-crm' ); ?></p></div><?php endif; ?>
 
             <div class="bfcamel-crm-editor-grid">
                 <main>
@@ -60,6 +63,20 @@ final class SubmissionDetailPage {
                                 <dd><?php echo esc_html( is_array( $value ) ? implode( ', ', $value ) : (string) $value ); ?></dd>
                             <?php endforeach; ?>
                         </dl>
+                    </div>
+
+                    <div class="bfcamel-crm-panel">
+                        <h2><?php esc_html_e( 'Internal notes', 'bfcamel-crm' ); ?></h2>
+                        <?php if ( $can_edit ) : ?>
+                            <form class="bfcamel-crm-note-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                <input type="hidden" name="action" value="bfcamel_crm_add_submission_note">
+                                <input type="hidden" name="submission_id" value="<?php echo esc_attr( $id ); ?>">
+                                <?php wp_nonce_field( 'bfcamel_crm_add_submission_note_' . $id ); ?>
+                                <textarea name="note" rows="4" required placeholder="<?php echo esc_attr__( 'Add an internal note…', 'bfcamel-crm' ); ?>"></textarea>
+                                <button class="button button-primary" type="submit"><?php esc_html_e( 'Add note', 'bfcamel-crm' ); ?></button>
+                            </form>
+                        <?php endif; ?>
+                        <?php if ( ! $notes ) : ?><p class="description"><?php esc_html_e( 'No internal notes yet.', 'bfcamel-crm' ); ?></p><?php else : ?><ul class="bfcamel-crm-notes"><?php foreach ( $notes as $note ) : ?><li><div class="bfcamel-crm-note__body"><?php echo nl2br( esc_html( $note->note_text ) ); ?></div><div class="bfcamel-crm-note__meta"><?php echo esc_html( $note->actor_name ?: __( 'System', 'bfcamel-crm' ) ); ?> · <?php echo esc_html( mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $note->created_at ) ); ?></div></li><?php endforeach; ?></ul><?php endif; ?>
                     </div>
 
                     <div class="bfcamel-crm-panel">
