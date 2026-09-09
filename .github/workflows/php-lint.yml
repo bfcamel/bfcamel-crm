@@ -19,4 +19,6 @@ jobs:
       - name: Lint PHP files
         run: find . -type f -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Run smoke tests
-        run: php tests/smoke.php
+        run: |
+          php tests/smoke.php
+          php tests/duplicate-load.php

@@ -8,7 +8,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class ConsentService {
+    public static function types() {
+        return array(
+            'personal_data' => __( 'Personal data processing', 'bfcamel-crm' ),
+            'marketing'     => __( 'Email and marketing messages', 'bfcamel-crm' ),
+        );
+    }
+
+    public static function statuses() {
+        return array(
+            'unknown' => __( 'Not specified', 'bfcamel-crm' ),
+            'granted' => __( 'Granted', 'bfcamel-crm' ),
+            'denied'  => __( 'Not granted', 'bfcamel-crm' ),
+            'revoked' => __( 'Revoked', 'bfcamel-crm' ),
+        );
+    }
+
     public static function capture_from_submission( $submission_id, $contact_id, $form_id, $revision_id, $schema, $payload, $source ) {
+        $choices = array();
         foreach ( (array) $schema as $field ) {
             $type = sanitize_key( $field['type'] ?? '' );
             $name = sanitize_key( $field['name'] ?? '' );
@@ -16,61 +33,132 @@ final class ConsentService {
                 continue;
             }
 
-            if ( empty( $payload[ $name ] ) ) {
-                continue;
-            }
-
             $consent_type = 'consent_personal_data' === $type ? 'personal_data' : 'marketing';
+            $field_status = self::status_from_form_value( $payload[ $name ] ?? '' );
+            if ( ! isset( $choices[ $consent_type ] ) || 'granted' === $field_status ) {
+                $choices[ $consent_type ] = $field_status;
+            }
+        }
+
+        foreach ( $choices as $consent_type => $status ) {
             self::record(
                 $contact_id,
                 $submission_id,
                 $consent_type,
-                'granted',
+                $status,
                 $form_id,
                 $revision_id,
                 self::document_snapshot( $consent_type ),
-                $source
+                $source,
+                0,
+                'form'
             );
         }
     }
 
-    public static function record( $contact_id, $submission_id, $consent_type, $status, $form_id, $revision_id, $documents, $source ) {
+    public static function record_manual( $contact_id, $consent_type, $status, $user_id ) {
+        $types = self::types();
+        $statuses = self::statuses();
+        $consent_type = sanitize_key( $consent_type );
+        $status = sanitize_key( $status );
+        if ( ! absint( $contact_id ) || ! isset( $types[ $consent_type ], $statuses[ $status ] ) ) {
+            return false;
+        }
+
+        return self::record(
+            $contact_id,
+            0,
+            $consent_type,
+            $status,
+            0,
+            0,
+            self::document_snapshot( $consent_type ),
+            array(
+                'source_url' => '',
+                'source_ip'  => '',
+                'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( sanitize_textarea_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 1000 ) : '',
+            ),
+            $user_id,
+            'manual'
+        );
+    }
+
+    public static function record( $contact_id, $submission_id, $consent_type, $status, $form_id, $revision_id, $documents, $source, $user_id = 0, $source_type = 'form' ) {
         global $wpdb;
+        $consent_type = sanitize_key( $consent_type );
+        $status = sanitize_key( $status );
+        $source_type = 'manual' === sanitize_key( $source_type ) ? 'manual' : 'form';
+        $types = self::types();
+        $statuses = self::statuses();
+        if ( ! isset( $types[ $consent_type ], $statuses[ $status ] ) ) {
+            return false;
+        }
+
         $ok = $wpdb->insert(
             Schema::table( 'consent_events' ),
             array(
                 'contact_id'     => absint( $contact_id ),
                 'submission_id'  => absint( $submission_id ),
-                'consent_type'   => sanitize_key( $consent_type ),
-                'status'         => sanitize_key( $status ),
+                'consent_type'   => $consent_type,
+                'status'         => $status,
                 'form_id'        => absint( $form_id ),
                 'revision_id'    => absint( $revision_id ),
                 'documents_json' => wp_json_encode( $documents ),
                 'source_url'     => esc_url_raw( $source['source_url'] ?? '' ),
                 'source_ip'      => sanitize_text_field( $source['source_ip'] ?? '' ),
                 'user_agent'     => sanitize_textarea_field( $source['user_agent'] ?? '' ),
+                'source_type'    => $source_type,
+                'recorded_by'    => absint( $user_id ),
                 'event_at'       => current_time( 'mysql' ),
             ),
-            array( '%d', '%d', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%s' )
+            array( '%d', '%d', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s' )
         );
 
-        if ( $ok ) {
-            Schema::log(
-                'contact',
-                absint( $contact_id ),
-                'consent_' . sanitize_key( $status ),
-                'Consent status recorded.',
-                array( 'submission_id' => absint( $submission_id ), 'consent_type' => sanitize_key( $consent_type ) )
-            );
+        if ( ! $ok ) {
+            return false;
         }
 
-        return (bool) $ok;
+        return Schema::log(
+            'contact',
+            absint( $contact_id ),
+            'consent_' . $status,
+            'Consent status recorded.',
+            array(
+                'submission_id' => absint( $submission_id ),
+                'consent_type'  => $consent_type,
+                'status'        => $status,
+                'source_type'   => $source_type,
+            ),
+            absint( $user_id )
+        );
+    }
+
+    public static function current_statuses( $contact_id, $events = null ) {
+        $current = array_fill_keys( array_keys( self::types() ), 'unknown' );
+        $found = array();
+        $statuses = self::statuses();
+        $events = null === $events ? self::events_for_contact( $contact_id ) : (array) $events;
+        foreach ( $events as $event ) {
+            $type = sanitize_key( $event->consent_type );
+            $status = sanitize_key( $event->status );
+            if ( isset( $current[ $type ], $statuses[ $status ] ) && ! isset( $found[ $type ] ) ) {
+                $current[ $type ] = $status;
+                $found[ $type ] = true;
+            }
+        }
+        return $current;
     }
 
     public static function events_for_contact( $contact_id ) {
         global $wpdb;
         $table = Schema::table( 'consent_events' );
-        return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE contact_id=%d ORDER BY event_at DESC,id DESC", absint( $contact_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $users = $wpdb->users;
+        return $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT e.*,u.display_name AS recorded_by_name FROM {$table} e LEFT JOIN {$users} u ON u.ID=e.recorded_by WHERE e.contact_id=%d ORDER BY e.event_at DESC,e.id DESC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                absint( $contact_id )
+            )
+        );
     }
 
     private static function document_snapshot( $consent_type ) {
@@ -92,5 +180,9 @@ final class ConsentService {
             'url'     => esc_url_raw( $doc['url'] ?? '' ),
             'version' => sanitize_text_field( $doc['version'] ?? '' ),
         );
+    }
+
+    private static function status_from_form_value( $value ) {
+        return empty( $value ) ? 'denied' : 'granted';
     }
 }

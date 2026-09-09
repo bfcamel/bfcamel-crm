@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class Schema {
-    const VERSION = '3';
+    const VERSION = '4';
     const OPTION  = 'bfcamel_crm_db_version';
     const ERROR_OPTION = 'bfcamel_crm_schema_error';
 
@@ -189,12 +189,16 @@ final class Schema {
                 source_url TEXT NULL,
                 source_ip VARCHAR(100) NOT NULL DEFAULT '',
                 user_agent TEXT NULL,
+                source_type VARCHAR(20) NOT NULL DEFAULT 'form',
+                recorded_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
                 event_at DATETIME NOT NULL,
                 PRIMARY KEY (id),
                 KEY contact_id (contact_id),
                 KEY submission_id (submission_id),
                 KEY consent_type (consent_type),
                 KEY status (status),
+                KEY source_type (source_type),
+                KEY recorded_by (recorded_by),
                 KEY event_at (event_at)
             ) {$cc};"
         );
@@ -326,6 +330,7 @@ final class Schema {
                 'tags'            => array( 'id', 'name', 'slug' ),
                 'submission_tags' => array( 'submission_id', 'tag_id' ),
                 'contact_tags'    => array( 'contact_id', 'tag_id' ),
+                'consent_events'  => array( 'source_type', 'recorded_by' ),
                 'activity_log'    => array( 'meta_json', 'user_id' ),
             );
             foreach ( $required_columns as $suffix => $expected ) {

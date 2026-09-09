@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class RoleManager {
     const OPTION = 'bfcamel_crm_role_permissions';
     const VERSION_OPTION = 'bfcamel_crm_role_permissions_version';
-    const VERSION = '1';
+    const VERSION = '2';
     const ACCESS_CAPABILITY = 'bfcamel_crm_access';
 
     public static function register() {
@@ -67,6 +67,14 @@ final class RoleManager {
                         $changed = true;
                     }
                 }
+                if ( ! empty( $matrix[ $role_slug ]['bfcamel_crm_edit_submissions'] ) && empty( $matrix[ $role_slug ]['bfcamel_crm_view_submissions'] ) ) {
+                    $matrix[ $role_slug ]['bfcamel_crm_view_submissions'] = true;
+                    $changed = true;
+                }
+                if ( ! empty( $matrix[ $role_slug ]['bfcamel_crm_manage_consents'] ) && empty( $matrix[ $role_slug ]['bfcamel_crm_manage_contacts'] ) ) {
+                    $matrix[ $role_slug ]['bfcamel_crm_manage_contacts'] = true;
+                    $changed = true;
+                }
             }
         }
 
@@ -92,6 +100,9 @@ final class RoleManager {
             }
             if ( ! empty( $matrix[ $role_slug ]['bfcamel_crm_edit_submissions'] ) ) {
                 $matrix[ $role_slug ]['bfcamel_crm_view_submissions'] = true;
+            }
+            if ( ! empty( $matrix[ $role_slug ]['bfcamel_crm_manage_consents'] ) ) {
+                $matrix[ $role_slug ]['bfcamel_crm_manage_contacts'] = true;
             }
         }
 
