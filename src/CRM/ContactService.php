@@ -1,6 +1,7 @@
 <?php
 namespace BfCamel\CRM\CRM;
 
+use BfCamel\CRM\Consent\ConsentService;
 use BfCamel\CRM\Database\Schema;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -73,6 +74,7 @@ final class ContactService {
         $phones = Schema::table( 'contact_phones' );
         $tags = Schema::table( 'tags' );
         $links = Schema::table( 'contact_tags' );
+        $consents = Schema::table( 'consent_events' );
 
         $where = array( '1=1' );
         $args = array();
@@ -101,7 +103,9 @@ final class ContactService {
         $select_sql = "SELECT c.*,
             (SELECT GROUP_CONCAT(e.value ORDER BY e.is_primary DESC,e.id ASC SEPARATOR ', ') FROM {$emails} e WHERE e.contact_id=c.id) AS email_values,
             (SELECT GROUP_CONCAT(p.value ORDER BY p.is_primary DESC,p.id ASC SEPARATOR ', ') FROM {$phones} p WHERE p.contact_id=c.id) AS phone_values,
-            (SELECT GROUP_CONCAT(t.name ORDER BY t.name SEPARATOR ', ') FROM {$links} ct INNER JOIN {$tags} t ON t.id=ct.tag_id WHERE ct.contact_id=c.id) AS tag_names
+            (SELECT GROUP_CONCAT(t.name ORDER BY t.name SEPARATOR ', ') FROM {$links} ct INNER JOIN {$tags} t ON t.id=ct.tag_id WHERE ct.contact_id=c.id) AS tag_names,
+            (SELECT ce.status FROM {$consents} ce WHERE ce.contact_id=c.id AND ce.consent_type='personal_data' ORDER BY ce.event_at DESC,ce.id DESC LIMIT 1) AS personal_data_consent,
+            (SELECT ce.status FROM {$consents} ce WHERE ce.contact_id=c.id AND ce.consent_type='marketing' ORDER BY ce.event_at DESC,ce.id DESC LIMIT 1) AS marketing_consent
             FROM {$contacts} c
             WHERE {$where_sql}
             ORDER BY c.updated_at DESC,c.id DESC
@@ -173,7 +177,7 @@ final class ContactService {
         return self::find_by_email( self::normalize_email( $email ) );
     }
 
-    public static function create_manual( $data, $tags, $user_id ) {
+    public static function create_manual( $data, $tags, $user_id, $consents = array() ) {
         $data = is_array( $data ) ? $data : array();
         $name = self::truncate_text( sanitize_text_field( $data['name'] ?? '' ), 190 );
         $email_value = sanitize_email( $data['email'] ?? '' );
@@ -234,6 +238,18 @@ final class ContactService {
         if ( is_wp_error( $tag_result ) ) {
             Schema::rollback();
             return $tag_result;
+        }
+        $allowed_types = ConsentService::types();
+        $allowed_statuses = ConsentService::statuses();
+        foreach ( (array) $consents as $consent_type => $status ) {
+            $consent_type = sanitize_key( $consent_type );
+            $status = sanitize_key( $status );
+            if ( ! isset( $allowed_types[ $consent_type ], $allowed_statuses[ $status ] ) || 'unknown' === $status ) {
+                continue;
+            }
+            if ( ! ConsentService::record_manual( $contact_id, $consent_type, $status, $user_id ) ) {
+                return self::rollback_error( __( 'Could not record consent status.', 'bfcamel-crm' ) );
+            }
         }
         if ( ! Schema::log( 'contact', $contact_id, 'contact_created_manual', 'Contact created manually.', array(), absint( $user_id ) ) ) {
             return self::rollback_error( __( 'Could not record contact history.', 'bfcamel-crm' ) );

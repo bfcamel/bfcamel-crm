@@ -3,7 +3,7 @@
  * Plugin Name: BfCamel CRM
  * Plugin URI: https://github.com/bfcamel/bfcamel-crm
  * Description: Native form builder and lightweight CRM for WordPress: forms, submissions, contacts, consent evidence and privacy tools.
- * Version: 0.3.0
+ * Version: 0.3.1
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: BfCamel / People & Camels Charity Foundation
@@ -19,7 +19,24 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'BFCAMEL_CRM_VERSION', '0.3.0' );
+/*
+ * A GitHub source archive is extracted as bfcamel-crm-main and can therefore
+ * be activated beside the real bfcamel-crm installation. Do not let two
+ * copies register competing autoloaders, constants and hooks in one request.
+ */
+if ( defined( 'BFCAMEL_CRM_FILE' ) ) {
+    $bfcamel_crm_duplicate_notice = static function () {
+        if ( ! current_user_can( 'activate_plugins' ) ) {
+            return;
+        }
+        echo '<div class="notice notice-error"><p><strong>BfCamel CRM:</strong> ' . esc_html( 'A second active copy was detected and safely stopped. Remove the duplicate plugin directory and install the official bfcamel-crm.zip release package.' ) . '</p></div>';
+    };
+    add_action( 'admin_notices', $bfcamel_crm_duplicate_notice );
+    add_action( 'network_admin_notices', $bfcamel_crm_duplicate_notice );
+    return;
+}
+
+define( 'BFCAMEL_CRM_VERSION', '0.3.1' );
 define( 'BFCAMEL_CRM_FILE', __FILE__ );
 define( 'BFCAMEL_CRM_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BFCAMEL_CRM_URL', plugin_dir_url( __FILE__ ) );
@@ -53,6 +70,10 @@ add_action(
 
 add_action(
     'init',
-    array( 'BfCamel\\CRM\\I18n', 'load' ),
+    static function () {
+        if ( is_callable( array( 'BfCamel\\CRM\\I18n', 'load' ) ) ) {
+            BfCamel\CRM\I18n::load();
+        }
+    },
     0
 );

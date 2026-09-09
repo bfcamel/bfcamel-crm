@@ -4,7 +4,7 @@ Tags: crm, forms, form builder, contacts, consent
 Requires at least: 6.2
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.3.0
+Stable tag: 0.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,7 +14,7 @@ Native form builder and lightweight CRM for WordPress: forms, submissions, conta
 
 BfCamel CRM combines a native WordPress form builder with a lightweight CRM. Published form revisions act as server-side CRM contracts, so field validation, contact mapping and consent evidence do not depend on browser-controlled hidden values.
 
-Version 0.3.0 adds a complete contacts workspace, data exports, role permissions and an updated Dashboard while retaining the 0.2.0 submissions workflow.
+Version 0.3.1 is the supported install/update package for the 0.3 release line. It includes duplicate-copy protection, a complete contacts workspace, data exports, role permissions and an updated Dashboard while retaining the 0.2.0 submissions workflow.
 
 Features include:
 
@@ -63,7 +63,7 @@ Not for an in-place update. GitHub source archives normally contain a branch-der
 
 = How is the Russian interface loaded? =
 
-Version 0.3.0 uses WordPress' standard text-domain loading. Each release ZIP contains an MO catalog freshly compiled from the complete UTF-8 PO source, and the build fails if catalogs are incomplete or inconsistent.
+Version 0.3.1 uses WordPress' standard text-domain loading. The source and each release ZIP contain an MO catalog compiled from the complete UTF-8 PO source, and the build fails if catalogs are incomplete or inconsistent.
 
 = Does it require Contact Form 7? =
 
@@ -75,7 +75,7 @@ Only when matching is unambiguous. If email and phone point to different existin
 
 = Does an unchecked marketing checkbox revoke a previous consent? =
 
-No. An unchecked optional consent field creates no revocation event.
+No. An unchecked optional consent field records the choice as "not granted"; it does not create a revocation event. A later explicit manual change can record withdrawal separately as "revoked".
 
 == Privacy ==
 
@@ -84,6 +84,14 @@ The plugin stores form submissions and CRM contact information in the WordPress 
 The plugin integrates with WordPress Personal Data Export and Erase tools. Site operators remain responsible for determining their actual legal basis, disclosures and retention rules.
 
 == Changelog ==
+
+= 0.3.1 =
+* Added a duplicate-copy guard so accidentally activating a `bfcamel-crm-main` source archive beside the installed plugin no longer causes constant warnings or an I18n fatal error.
+* Added an official GitHub Release with stable `bfcamel-crm.zip` and versioned install/update assets.
+* Kept the package root and WordPress plugin basename exactly `bfcamel-crm/bfcamel-crm.php`.
+* Bundled and verified the compiled Russian MO catalog so localization also works from a source checkout.
+* Fixed the Dashboard content being rendered twice by registering only one callback for its page hook.
+* Added current personal-data and marketing consent status to contact records, with audited manual changes and automatic form-derived choices (granted or not granted).
 
 = 0.3.0 =
 * Added manual contact creation and contact tags with filtering.

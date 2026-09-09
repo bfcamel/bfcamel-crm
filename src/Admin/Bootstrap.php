@@ -32,6 +32,7 @@ final class Bootstrap {
         add_action( 'admin_post_bfcamel_crm_update_submission', array( $submissions, 'update_submission' ) );
         add_action( 'admin_post_bfcamel_crm_create_contact', array( $contacts, 'create_contact' ) );
         add_action( 'admin_post_bfcamel_crm_update_contact_tags', array( $contacts, 'update_tags' ) );
+        add_action( 'admin_post_bfcamel_crm_update_contact_consents', array( $contacts, 'update_consents' ) );
         add_action( 'admin_post_bfcamel_crm_export', array( Exporter::class, 'handle' ) );
     }
 
@@ -50,7 +51,16 @@ final class Bootstrap {
             26
         );
 
-        add_submenu_page( 'bfcamel-crm', __( 'Dashboard', 'bfcamel-crm' ), __( 'Dashboard', 'bfcamel-crm' ), 'bfcamel_crm_view_dashboard', 'bfcamel-crm', array( DashboardPage::class, 'render' ) );
+        // The top-level page already owns this hook. An empty callback gives
+        // the submenu its Dashboard label without registering a second render.
+        add_submenu_page(
+            'bfcamel-crm',
+            __( 'Dashboard', 'bfcamel-crm' ),
+            __( 'Dashboard', 'bfcamel-crm' ),
+            'bfcamel_crm_view_dashboard',
+            'bfcamel-crm',
+            ''
+        );
         add_submenu_page( 'bfcamel-crm', __( 'Forms', 'bfcamel-crm' ), __( 'Forms', 'bfcamel-crm' ), 'bfcamel_crm_manage_forms', 'bfcamel-crm-forms', array( $admin, 'forms_page' ) );
         add_submenu_page( 'bfcamel-crm', __( 'Submissions', 'bfcamel-crm' ), __( 'Submissions', 'bfcamel-crm' ), 'bfcamel_crm_view_submissions', 'bfcamel-crm-submissions', array( $submissions, 'page' ) );
         add_submenu_page( 'bfcamel-crm', __( 'Contacts', 'bfcamel-crm' ), __( 'Contacts', 'bfcamel-crm' ), 'bfcamel_crm_manage_contacts', 'bfcamel-crm-contacts', array( $contacts, 'page' ) );

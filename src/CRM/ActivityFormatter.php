@@ -69,12 +69,14 @@ final class ActivityFormatter {
                 }
                 return __( 'Contact synchronized from a form submission.', 'bfcamel-crm' );
             case 'consent_granted':
+            case 'consent_denied':
             case 'consent_revoked':
+            case 'consent_unknown':
                 return sprintf(
                     /* translators: 1: consent type, 2: consent status. */
                     __( 'Consent %1$s: %2$s.', 'bfcamel-crm' ),
                     self::consent_type_label( $meta['consent_type'] ?? '' ),
-                    'consent_granted' === $type ? __( 'Granted', 'bfcamel-crm' ) : __( 'Revoked', 'bfcamel-crm' )
+                    self::consent_status_label( $meta['status'] ?? str_replace( 'consent_', '', $type ) )
                 );
             case 'anonymized':
                 return __( 'Contact personal data anonymized.', 'bfcamel-crm' );
@@ -126,6 +128,7 @@ final class ActivityFormatter {
     public static function consent_status_label( $status ) {
         $labels = array(
             'granted' => __( 'Granted', 'bfcamel-crm' ),
+            'denied'  => __( 'Not granted', 'bfcamel-crm' ),
             'revoked' => __( 'Revoked', 'bfcamel-crm' ),
             'unknown' => __( 'Unknown', 'bfcamel-crm' ),
         );

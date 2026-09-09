@@ -2,7 +2,13 @@
 
 **BfCamel CRM** is an open-source WordPress form builder and lightweight CRM developed by the People & Camels Charity Foundation.
 
-Version `0.3.0` adds manual contact creation, contact tags, CSV/XLSX exports, a workload-focused Dashboard and administrator-controlled permissions for every WordPress role. It also hardens the 0.2.0 submissions workflow with verified migrations, atomic updates and detailed activity history.
+Version `0.3.1` is the supported install/update package for the 0.3 release line. It adds duplicate-copy protection and publishes an official ZIP with the exact WordPress plugin directory.
+
+It also restores Russian localization in source checkouts by bundling a compiled MO catalog verified against the PO source, and fixes the Dashboard being rendered twice.
+
+**WordPress install/update:** download [`bfcamel-crm.zip`](https://github.com/bfcamel/bfcamel-crm/releases/latest/download/bfcamel-crm.zip). Do not use GitHub's **Code → Download ZIP** or a **Source code** archive; those archives use a `bfcamel-crm-main`/tag-derived directory and WordPress treats them as a second plugin.
+
+Version `0.3.0` added manual contact creation, contact tags, CSV/XLSX exports, a workload-focused Dashboard and administrator-controlled permissions for every WordPress role. It also hardened the 0.2.0 submissions workflow with verified migrations, atomic updates and detailed activity history.
 
 ## Upgrade compatibility
 
@@ -15,7 +21,7 @@ The WordPress technical identity remains unchanged:
 - options/capabilities/actions: `bfcamel_crm_*`
 - database tables: `wp_bfcamel_crm_*`
 
-Version `0.3.0` keeps the same plugin basename as every earlier release, so an installable release ZIP replaces the existing plugin rather than creating a second copy. Existing forms, submissions, contacts, tags, consent history and settings remain attached to the same installation. The release build fails if the plugin header, version constant, stable tag, update URI, main file or top-level ZIP directory no longer match this identity.
+Version `0.3.1` keeps exactly the same plugin basename as `0.2.0`, so the official installable release ZIP replaces the existing plugin rather than creating a second copy. Existing forms, submissions, contacts, tags, consent history and settings remain attached to the same installation. The release build fails if the plugin header, version constant, stable tag, update URI, main file or top-level ZIP directory no longer match this identity.
 
 ## CRM workspace in 0.3.0
 
@@ -39,7 +45,7 @@ Version `0.3.0` keeps the same plugin basename as every earlier release, so an i
 
 ## Data model
 
-Schema version 3 includes the version 2 workflow columns/tables and adds contact/tag relationships:
+Schema version 4 includes the version 2 workflow columns/tables, contact/tag relationships and auditable manual consent events:
 
 - `wp_bfcamel_crm_tags`
 - `wp_bfcamel_crm_submission_tags`
@@ -50,7 +56,7 @@ The updater checks every required table and workflow column before advancing the
 ## Localization
 
 - English is the source language.
-- Russian (`ru_RU`) is bundled as editable UTF-8 PO source.
+- Russian (`ru_RU`) is bundled as editable UTF-8 PO source and a compiled MO catalog.
 - WordPress loads translations through the standard text-domain mechanism, respecting site/user locales and normal language-pack behavior.
 - Release builds require a complete Russian catalog, compile a fresh MO from the UTF-8 PO source and validate it before packaging.
 

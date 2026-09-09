@@ -1,5 +1,6 @@
 <?php
 use BfCamel\CRM\Access\RoleManager;
+use BfCamel\CRM\Consent\ConsentService;
 use BfCamel\CRM\CRM\ActivityFormatter;
 use BfCamel\CRM\CRM\TagService;
 use BfCamel\CRM\Export\Exporter;
@@ -18,6 +19,7 @@ function wp_json_encode( $value ) { return json_encode( $value ); }
 function wp_tempnam() { return tempnam( sys_get_temp_dir(), 'bfcamel-crm-' ); }
 
 require_once dirname( __DIR__ ) . '/src/Database/Schema.php';
+require_once dirname( __DIR__ ) . '/src/Consent/ConsentService.php';
 require_once dirname( __DIR__ ) . '/src/CRM/TagService.php';
 require_once dirname( __DIR__ ) . '/src/CRM/SubmissionService.php';
 require_once dirname( __DIR__ ) . '/src/CRM/ActivityFormatter.php';
@@ -53,6 +55,28 @@ $event = (object) array(
 );
 check( 'Status: New → Completed' === ActivityFormatter::message( $event ), 'Activity details are not rendered from metadata.' );
 
+$consent_event = (object) array(
+    'event_type' => 'consent_unknown',
+    'meta_json'  => json_encode( array( 'consent_type' => 'marketing', 'status' => 'unknown', 'source_type' => 'manual' ) ),
+    'message'    => 'Consent status recorded.',
+);
+check( 'Consent Marketing: Unknown.' === ActivityFormatter::message( $consent_event ), 'Manual consent details are not rendered from metadata.' );
+check( array( 'personal_data', 'marketing' ) === array_keys( ConsentService::types() ), 'Consent types are incomplete.' );
+check( array( 'unknown', 'granted', 'denied', 'revoked' ) === array_keys( ConsentService::statuses() ), 'Consent statuses are incomplete.' );
+$form_consent_status = new ReflectionMethod( ConsentService::class, 'status_from_form_value' );
+$form_consent_status->setAccessible( true );
+check( 'denied' === $form_consent_status->invoke( null, '' ), 'An unchecked form consent is not recorded as denied.' );
+check( 'granted' === $form_consent_status->invoke( null, '1' ), 'A checked form consent is not recorded as granted.' );
+$current_consents = ConsentService::current_statuses(
+    1,
+    array(
+        (object) array( 'consent_type' => 'marketing', 'status' => 'denied' ),
+        (object) array( 'consent_type' => 'marketing', 'status' => 'granted' ),
+        (object) array( 'consent_type' => 'personal_data', 'status' => 'granted' ),
+    )
+);
+check( 'granted' === $current_consents['personal_data'] && 'denied' === $current_consents['marketing'], 'Latest consent choices are not selected correctly.' );
+
 $defaults = new ReflectionMethod( RoleManager::class, 'default_permissions' );
 $defaults->setAccessible( true );
 $default_permissions = $defaults->invoke( null );
@@ -83,20 +107,29 @@ check( false !== strpos( $plugin, 'Plugin Name: BfCamel CRM' ), 'Plugin name cha
 check( false !== strpos( $plugin, 'Text Domain: bfcamel-crm' ), 'Plugin text domain changed.' );
 check( false !== strpos( $plugin, 'Domain Path: /languages' ), 'Plugin language path changed.' );
 check( false !== strpos( $plugin, 'Update URI: https://github.com/bfcamel/bfcamel-crm' ), 'Plugin update URI changed.' );
-check( false !== strpos( $plugin, 'Version: 0.3.0' ), 'Plugin header version is not 0.3.0.' );
-check( false !== strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION', '0.3.0' )" ), 'Plugin constant version is not 0.3.0.' );
-check( false !== strpos( $readme, 'Stable tag: 0.3.0' ), 'Stable tag is not 0.3.0.' );
+check( false !== strpos( $plugin, 'Version: 0.3.1' ), 'Plugin header version is not 0.3.1.' );
+check( false !== strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION', '0.3.1' )" ), 'Plugin constant version is not 0.3.1.' );
+check( false !== strpos( $readme, 'Stable tag: 0.3.1' ), 'Stable tag is not 0.3.1.' );
+check( strpos( $plugin, "if ( defined( 'BFCAMEL_CRM_FILE' ) )" ) < strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION'" ), 'Duplicate-copy guard must run before constants are defined.' );
 $build_script = file_get_contents( $root . '/scripts/build-release.sh' );
 check( false !== strpos( $build_script, 'PACKAGE_DIR="$BUILD_DIR/bfcamel-crm"' ), 'Release root folder is not bfcamel-crm.' );
 check( false !== strpos( $build_script, "bfcamel-crm/bfcamel-crm.php" ), 'Release does not verify the established plugin basename.' );
+check( false !== strpos( $build_script, 'LATEST_ZIP_PATH="$BUILD_DIR/bfcamel-crm.zip"' ), 'Stable install/update asset is missing.' );
 check( false !== strpos( file_get_contents( $root . '/src/Admin/SubmissionDetailPage.php' ), 'Schema::begin_transaction()' ), 'Submission update is not transactional.' );
 check( false !== strpos( file_get_contents( $root . '/src/Admin/SubmissionDetailPage.php' ), '$can_edit' ), 'Read-only rendering guard is missing.' );
 check( false === strpos( file_get_contents( $root . '/src/I18n.php' ), "add_filter( 'gettext'" ), 'Runtime gettext override must not be used.' );
 $schema_source = file_get_contents( $root . '/src/Database/Schema.php' );
-check( false !== strpos( $schema_source, "const VERSION = '3'" ), 'Database schema version is not 3.' );
+check( false !== strpos( $schema_source, "const VERSION = '4'" ), 'Database schema version is not 4.' );
 check( false !== strpos( $schema_source, "'contact_tags'" ), 'Contact-tag table is missing from the schema.' );
+check( false !== strpos( $schema_source, 'recorded_by BIGINT UNSIGNED' ), 'Manual consent audit columns are missing from the schema.' );
 check( false !== strpos( $schema_source, 'ENGINE=InnoDB' ), 'CRM tables are not explicitly transactional.' );
 check( strpos( $schema_source, '$verification = self::verify()' ) < strpos( $schema_source, 'update_option( self::OPTION, self::VERSION' ), 'Schema version advances before verification.' );
 check( false === strpos( file_get_contents( $root . '/assets/admin.js' ), 'BfCamelCRMI18n' ), 'DOM-based runtime translation override must not be used.' );
+$bootstrap_source = file_get_contents( $root . '/src/Admin/Bootstrap.php' );
+check( ! preg_match( "/'bfcamel-crm',\\s*array\\( DashboardPage::class, 'render' \\)/", $bootstrap_source ), 'Dashboard page hook has a duplicate render callback.' );
+check( is_file( $root . '/languages/bfcamel-crm-ru_RU.mo' ), 'Compiled Russian localization catalog is missing.' );
+$contacts_source = file_get_contents( $root . '/src/Admin/ContactsPage.php' );
+check( false !== strpos( $contacts_source, 'bfcamel_crm_update_contact_consents' ), 'Manual contact consent control is missing.' );
+check( false !== strpos( file_get_contents( $root . '/src/Consent/ConsentService.php' ), "'source_type'    => \$source_type" ), 'Consent event source is not audited.' );
 
 echo "Smoke tests passed.\n";

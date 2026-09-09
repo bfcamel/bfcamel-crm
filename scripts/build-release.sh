@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-for cmd in msgfmt msgunfmt msgattrib msgcmp zip rsync php unzip; do
+for cmd in msgfmt msgunfmt msgattrib msgcmp cmp zip rsync php unzip; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "$cmd is required." >&2
     exit 1
@@ -42,6 +42,7 @@ fi
 BUILD_DIR="$ROOT_DIR/build"
 PACKAGE_DIR="$BUILD_DIR/bfcamel-crm"
 ZIP_PATH="$BUILD_DIR/bfcamel-crm-$VERSION.zip"
+LATEST_ZIP_PATH="$BUILD_DIR/bfcamel-crm.zip"
 
 rm -rf "$BUILD_DIR"
 mkdir -p "$PACKAGE_DIR"
@@ -63,11 +64,16 @@ rsync -a ./ "$PACKAGE_DIR/" \
 PO_FILE="$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.po"
 MO_FILE="$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.mo"
 
-# Build the binary catalog from the UTF-8 PO source on every release. The MO is
-# intentionally not committed to Git because a stale binary caused mojibake in
-# 0.1.3. WordPress loads this freshly compiled catalog through its standard
-# text-domain mechanism.
+# Build the binary catalog from the UTF-8 PO source on every release. WordPress
+# loads this catalog through its standard text-domain mechanism.
 msgfmt --check --check-format "$PO_FILE" -o "$MO_FILE"
+
+# The compiled catalog is committed as well, so even a source checkout remains
+# localized. Reject stale binaries instead of allowing PO and MO to diverge.
+if ! cmp -s "$MO_FILE" "$ROOT_DIR/languages/bfcamel-crm-ru_RU.mo"; then
+  echo "Committed Russian MO catalog is missing or stale." >&2
+  exit 1
+fi
 
 # Fail the release if the generated catalog cannot be decoded or if a known
 # Cyrillic translation is missing/corrupted.
@@ -98,5 +104,8 @@ if [[ "$TOP_LEVEL" != "bfcamel-crm" ]]; then
   echo "Release ZIP has an unexpected top-level directory: $TOP_LEVEL" >&2
   exit 1
 fi
+
+# Keep a stable release-asset URL while retaining the versioned package.
+cp "$ZIP_PATH" "$LATEST_ZIP_PATH"
 
 echo "$ZIP_PATH"

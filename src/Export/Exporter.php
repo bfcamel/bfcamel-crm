@@ -2,6 +2,7 @@
 namespace BfCamel\CRM\Export;
 
 use BfCamel\CRM\Admin\ContactsPage;
+use BfCamel\CRM\Consent\ConsentService;
 use BfCamel\CRM\CRM\ContactService;
 use BfCamel\CRM\CRM\SubmissionService;
 use BfCamel\CRM\Database\Schema;
@@ -54,10 +55,13 @@ final class Exporter {
 
     private static function contacts() {
         $filters = ContactsPage::filters();
-        $headers = array( 'ID', __( 'Name', 'bfcamel-crm' ), __( 'Email', 'bfcamel-crm' ), __( 'Phone', 'bfcamel-crm' ), __( 'Organization', 'bfcamel-crm' ), __( 'Status', 'bfcamel-crm' ), __( 'Tags', 'bfcamel-crm' ), __( 'Created', 'bfcamel-crm' ), __( 'Updated', 'bfcamel-crm' ) );
+        $headers = array( 'ID', __( 'Name', 'bfcamel-crm' ), __( 'Email', 'bfcamel-crm' ), __( 'Phone', 'bfcamel-crm' ), __( 'Organization', 'bfcamel-crm' ), __( 'Status', 'bfcamel-crm' ), __( 'Tags', 'bfcamel-crm' ), __( 'Personal data consent', 'bfcamel-crm' ), __( 'Marketing consent', 'bfcamel-crm' ), __( 'Created', 'bfcamel-crm' ), __( 'Updated', 'bfcamel-crm' ) );
         $rows = array();
+        $consent_statuses = ConsentService::statuses();
         foreach ( ContactService::all_for_export( $filters ) as $contact ) {
-            $rows[] = array( $contact->id, $contact->display_name, $contact->email_values, $contact->phone_values, $contact->organization, $contact->status, $contact->tag_names, $contact->created_at, $contact->updated_at );
+            $personal_data = sanitize_key( $contact->personal_data_consent ?: 'unknown' );
+            $marketing = sanitize_key( $contact->marketing_consent ?: 'unknown' );
+            $rows[] = array( $contact->id, $contact->display_name, $contact->email_values, $contact->phone_values, $contact->organization, $contact->status, $contact->tag_names, $consent_statuses[ $personal_data ] ?? $personal_data, $consent_statuses[ $marketing ] ?? $marketing, $contact->created_at, $contact->updated_at );
         }
         return array( $headers, $rows );
     }

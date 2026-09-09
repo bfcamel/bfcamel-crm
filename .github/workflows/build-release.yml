@@ -34,5 +34,39 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bfcamel-crm-release
-          path: build/bfcamel-crm-*.zip
+          path: |
+            build/bfcamel-crm-*.zip
+            build/bfcamel-crm.zip
           if-no-files-found: error
+
+  release:
+    needs: package
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: bfcamel-crm-release
+
+      - name: Publish installable GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          versioned_zip="$(find . -maxdepth 1 -type f -name 'bfcamel-crm-*.zip' -print -quit)"
+          test -n "$versioned_zip"
+          version="$(basename "$versioned_zip" | sed -E 's/^bfcamel-crm-(.+)\.zip$/\1/')"
+          tag="v$version"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $tag already exists; leaving its immutable assets unchanged."
+            exit 0
+          fi
+          gh release create "$tag" \
+            "$versioned_zip#BfCamel CRM $version for WordPress" \
+            "bfcamel-crm.zip#BfCamel CRM — stable install/update package" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "BfCamel CRM $version" \
+            --notes "Install or update through Plugins → Add Plugin → Upload Plugin using bfcamel-crm.zip. Do not use GitHub's Source code archives." \
+            --latest
