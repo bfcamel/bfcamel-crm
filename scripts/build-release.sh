@@ -24,7 +24,7 @@ if [[ "$VERSION" != "$CONSTANT_VERSION" || "$VERSION" != "$STABLE_TAG" ]]; then
   exit 1
 fi
 
-if ! grep -Fq 'Plugin Name: BfCamel CRM' bfcamel-crm.php || ! grep -Fq 'Text Domain: bfcamel-crm' bfcamel-crm.php || ! grep -Fq 'Domain Path: /languages' bfcamel-crm.php || ! grep -Fq 'Update URI: https://github.com/bfcamel/bfcamel-crm' bfcamel-crm.php; then
+if ! grep -Fq 'Plugin Name: BfCamel CRM' bfcamel-crm.php || ! grep -Fq 'Text Domain: bfcamel-crm' bfcamel-crm.php || ! grep -Fq 'Domain Path: /languages' bfcamel-crm.php; then
   echo "The established WordPress plugin identity changed." >&2
   exit 1
 fi
@@ -49,6 +49,7 @@ mkdir -p "$PACKAGE_DIR"
 
 rsync -a ./ "$PACKAGE_DIR/" \
   --exclude='.git/' \
+  --exclude='.gitignore' \
   --exclude='.github/' \
   --exclude='scripts/' \
   --exclude='tests/' \
@@ -59,7 +60,11 @@ rsync -a ./ "$PACKAGE_DIR/" \
   --exclude='.vscode/' \
   --exclude='node_modules/' \
   --exclude='vendor/' \
-  --exclude='README.md'
+  --exclude='README.md' \
+  --exclude='SECURITY.md' \
+  --exclude='composer.json' \
+  --exclude='composer.lock' \
+  --exclude='phpcs.xml.dist'
 
 PO_FILE="$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.po"
 MO_FILE="$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.mo"

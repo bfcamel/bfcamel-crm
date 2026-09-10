@@ -12,51 +12,16 @@ final class WorkflowPage {
     public static function instance() { if ( null === self::$instance ) self::$instance = new self(); return self::$instance; }
     private function __construct() {}
 
-    public function assets( $hook ) {
-        if ( false === strpos( (string) $hook, 'bfcamel-crm' ) ) return;
-        wp_enqueue_script( 'bfcamel-crm-admin-04', BFCAMEL_CRM_URL . 'assets/admin-04.js', array( 'bfcamel-crm-admin' ), BFCAMEL_CRM_VERSION, true );
-        wp_enqueue_style( 'bfcamel-crm-admin-04', BFCAMEL_CRM_URL . 'assets/admin-04.css', array( 'bfcamel-crm-admin' ), BFCAMEL_CRM_VERSION );
-        wp_add_inline_style( 'bfcamel-crm-admin-04', $this->badge_styles() );
-
-        $form_settings = array();
-        if ( false !== strpos( (string) $hook, 'bfcamel-crm-forms' ) ) {
-            $id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-            $form = $id ? Repository::get( $id ) : null;
-            $revision = $form ? Repository::current_revision( $form ) : null;
-            $form_settings = $revision ? Repository::decode_settings( $revision ) : Repository::default_settings();
-        }
-
-        $submission_tags = array(); foreach ( TagService::all( 'submission' ) as $tag ) $submission_tags[] = array( 'id' => absint( $tag->id ), 'name' => (string) $tag->name );
-        $contact_tags = array(); foreach ( TagService::all( 'contact' ) as $tag ) $contact_tags[] = array( 'id' => absint( $tag->id ), 'name' => (string) $tag->name );
-        $forms_status = array(); foreach ( Repository::all() as $form ) $forms_status[ absint( $form->id ) ] = (string) $form->status;
-
-        wp_localize_script( 'bfcamel-crm-admin-04', 'BfCamelCRM04', array(
-            'statuses'       => WorkflowService::statuses(),
-            'priorities'     => WorkflowService::priorities(),
-            'formSettings'   => $form_settings,
-            'submissionTags' => $submission_tags,
-            'contactTags'    => $contact_tags,
-            'formsStatus'    => $forms_status,
-            'archiveFormUrl' => wp_nonce_url( admin_url( 'admin-post.php?action=bfcamel_crm_archive_form&form_id=__ID__' ), 'bfcamel_crm_archive_form' ),
-            'restoreFormUrl' => wp_nonce_url( admin_url( 'admin-post.php?action=bfcamel_crm_restore_form&form_id=__ID__' ), 'bfcamel_crm_restore_form' ),
-            'strings'        => array(
-                'defaultStatus'  => __( 'Default status', 'bfcamel-crm' ),
-                'defaultPriority'=> __( 'Default priority', 'bfcamel-crm' ),
-                'fieldCssClass'  => __( 'Field CSS class', 'bfcamel-crm' ),
-                'styleModeTheme' => __( 'Theme / unstyled', 'bfcamel-crm' ),
-                'deleteForm'     => __( 'Delete form', 'bfcamel-crm' ),
-                'restoreForm'    => __( 'Restore form', 'bfcamel-crm' ),
-                'archived'       => __( 'Archived', 'bfcamel-crm' ),
-                'tagPicker'      => __( 'Select tags', 'bfcamel-crm' ),
-            ),
-        ) );
-    }
-
     public function legal_notice() {
         if ( ! current_user_can( 'bfcamel_crm_manage_settings' ) && ! current_user_can( 'manage_options' ) ) return;
+        $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+        if ( ! $screen || false === strpos( (string) $screen->id, 'bfcamel-crm' ) ) return;
         $missing = \BfCamel\CRM\Consent\ConsentService::missing_document_types();
         if ( ! $missing ) return;
-        echo '<div class="notice notice-warning"><p>' . esc_html__( 'BfCamel CRM: one or more legal document URLs are missing. Consent fields that depend on those documents are automatically hidden and no automatic consent event is recorded until the required URLs are configured.', 'bfcamel-crm' ) . '</p></div>';
+        $settings = get_option( 'bfcamel_crm_settings', array() );
+        if ( ! empty( $settings['legal_risk_acknowledged_at'] ) ) return;
+        $url = admin_url( 'admin.php?page=bfcamel-crm-settings#bfcamel-legal' );
+        echo '<div class="notice notice-warning"><p>' . esc_html__( 'BfCamel CRM: one or more legal document URLs are missing. Forms continue to collect data, and you remain responsible for the legal basis and wording used on this site.', 'bfcamel-crm' ) . ' <a href="' . esc_url( $url ) . '">' . esc_html__( 'Review legal settings', 'bfcamel-crm' ) . '</a></p></div>';
     }
 
     public function page() {
@@ -71,7 +36,7 @@ final class WorkflowPage {
         if ( ! isset( $tabs[ $tab ] ) ) $tab = 'workflow';
         ?>
         <div class="wrap bfcamel-crm-admin">
-            <h1><?php esc_html_e( 'CRM configuration', 'bfcamel-crm' ); ?></h1>
+            <div class="bfcamel-crm-page-title"><div><h1><?php esc_html_e( 'CRM configuration', 'bfcamel-crm' ); ?></h1><p class="description"><?php esc_html_e( 'Manage workflow, shared tags, automation and form styling.', 'bfcamel-crm' ); ?></p></div></div>
             <nav class="nav-tab-wrapper"><?php foreach ( $tabs as $key => $label ) : ?><a class="nav-tab <?php echo $tab === $key ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-workflow&tab=' . $key ) ); ?>"><?php echo esc_html( $label ); ?></a><?php endforeach; ?></nav>
             <?php if ( isset( $_GET['saved'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Settings saved.', 'bfcamel-crm' ); ?></p></div><?php endif; ?>
             <?php if ( 'workflow' === $tab ) $this->workflow_tab(); elseif ( 'tags' === $tab ) $this->tags_tab(); elseif ( 'automation' === $tab ) $this->automation_tab(); else $this->css_tab(); ?>
@@ -107,9 +72,10 @@ final class WorkflowPage {
         ?>
         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="bfcamel_crm_save_tag_catalog"><?php wp_nonce_field( 'bfcamel_crm_save_tag_catalog' ); ?>
             <div class="bfcamel-crm-panel"><h2><?php esc_html_e( 'Tag catalog', 'bfcamel-crm' ); ?></h2><p class="description"><?php esc_html_e( 'Create tags once here. Submission and contact screens use this catalog instead of free-text tag entry.', 'bfcamel-crm' ); ?></p><table class="widefat striped"><thead><tr><th><?php esc_html_e( 'Name', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Submissions', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Contacts', 'bfcamel-crm' ); ?></th><th></th></tr></thead><tbody>
-            <?php foreach ( $rows as $i => $tag ) : ?><tr><td><input type="hidden" name="tags[<?php echo esc_attr( $i ); ?>][id]" value="<?php echo esc_attr( $tag->id ); ?>"><input type="text" name="tags[<?php echo esc_attr( $i ); ?>][name]" value="<?php echo esc_attr( $tag->name ); ?>" placeholder="<?php echo esc_attr__( 'Tag', 'bfcamel-crm' ); ?>"></td><td><input type="checkbox" name="tags[<?php echo esc_attr( $i ); ?>][submission]" value="1" <?php checked( ! empty( $tag->for_submissions ) ); ?>></td><td><input type="checkbox" name="tags[<?php echo esc_attr( $i ); ?>][contact]" value="1" <?php checked( ! empty( $tag->for_contacts ) ); ?>></td><td><?php if ( $tag->id ) : ?><a class="button button-link-delete" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=bfcamel_crm_delete_tag&tag_id=' . absint( $tag->id ) ), 'bfcamel_crm_delete_tag_' . absint( $tag->id ) ) ); ?>"><?php esc_html_e( 'Delete', 'bfcamel-crm' ); ?></a><?php endif; ?></td></tr><?php endforeach; ?>
+            <?php foreach ( $rows as $i => $tag ) : ?><tr><td><input type="hidden" name="tags[<?php echo esc_attr( $i ); ?>][id]" value="<?php echo esc_attr( $tag->id ); ?>"><input type="text" name="tags[<?php echo esc_attr( $i ); ?>][name]" value="<?php echo esc_attr( $tag->name ); ?>" placeholder="<?php echo esc_attr__( 'Tag', 'bfcamel-crm' ); ?>"></td><td><input type="checkbox" name="tags[<?php echo esc_attr( $i ); ?>][submission]" value="1" <?php checked( ! empty( $tag->for_submissions ) ); ?>></td><td><input type="checkbox" name="tags[<?php echo esc_attr( $i ); ?>][contact]" value="1" <?php checked( ! empty( $tag->for_contacts ) ); ?>></td><td><?php if ( $tag->id ) : ?><button type="submit" class="button button-link-delete" name="delete_tag_id" value="<?php echo esc_attr( $tag->id ); ?>" form="bfcamel-crm-delete-tag-<?php echo esc_attr( $tag->id ); ?>" data-bfcamel-confirm><?php esc_html_e( 'Delete', 'bfcamel-crm' ); ?></button><?php endif; ?></td></tr><?php endforeach; ?>
             </tbody></table></div><?php submit_button(); ?>
         </form>
+        <?php foreach ( $rows as $tag ) : if ( ! $tag->id ) continue; ?><form id="bfcamel-crm-delete-tag-<?php echo esc_attr( $tag->id ); ?>" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="bfcamel_crm_delete_tag"><input type="hidden" name="tag_id" value="<?php echo esc_attr( $tag->id ); ?>"><?php wp_nonce_field( 'bfcamel_crm_delete_tag_' . absint( $tag->id ) ); ?></form><?php endforeach; ?>
         <?php
     }
 
@@ -185,29 +151,18 @@ final class WorkflowPage {
     }
 
     public function delete_tag() {
-        $this->guard(); $id = isset( $_GET['tag_id'] ) ? absint( $_GET['tag_id'] ) : 0; check_admin_referer( 'bfcamel_crm_delete_tag_' . $id ); $result=TagService::delete_catalog_tag( $id ); if(is_wp_error($result))wp_die(esc_html($result->get_error_message())); if(!$result)wp_die(esc_html__( 'Could not remove a tag.', 'bfcamel-crm' )); $this->redirect( 'tags' );
+        $this->guard(); $id = isset( $_POST['tag_id'] ) ? absint( $_POST['tag_id'] ) : 0; check_admin_referer( 'bfcamel_crm_delete_tag_' . $id ); $result=TagService::delete_catalog_tag( $id ); if(is_wp_error($result))wp_die(esc_html($result->get_error_message())); if(!$result)wp_die(esc_html__( 'Could not remove a tag.', 'bfcamel-crm' )); $this->redirect( 'tags' );
     }
 
     public function archive_form() {
-        $this->guard_forms(); $id = isset( $_GET['form_id'] ) ? absint( $_GET['form_id'] ) : 0; check_admin_referer( 'bfcamel_crm_archive_form' ); if(!Repository::archive( $id, get_current_user_id() ))wp_die(esc_html__( 'The form could not be updated.', 'bfcamel-crm' )); wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-forms&archived=1' ) ); exit;
+        $this->guard_forms(); $id = isset( $_POST['form_id'] ) ? absint( $_POST['form_id'] ) : 0; check_admin_referer( 'bfcamel_crm_form_status_' . $id ); if(!Repository::archive( $id, get_current_user_id() ))wp_die(esc_html__( 'The form could not be updated.', 'bfcamel-crm' )); wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-forms&archived=1' ) ); exit;
     }
     public function restore_form() {
-        $this->guard_forms(); $id = isset( $_GET['form_id'] ) ? absint( $_GET['form_id'] ) : 0; check_admin_referer( 'bfcamel_crm_restore_form' ); if(!Repository::restore( $id, get_current_user_id() ))wp_die(esc_html__( 'The form could not be updated.', 'bfcamel-crm' )); wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-forms&restored=1' ) ); exit;
+        $this->guard_forms(); $id = isset( $_POST['form_id'] ) ? absint( $_POST['form_id'] ) : 0; check_admin_referer( 'bfcamel_crm_form_status_' . $id ); if(!Repository::restore( $id, get_current_user_id() ))wp_die(esc_html__( 'The form could not be updated.', 'bfcamel-crm' )); wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-forms&restored=1' ) ); exit;
     }
 
     private function redirect( $tab ) { wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-workflow&tab=' . $tab . '&saved=1' ) ); exit; }
     private function guard() { if ( ! current_user_can( 'bfcamel_crm_manage_settings' ) && ! current_user_can( 'manage_options' ) ) wp_die( esc_html__( 'You do not have permission to access this page.', 'bfcamel-crm' ) ); }
     private function guard_forms() { if ( ! current_user_can( 'bfcamel_crm_manage_forms' ) ) wp_die( esc_html__( 'You do not have permission to access this page.', 'bfcamel-crm' ) ); }
 
-    private function badge_styles() {
-        $rules = array();
-        foreach ( array( 'status'=>'bfcamel-crm-badge', 'priority'=>'bfcamel-crm-priority' ) as $type => $class ) {
-            foreach ( WorkflowService::definitions( $type, false ) as $item ) {
-                $slug = sanitize_html_class( $item['slug'] );
-                $color = WorkflowService::color( $type, $item['slug'] );
-                if ( $slug && $color ) $rules[] = '.' . $class . '--' . $slug . '{box-shadow:inset 4px 0 0 ' . $color . ';}';
-            }
-        }
-        return implode( '', $rules );
-    }
 }

@@ -20,10 +20,12 @@ final class Repository {
     public static function archive( $id, $user_id = 0 ) { return self::set_status($id,'archived',$user_id); }
     public static function restore( $id, $user_id = 0 ) { return self::set_status($id,'publish',$user_id); }
     private static function set_status( $id, $status, $user_id ) {
-        global $wpdb; $id=absint($id); $status='publish'===$status?'publish':'archived'; if(!$id||!self::get($id))return false;
+        global $wpdb; $id=absint($id); $status='publish'===$status?'publish':'archived'; if(!$id||!self::get($id)||!Schema::begin_transaction())return false;
+        if(!$wpdb->get_var($wpdb->prepare("SELECT id FROM ".Schema::table('forms')." WHERE id=%d FOR UPDATE",$id))){Schema::rollback();return false;}
         $ok=$wpdb->update(Schema::table('forms'),array('status'=>$status,'updated_at'=>current_time('mysql')),array('id'=>$id),array('%s','%s'),array('%d'));
-        if(false===$ok)return false;
-        Schema::log('form',$id,'publish'===$status?'form_restored':'form_archived','publish'===$status?'Form restored.':'Form archived. To preserve submission history the form record was not physically deleted.',array('status'=>$status),absint($user_id));
+        if(false===$ok){Schema::rollback();return false;}
+        if(!Schema::log('form',$id,'publish'===$status?'form_restored':'form_archived','publish'===$status?'Form restored.':'Form archived. To preserve submission history the form record was not physically deleted.',array('status'=>$status),absint($user_id))){Schema::rollback();return false;}
+        if(!Schema::commit()){Schema::rollback();return false;}
         return true;
     }
 

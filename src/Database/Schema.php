@@ -6,18 +6,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class Schema {
-    const VERSION = '5';
+    const VERSION = '6';
     const OPTION  = 'bfcamel_crm_db_version';
     const ERROR_OPTION = 'bfcamel_crm_schema_error';
 
     private static $install_errors = array();
 
     public static function maybe_upgrade() {
-        if ( self::VERSION !== (string) get_option( self::OPTION, '' ) ) {
-            return self::install();
+        if ( self::VERSION === (string) get_option( self::OPTION, '' ) ) {
+            return true;
         }
-
-        return true;
+        if ( get_transient( 'bfcamel_crm_schema_lock' ) ) {
+            return new \WP_Error( 'bfcamel_crm_schema_locked', __( 'Another BfCamel CRM database update is already running.', 'bfcamel-crm' ) );
+        }
+        set_transient( 'bfcamel_crm_schema_lock', 1, MINUTE_IN_SECONDS );
+        try {
+            return self::install();
+        } finally {
+            delete_transient( 'bfcamel_crm_schema_lock' );
+        }
     }
 
     public static function is_current() {

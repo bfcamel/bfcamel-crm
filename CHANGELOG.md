@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.5.0
+
+### Security and privacy
+- Changed role defaults to least privilege and migrated unsafe legacy all-access matrices.
+- Rebuilt personal-data export and erasure with batches, consent history, activity metadata and failure-aware transactions.
+- Added independent controls for IP, source URL and browser-information storage.
+- Added an advisory identifier lock to prevent duplicate contacts during concurrent submissions.
+
+### Consent and forms
+- Legal-document links are now optional and never hide consent fields or block data collection.
+- Consent evidence includes the displayed field text and whether documents were configured.
+- Added explicit administrator acknowledgement for operation without legal-document links.
+- Blocked form rendering and submission while the database schema is incomplete.
+
+### Administration
+- Consolidated the legacy layered CSS and JavaScript assets.
+- Added a responsive BfCamel CRM design system, improved empty states and accessible focus styles.
+- Converted tag deletion and form archive/restore actions to nonce-protected POST requests.
+- Completed localization of the new PHP and JavaScript interface strings.
+
+### Distribution
+- Removed the GitHub Update URI so WordPress.org can provide updates.
+- Expanded `readme.txt` for the plugin directory and cleaned the installable package.
+- Added the official WordPress Plugin Check action to the release gate.
+- Gated release publication on successful validation, Plugin Check and package jobs for the merged `main` commit.
+
 ## 0.4.1
 
 ### Fixed

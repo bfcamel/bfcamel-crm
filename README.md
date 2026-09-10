@@ -2,7 +2,17 @@
 
 **BfCamel CRM** is an open-source WordPress form builder and lightweight CRM developed by the People & Camels Charity Foundation.
 
-Version **0.4.1** is the audited bug-fix release for the configurable workflow introduced in 0.4.0. It preserves the established WordPress plugin identity and in-place update path.
+Version **0.5.0** is the first public release prepared for submission to WordPress.org. It preserves the established plugin identity and the in-place update path from earlier BfCamel CRM versions.
+
+## 0.5.0 release highlights
+
+- Least-privilege CRM permissions: only administrators receive access by default.
+- Batched WordPress Personal Data Exporter and Eraser coverage for contacts, submissions, consent evidence and activity metadata.
+- Consent fields remain usable without legal-document URLs; the stored evidence records the exact text and document availability.
+- Independent privacy controls for IP addresses, source URLs and browser information.
+- Concurrency protection for contact matching.
+- Consolidated, responsive administrative design system with improved accessibility.
+- WordPress.org-compatible update metadata, directory readme and official Plugin Check validation.
 
 ## 0.4.1 audit fixes
 
@@ -13,7 +23,7 @@ Version **0.4.1** is the audited bug-fix release for the configurable workflow i
 - The one-column form setting now changes the rendered layout.
 - Form publishing, public submission capture and tag-catalog changes are transactional.
 - Incomplete bulk actions and failed archive, restore or tag operations no longer report false success.
-- Release publication is blocked unless the PHP 7.4/8.1/8.3, smoke, duplicate-load and JavaScript checks pass.
+- Release publication is blocked unless the PHP 7.4/8.1/8.3/8.4/8.5, smoke, duplicate-load, JavaScript and official Plugin Check jobs pass.
 
 ## Upgrade compatibility
 
@@ -30,7 +40,7 @@ Install or update using the official `bfcamel-crm.zip` release asset. Do not use
 
 ## Data model
 
-Schema version 5 keeps the existing forms, contacts, submissions, tags, consent history and activity log and adds `wp_bfcamel_crm_notes` for internal contact/submission notes. CRM tables remain InnoDB-backed and migrations are verified before the stored schema version advances.
+Schema version 6 keeps the existing forms, contacts, submissions, tags, consent history, notes and activity log while hardening upgrades and privacy operations. CRM tables remain InnoDB-backed and migrations are verified before the stored schema version advances.
 
 ## Localization
 
