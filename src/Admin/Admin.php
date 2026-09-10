@@ -2,6 +2,8 @@
 namespace BfCamel\CRM\Admin;
 
 use BfCamel\CRM\Access\RoleManager;
+use BfCamel\CRM\CRM\TagService;
+use BfCamel\CRM\CRM\WorkflowService;
 use BfCamel\CRM\Database\Schema;
 use BfCamel\CRM\Forms\Repository;
 
@@ -27,8 +29,30 @@ final class Admin {
         }
 
         wp_enqueue_style( 'bfcamel-crm-admin', BFCAMEL_CRM_URL . 'assets/admin.css', array(), BFCAMEL_CRM_VERSION );
-        wp_enqueue_style( 'bfcamel-crm-admin-03', BFCAMEL_CRM_URL . 'assets/admin-03.css', array( 'bfcamel-crm-admin' ), BFCAMEL_CRM_VERSION );
+        wp_add_inline_style( 'bfcamel-crm-admin', $this->badge_styles() );
         wp_enqueue_script( 'bfcamel-crm-admin', BFCAMEL_CRM_URL . 'assets/admin.js', array(), BFCAMEL_CRM_VERSION, true );
+
+        $submission_tags = array();
+        foreach ( TagService::all( 'submission' ) as $tag ) {
+            $submission_tags[] = array( 'id' => absint( $tag->id ), 'name' => (string) $tag->name );
+        }
+        $contact_tags = array();
+        foreach ( TagService::all( 'contact' ) as $tag ) {
+            $contact_tags[] = array( 'id' => absint( $tag->id ), 'name' => (string) $tag->name );
+        }
+        wp_localize_script(
+            'bfcamel-crm-admin',
+            'BfCamelCRMAdmin',
+            array(
+                'submissionTags' => $submission_tags,
+                'contactTags'    => $contact_tags,
+                'strings'        => array(
+                    'tagPicker'   => __( 'Select tags', 'bfcamel-crm' ),
+                    'confirm'     => __( 'Are you sure you want to continue?', 'bfcamel-crm' ),
+                    'unsaved'     => __( 'You have unsaved changes.', 'bfcamel-crm' ),
+                ),
+            )
+        );
 
         if ( 'bfcamel-crm_page_bfcamel-crm-forms' === $hook ) {
             $id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -53,6 +77,7 @@ final class Admin {
                         'width'               => __( 'Width', 'bfcamel-crm' ),
                         'mapping'             => __( 'CRM mapping', 'bfcamel-crm' ),
                         'customKey'           => __( 'Custom field key', 'bfcamel-crm' ),
+                        'cssClass'            => __( 'Field CSS class', 'bfcamel-crm' ),
                         'options'             => __( 'Options, one per line', 'bfcamel-crm' ),
                         'submissionOnly'      => __( 'Submission only', 'bfcamel-crm' ),
                         'contactName'         => __( 'Contact: name', 'bfcamel-crm' ),
@@ -89,17 +114,19 @@ final class Admin {
 
             <div class="bfcamel-crm-panel">
                 <table class="widefat striped bfcamel-crm-table">
-                    <thead><tr><th><?php esc_html_e( 'Name', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Slug', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Shortcode', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Updated', 'bfcamel-crm' ); ?></th></tr></thead>
+                    <thead><tr><th><?php esc_html_e( 'Name', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Slug', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Shortcode', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Status', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Updated', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Actions', 'bfcamel-crm' ); ?></th></tr></thead>
                     <tbody>
                     <?php if ( ! $forms ) : ?>
-                        <tr><td colspan="4"><?php esc_html_e( 'No forms yet.', 'bfcamel-crm' ); ?></td></tr>
+                        <tr><td colspan="6"><div class="bfcamel-crm-empty"><span class="dashicons dashicons-feedback" aria-hidden="true"></span><strong><?php esc_html_e( 'No forms yet.', 'bfcamel-crm' ); ?></strong><a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-forms&action=new' ) ); ?>"><?php esc_html_e( 'Create your first form', 'bfcamel-crm' ); ?></a></div></td></tr>
                     <?php else : ?>
                         <?php foreach ( $forms as $form ) : ?>
                             <tr>
                                 <td><strong><a href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-forms&action=edit&id=' . absint( $form->id ) ) ); ?>"><?php echo esc_html( $form->name ); ?></a></strong></td>
                                 <td><code><?php echo esc_html( $form->slug ); ?></code></td>
                                 <td><code>[bfcamel_form id="<?php echo esc_html( $form->id ); ?>"]</code></td>
+                                <td><span class="bfcamel-crm-badge"><?php echo esc_html( 'archived' === $form->status ? __( 'Archived', 'bfcamel-crm' ) : __( 'Published', 'bfcamel-crm' ) ); ?></span></td>
                                 <td><?php echo esc_html( mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $form->updated_at ) ); ?></td>
+                                <td><form class="bfcamel-crm-inline-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="<?php echo esc_attr( 'archived' === $form->status ? 'bfcamel_crm_restore_form' : 'bfcamel_crm_archive_form' ); ?>"><input type="hidden" name="form_id" value="<?php echo esc_attr( $form->id ); ?>"><?php wp_nonce_field( 'bfcamel_crm_form_status_' . absint( $form->id ) ); ?><button type="submit" class="button <?php echo 'archived' === $form->status ? '' : 'button-link-delete'; ?>" data-bfcamel-confirm><?php echo esc_html( 'archived' === $form->status ? __( 'Restore', 'bfcamel-crm' ) : __( 'Archive', 'bfcamel-crm' ) ); ?></button></form></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -118,12 +145,16 @@ final class Admin {
         $version  = $revision ? absint( $revision->version ) : 0;
 
         $notice = isset( $_GET['saved'] ) ? sanitize_key( $_GET['saved'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        /* translators: %s: form name. */
+        $heading = $form ? sprintf( __( 'Edit form: %s', 'bfcamel-crm' ), $form->name ) : __( 'Add form', 'bfcamel-crm' );
+        /* translators: %d: form revision number. */
+        $revision_label = $version ? sprintf( __( 'Current revision: %d', 'bfcamel-crm' ), $version ) : '';
         ?>
         <div class="wrap bfcamel-crm-admin">
             <div class="bfcamel-crm-page-title">
                 <div>
-                    <h1><?php echo esc_html( $form ? sprintf( __( 'Edit form: %s', 'bfcamel-crm' ), $form->name ) : __( 'Add form', 'bfcamel-crm' ) ); ?></h1>
-                    <?php if ( $version ) : ?><p class="description"><?php echo esc_html( sprintf( __( 'Current revision: %d', 'bfcamel-crm' ), $version ) ); ?></p><?php endif; ?>
+                    <h1><?php echo esc_html( $heading ); ?></h1>
+                    <?php if ( $version ) : ?><p class="description"><?php echo esc_html( $revision_label ); ?></p><?php endif; ?>
                 </div>
                 <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-forms' ) ); ?>"><?php esc_html_e( 'Back to forms', 'bfcamel-crm' ); ?></a>
             </div>
@@ -159,6 +190,10 @@ final class Admin {
 
                     <aside>
                         <div class="bfcamel-crm-panel bfcamel-crm-sticky">
+                            <h2><?php esc_html_e( 'Workflow', 'bfcamel-crm' ); ?></h2>
+                            <p><label><?php esc_html_e( 'Default status', 'bfcamel-crm' ); ?><select name="settings[default_status]"><?php foreach ( WorkflowService::statuses() as $value => $label ) : ?><option value="<?php echo esc_attr( $value ); ?>" <?php selected( $settings['default_status'], $value ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></label></p>
+                            <p><label><?php esc_html_e( 'Default priority', 'bfcamel-crm' ); ?><select name="settings[default_priority]"><?php foreach ( WorkflowService::priorities() as $value => $label ) : ?><option value="<?php echo esc_attr( $value ); ?>" <?php selected( $settings['default_priority'], $value ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></label></p>
+                            <hr>
                             <h2><?php esc_html_e( 'Appearance', 'bfcamel-crm' ); ?></h2>
                             <p><label><?php esc_html_e( 'Style mode', 'bfcamel-crm' ); ?><select name="settings[style_mode]"><?php foreach ( array( 'theme' => __( 'Theme / unstyled', 'bfcamel-crm' ), 'default' => __( 'Default', 'bfcamel-crm' ), 'custom' => __( 'Custom', 'bfcamel-crm' ) ) as $value => $label ) : ?><option value="<?php echo esc_attr( $value ); ?>" <?php selected( $settings['style_mode'], $value ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></label></p>
                             <p><label><?php esc_html_e( 'Columns', 'bfcamel-crm' ); ?><select name="settings[columns]"><option value="1" <?php selected( $settings['columns'], '1' ); ?>>1</option><option value="2" <?php selected( $settings['columns'], '2' ); ?>>2</option></select></label></p>
@@ -226,16 +261,18 @@ final class Admin {
         $roles = wp_roles();
         $saved = isset( $_GET['saved'] ) ? sanitize_key( $_GET['saved'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         ?>
-        <div class="wrap bfcamel-crm-admin"><h1><?php esc_html_e( 'BfCamel CRM settings', 'bfcamel-crm' ); ?></h1><?php if ( '1' === $saved ) : ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Settings saved.', 'bfcamel-crm' ); ?></p></div><?php endif; ?>
+        <div class="wrap bfcamel-crm-admin"><div class="bfcamel-crm-page-title"><div><h1><?php esc_html_e( 'BfCamel CRM settings', 'bfcamel-crm' ); ?></h1><p class="description"><?php esc_html_e( 'Configure privacy, legal documents, storage and access in one place.', 'bfcamel-crm' ); ?></p></div></div><?php if ( '1' === $saved ) : ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Settings saved.', 'bfcamel-crm' ); ?></p></div><?php endif; ?>
+        <nav class="bfcamel-crm-section-nav" aria-label="<?php echo esc_attr__( 'Settings sections', 'bfcamel-crm' ); ?>"><a href="#bfcamel-legal"><?php esc_html_e( 'Legal documents', 'bfcamel-crm' ); ?></a><a href="#bfcamel-privacy"><?php esc_html_e( 'Privacy', 'bfcamel-crm' ); ?></a><a href="#bfcamel-access"><?php esc_html_e( 'Access', 'bfcamel-crm' ); ?></a></nav>
         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="bfcamel_crm_save_settings"><?php wp_nonce_field( 'bfcamel_crm_save_settings' ); ?>
-            <div class="bfcamel-crm-panel"><h2><?php esc_html_e( 'Legal documents', 'bfcamel-crm' ); ?></h2><p class="description"><?php esc_html_e( 'Links and versions are copied into consent evidence at submission time, so later edits do not rewrite history.', 'bfcamel-crm' ); ?></p>
+            <div class="bfcamel-crm-panel" id="bfcamel-legal"><h2><?php esc_html_e( 'Legal documents', 'bfcamel-crm' ); ?></h2><p class="description"><?php esc_html_e( 'Document links are optional. When provided, their current values are copied into consent evidence so later edits do not rewrite history.', 'bfcamel-crm' ); ?></p>
                 <?php $this->legal_row( 'personal_data_consent', __( 'Personal Data Processing Consent', 'bfcamel-crm' ), $legal ); ?>
                 <?php $this->legal_row( 'privacy_policy', __( 'Privacy Policy', 'bfcamel-crm' ), $legal ); ?>
                 <?php $this->legal_row( 'marketing_consent', __( 'Marketing / Information Messages Consent', 'bfcamel-crm' ), $legal ); ?>
+                <div class="bfcamel-crm-risk"><label><input type="checkbox" name="settings[legal_risk_acknowledged]" value="1" <?php checked( ! empty( $settings['legal_risk_acknowledged_at'] ) ); ?>> <strong><?php esc_html_e( 'I understand that I have not provided links to legal documents and that I am responsible for the lawfulness of data collection and processing.', 'bfcamel-crm' ); ?></strong></label><p><?php esc_html_e( 'Forms continue to work without document links. BfCamel CRM records that documents were not configured at the time of consent.', 'bfcamel-crm' ); ?></p></div>
             </div>
-            <div class="bfcamel-crm-panel"><h2><?php esc_html_e( 'Privacy', 'bfcamel-crm' ); ?></h2><p><label><input type="checkbox" name="settings[store_ip]" value="1" <?php checked( ! empty( $settings['store_ip'] ) ); ?>> <?php esc_html_e( 'Store visitor IP addresses as submission and consent evidence', 'bfcamel-crm' ); ?></label></p><p class="description"><?php esc_html_e( 'Disabled by default. User-Agent and source URL are still stored with submissions.', 'bfcamel-crm' ); ?></p><p><label><input type="checkbox" name="settings[delete_data_on_uninstall]" value="1" <?php checked( ! empty( $settings['delete_data_on_uninstall'] ) ); ?>> <?php esc_html_e( 'Delete all BfCamel CRM data when the plugin is uninstalled', 'bfcamel-crm' ); ?></label></p><p class="description"><?php esc_html_e( 'Keep this disabled unless you explicitly want uninstall.php to remove CRM tables and settings.', 'bfcamel-crm' ); ?></p></div>
-            <div class="bfcamel-crm-panel bfcamel-crm-panel--table">
-                <div class="bfcamel-crm-panel__head bfcamel-crm-panel__head--padded"><div><h2><?php esc_html_e( 'Role permissions', 'bfcamel-crm' ); ?></h2><p class="description"><?php esc_html_e( 'Choose which CRM areas each WordPress role can use. New roles receive all main CRM permissions by default; settings remain administrator-only.', 'bfcamel-crm' ); ?></p></div></div>
+            <div class="bfcamel-crm-panel" id="bfcamel-privacy"><h2><?php esc_html_e( 'Privacy and technical metadata', 'bfcamel-crm' ); ?></h2><p><label><input type="checkbox" name="settings[store_ip]" value="1" <?php checked( ! empty( $settings['store_ip'] ) ); ?>> <?php esc_html_e( 'Store visitor IP addresses as submission and consent evidence', 'bfcamel-crm' ); ?></label></p><p class="description"><?php esc_html_e( 'IP address storage is disabled by default.', 'bfcamel-crm' ); ?></p><p><label><input type="checkbox" name="settings[store_source_url]" value="1" <?php checked( ! isset( $settings['store_source_url'] ) || ! empty( $settings['store_source_url'] ) ); ?>> <?php esc_html_e( 'Store the source page URL', 'bfcamel-crm' ); ?></label></p><p><label><input type="checkbox" name="settings[store_user_agent]" value="1" <?php checked( ! isset( $settings['store_user_agent'] ) || ! empty( $settings['store_user_agent'] ) ); ?>> <?php esc_html_e( 'Store browser information (User-Agent)', 'bfcamel-crm' ); ?></label></p><hr><p><label><input type="checkbox" name="settings[delete_data_on_uninstall]" value="1" <?php checked( ! empty( $settings['delete_data_on_uninstall'] ) ); ?>> <?php esc_html_e( 'Delete all BfCamel CRM data when the plugin is uninstalled', 'bfcamel-crm' ); ?></label></p><p class="description"><?php esc_html_e( 'Keep this disabled unless you explicitly want uninstall.php to remove CRM tables and settings.', 'bfcamel-crm' ); ?></p></div>
+            <div class="bfcamel-crm-panel bfcamel-crm-panel--table" id="bfcamel-access">
+                <div class="bfcamel-crm-panel__head bfcamel-crm-panel__head--padded"><div><h2><?php esc_html_e( 'Role permissions', 'bfcamel-crm' ); ?></h2><p class="description"><?php esc_html_e( 'Only administrators have CRM access by default. Grant every additional permission explicitly.', 'bfcamel-crm' ); ?></p></div></div>
                 <div class="bfcamel-crm-table-scroll"><table class="widefat striped bfcamel-crm-table bfcamel-crm-permissions"><thead><tr><th><?php esc_html_e( 'Role', 'bfcamel-crm' ); ?></th><?php foreach ( RoleManager::managed_capabilities() as $label ) : ?><th><?php echo esc_html( $label ); ?></th><?php endforeach; ?></tr></thead><tbody>
                 <?php if ( $roles ) : foreach ( $roles->roles as $role_slug => $role_data ) : ?><tr><th scope="row"><?php echo esc_html( translate_user_role( $role_data['name'] ) ); ?></th><?php foreach ( RoleManager::managed_capabilities() as $capability => $label ) : ?><td><label><span class="screen-reader-text"><?php echo esc_html( $label ); ?></span><input type="checkbox" name="role_permissions[<?php echo esc_attr( $role_slug ); ?>][<?php echo esc_attr( $capability ); ?>]" value="1" <?php checked( 'administrator' === $role_slug || ! empty( $permissions[ $role_slug ][ $capability ] ) ); ?> <?php disabled( 'administrator' === $role_slug ); ?>></label></td><?php endforeach; ?></tr><?php endforeach; endif; ?>
                 </tbody></table></div>
@@ -252,18 +289,26 @@ final class Admin {
         $legal = array();
         foreach ( array( 'personal_data_consent', 'privacy_policy', 'marketing_consent' ) as $type ) {
             $legal[ $type ] = array(
-                'url'     => esc_url_raw( $posted_legal[ $type ]['url'] ?? '' ),
-                'version' => sanitize_text_field( $posted_legal[ $type ]['version'] ?? '' ),
+                'title'          => sanitize_text_field( $posted_legal[ $type ]['title'] ?? '' ),
+                'url'            => esc_url_raw( $posted_legal[ $type ]['url'] ?? '' ),
+                'version'        => sanitize_text_field( $posted_legal[ $type ]['version'] ?? '' ),
+                'effective_date' => sanitize_text_field( $posted_legal[ $type ]['effective_date'] ?? '' ),
+                'link_text'      => sanitize_text_field( $posted_legal[ $type ]['link_text'] ?? '' ),
             );
         }
         update_option( 'bfcamel_crm_legal_documents', $legal, false );
 
         $settings = isset( $_POST['settings'] ) && is_array( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : array();
+        $acknowledged = ! empty( $settings['legal_risk_acknowledged'] );
         update_option(
             'bfcamel_crm_settings',
             array(
-                'store_ip'                 => ! empty( $settings['store_ip'] ),
-                'delete_data_on_uninstall' => ! empty( $settings['delete_data_on_uninstall'] ),
+                'store_ip'                    => ! empty( $settings['store_ip'] ),
+                'store_source_url'            => ! empty( $settings['store_source_url'] ),
+                'store_user_agent'            => ! empty( $settings['store_user_agent'] ),
+                'delete_data_on_uninstall'    => ! empty( $settings['delete_data_on_uninstall'] ),
+                'legal_risk_acknowledged_at'  => $acknowledged ? current_time( 'mysql' ) : '',
+                'legal_risk_acknowledged_by'  => $acknowledged ? get_current_user_id() : 0,
             ),
             false
         );
@@ -300,9 +345,23 @@ final class Admin {
         ?><p><label><?php echo esc_html( $label ); ?><input type="color" name="settings[<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( $settings[ $key ] ); ?>"></label></p><?php
     }
 
+    private function badge_styles() {
+        $rules = array();
+        foreach ( array( 'status' => 'bfcamel-crm-badge', 'priority' => 'bfcamel-crm-priority' ) as $type => $class ) {
+            foreach ( WorkflowService::definitions( $type, false ) as $item ) {
+                $slug  = sanitize_html_class( $item['slug'] );
+                $color = WorkflowService::color( $type, $item['slug'] );
+                if ( $slug && $color ) {
+                    $rules[] = '.' . $class . '--' . $slug . '{box-shadow:inset 4px 0 0 ' . $color . ';}';
+                }
+            }
+        }
+        return implode( '', $rules );
+    }
+
     private function legal_row( $key, $label, $legal ) {
-        $doc = wp_parse_args( $legal[ $key ] ?? array(), array( 'url' => '', 'version' => '' ) );
-        ?><div class="bfcamel-crm-legal-row"><div><strong><?php echo esc_html( $label ); ?></strong></div><label><?php esc_html_e( 'URL', 'bfcamel-crm' ); ?><input type="url" name="legal[<?php echo esc_attr( $key ); ?>][url]" value="<?php echo esc_attr( $doc['url'] ); ?>" placeholder="https://"></label><label><?php esc_html_e( 'Version', 'bfcamel-crm' ); ?><input type="text" name="legal[<?php echo esc_attr( $key ); ?>][version]" value="<?php echo esc_attr( $doc['version'] ); ?>" placeholder="2026-09-01"></label></div><?php
+        $doc = wp_parse_args( $legal[ $key ] ?? array(), array( 'title' => '', 'url' => '', 'version' => '', 'effective_date' => '', 'link_text' => '' ) );
+        ?><fieldset class="bfcamel-crm-legal-row"><legend><?php echo esc_html( $label ); ?></legend><label><?php esc_html_e( 'Document title', 'bfcamel-crm' ); ?><input type="text" name="legal[<?php echo esc_attr( $key ); ?>][title]" value="<?php echo esc_attr( $doc['title'] ); ?>"></label><label><?php esc_html_e( 'URL (optional)', 'bfcamel-crm' ); ?><input type="url" name="legal[<?php echo esc_attr( $key ); ?>][url]" value="<?php echo esc_attr( $doc['url'] ); ?>" placeholder="https://"></label><label><?php esc_html_e( 'Link text', 'bfcamel-crm' ); ?><input type="text" name="legal[<?php echo esc_attr( $key ); ?>][link_text]" value="<?php echo esc_attr( $doc['link_text'] ); ?>"></label><label><?php esc_html_e( 'Version', 'bfcamel-crm' ); ?><input type="text" name="legal[<?php echo esc_attr( $key ); ?>][version]" value="<?php echo esc_attr( $doc['version'] ); ?>" placeholder="1.0"></label><label><?php esc_html_e( 'Effective date', 'bfcamel-crm' ); ?><input type="date" name="legal[<?php echo esc_attr( $key ); ?>][effective_date]" value="<?php echo esc_attr( $doc['effective_date'] ); ?>"></label></fieldset><?php
     }
 
     private function guard( $capability ) {

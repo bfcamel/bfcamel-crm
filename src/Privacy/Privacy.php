@@ -4,13 +4,14 @@ namespace BfCamel\CRM\Privacy;
 use BfCamel\CRM\CRM\ContactService;
 use BfCamel\CRM\CRM\NoteService;
 use BfCamel\CRM\Database\Schema;
-use BfCamel\CRM\Forms\Repository;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
 final class Privacy {
+    const PAGE_SIZE = 50;
+
     private static $instance = null;
 
     public static function instance() {
@@ -45,101 +46,141 @@ final class Privacy {
     }
 
     public function export_personal_data( $email_address, $page = 1 ) {
-        $ids = ContactService::find_contact_ids_by_email_value( $email_address );
+        if ( ! Schema::is_current() ) {
+            return array( 'data' => array(), 'done' => true );
+        }
+
+        $contact_ids = ContactService::find_contact_ids_by_email_value( sanitize_email( $email_address ) );
+        if ( ! $contact_ids ) {
+            return array( 'data' => array(), 'done' => true );
+        }
+
+        $page = max( 1, absint( $page ) );
         $data = array();
-
-        foreach ( $ids as $contact_id ) {
-            $contact = ContactService::get( $contact_id );
-            if ( ! $contact ) {
-                continue;
+        if ( 1 === $page ) {
+            foreach ( $contact_ids as $contact_id ) {
+                $contact_item = $this->contact_export_item( $contact_id );
+                if ( $contact_item ) {
+                    $data[] = $contact_item;
+                }
             }
+        }
 
-            $items = array(
-                array( 'name' => __( 'Display name', 'bfcamel-crm' ), 'value' => $contact->display_name ),
-                array( 'name' => __( 'Organization', 'bfcamel-crm' ), 'value' => $contact->organization ),
-                array( 'name' => __( 'Status', 'bfcamel-crm' ), 'value' => $contact->status ),
+        $submissions = $this->paged_rows( 'submissions', $contact_ids, $page );
+        foreach ( $submissions['rows'] as $submission ) {
+            $payload = json_decode( (string) $submission->payload_json, true );
+            $payload = is_array( $payload ) ? $payload : array();
+            $items   = array(
+                array( 'name' => __( 'Submitted at', 'bfcamel-crm' ), 'value' => $submission->submitted_at ),
+                array( 'name' => __( 'Source URL', 'bfcamel-crm' ), 'value' => $submission->source_url ),
+                array( 'name' => __( 'IP address', 'bfcamel-crm' ), 'value' => $submission->source_ip ),
+                array( 'name' => __( 'Browser information', 'bfcamel-crm' ), 'value' => $submission->user_agent ),
             );
-
-            foreach ( ContactService::get_emails( $contact_id ) as $email ) {
-                $items[] = array( 'name' => __( 'Email', 'bfcamel-crm' ), 'value' => $email->value );
+            foreach ( $payload as $key => $value ) {
+                $items[] = array( 'name' => (string) $key, 'value' => $this->export_value( $value ) );
             }
-            foreach ( ContactService::get_phones( $contact_id ) as $phone ) {
-                $items[] = array( 'name' => __( 'Phone', 'bfcamel-crm' ), 'value' => $phone->value );
-            }
-            foreach ( ContactService::get_custom_fields( $contact_id ) as $key => $value ) {
-                $items[] = array( 'name' => $key, 'value' => $value );
-            }
-
-            foreach ( NoteService::for_entity( 'contact', $contact_id ) as $note ) {
+            foreach ( NoteService::for_entity( 'submission', $submission->id ) as $note ) {
                 $items[] = array( 'name' => __( 'Internal note', 'bfcamel-crm' ), 'value' => $note->note_text );
             }
-
             $data[] = array(
-                'group_id'    => 'bfcamel-crm-contact',
-                'group_label' => __( 'BfCamel CRM contact', 'bfcamel-crm' ),
-                'item_id'     => 'contact-' . absint( $contact_id ),
+                'group_id'    => 'bfcamel-crm-submissions',
+                'group_label' => __( 'BfCamel CRM submissions', 'bfcamel-crm' ),
+                'item_id'     => 'submission-' . absint( $submission->id ),
                 'data'        => $items,
             );
+        }
 
-            foreach ( $this->submissions_for_contact( $contact_id ) as $submission ) {
-                $payload = json_decode( $submission->payload_json, true );
-                $payload = is_array( $payload ) ? $payload : array();
-                $submission_data = array(
-                    array( 'name' => __( 'Submitted at', 'bfcamel-crm' ), 'value' => $submission->submitted_at ),
-                    array( 'name' => __( 'Source URL', 'bfcamel-crm' ), 'value' => $submission->source_url ),
-                );
-                foreach ( $payload as $key => $value ) {
-                    $submission_data[] = array(
-                        'name'  => $key,
-                        'value' => is_array( $value ) ? implode( ', ', $value ) : (string) $value,
-                    );
-                }
-                foreach ( NoteService::for_entity( 'submission', $submission->id ) as $note ) {
-                    $submission_data[] = array( 'name' => __( 'Internal note', 'bfcamel-crm' ), 'value' => $note->note_text );
-                }
-                $data[] = array(
-                    'group_id'    => 'bfcamel-crm-submissions',
-                    'group_label' => __( 'BfCamel CRM submissions', 'bfcamel-crm' ),
-                    'item_id'     => 'submission-' . absint( $submission->id ),
-                    'data'        => $submission_data,
-                );
-            }
+        $consents = $this->paged_rows( 'consent_events', $contact_ids, $page );
+        foreach ( $consents['rows'] as $event ) {
+            $data[] = array(
+                'group_id'    => 'bfcamel-crm-consents',
+                'group_label' => __( 'BfCamel CRM consent history', 'bfcamel-crm' ),
+                'item_id'     => 'consent-' . absint( $event->id ),
+                'data'        => array(
+                    array( 'name' => __( 'Consent type', 'bfcamel-crm' ), 'value' => $event->consent_type ),
+                    array( 'name' => __( 'Consent status', 'bfcamel-crm' ), 'value' => $event->status ),
+                    array( 'name' => __( 'Recorded at', 'bfcamel-crm' ), 'value' => $event->event_at ),
+                    array( 'name' => __( 'Source URL', 'bfcamel-crm' ), 'value' => $event->source_url ),
+                    array( 'name' => __( 'IP address', 'bfcamel-crm' ), 'value' => $event->source_ip ),
+                    array( 'name' => __( 'Browser information', 'bfcamel-crm' ), 'value' => $event->user_agent ),
+                    array( 'name' => __( 'Consent evidence', 'bfcamel-crm' ), 'value' => $this->export_value( json_decode( (string) $event->documents_json, true ) ) ),
+                ),
+            );
+        }
+
+        $activity = $this->paged_activity( $contact_ids, $page );
+        foreach ( $activity['rows'] as $event ) {
+            $data[] = array(
+                'group_id'    => 'bfcamel-crm-activity',
+                'group_label' => __( 'BfCamel CRM activity history', 'bfcamel-crm' ),
+                'item_id'     => 'activity-' . absint( $event->id ),
+                'data'        => array(
+                    array( 'name' => __( 'Event type', 'bfcamel-crm' ), 'value' => $event->event_type ),
+                    array( 'name' => __( 'Recorded at', 'bfcamel-crm' ), 'value' => $event->created_at ),
+                    array( 'name' => __( 'Event details', 'bfcamel-crm' ), 'value' => $this->export_value( json_decode( (string) $event->meta_json, true ) ) ),
+                ),
+            );
         }
 
         return array(
             'data' => $data,
-            'done' => true,
+            'done' => ! $submissions['has_more'] && ! $consents['has_more'] && ! $activity['has_more'],
         );
     }
 
     public function erase_personal_data( $email_address, $page = 1 ) {
-        $ids = ContactService::find_contact_ids_by_email_value( $email_address );
-        $removed = false;
-        $retained = false;
-        $messages = array();
+        if ( ! Schema::is_current() ) {
+            return $this->erase_error( __( 'BfCamel CRM data could not be erased because the database update is incomplete.', 'bfcamel-crm' ) );
+        }
 
-        foreach ( $ids as $contact_id ) {
-            $submissions = $this->submissions_for_contact( $contact_id );
-            foreach ( $submissions as $submission ) {
-                $this->scrub_submission_payload( $submission );
-                NoteService::delete_for_entity( 'submission', $submission->id );
-            }
-            NoteService::delete_for_entity( 'contact', $contact_id );
-            $this->scrub_consent_metadata( $contact_id );
-            if ( ContactService::anonymize( $contact_id ) ) {
-                $removed = true;
+        $contact_ids = ContactService::find_contact_ids_by_email_value( sanitize_email( $email_address ) );
+        if ( ! $contact_ids ) {
+            return array( 'items_removed' => false, 'items_retained' => false, 'messages' => array(), 'done' => true );
+        }
+
+        $page        = max( 1, absint( $page ) );
+        $submissions = $this->paged_rows( 'submissions', $contact_ids, $page );
+
+        if ( ! Schema::begin_transaction() ) {
+            return $this->erase_error( __( 'BfCamel CRM could not start a privacy erasure transaction.', 'bfcamel-crm' ) );
+        }
+
+        foreach ( $submissions['rows'] as $submission ) {
+            if ( ! $this->scrub_submission( $submission ) ) {
+                Schema::rollback();
+                return $this->erase_error( __( 'BfCamel CRM could not anonymize all submission data.', 'bfcamel-crm' ) );
             }
         }
 
-        if ( $removed ) {
-            $messages[] = __( 'BfCamel CRM contact identifiers and mapped submission fields were anonymized, and internal notes linked to the contact were removed. Consent event timestamps and document snapshots were retained as non-contact audit records.', 'bfcamel-crm' );
-            $retained = true;
+        if ( $submissions['has_more'] ) {
+            if ( ! Schema::commit() ) {
+                Schema::rollback();
+                return $this->erase_error( __( 'BfCamel CRM could not save the privacy erasure batch.', 'bfcamel-crm' ) );
+            }
+            return array(
+                'items_removed'  => true,
+                'items_retained' => false,
+                'messages'       => array( __( 'BfCamel CRM anonymized one batch of submission data. Additional batches remain.', 'bfcamel-crm' ) ),
+                'done'           => false,
+            );
+        }
+
+        foreach ( $contact_ids as $contact_id ) {
+            if ( ! $this->scrub_contact_relations( $contact_id ) || ! ContactService::anonymize( $contact_id ) ) {
+                Schema::rollback();
+                return $this->erase_error( __( 'BfCamel CRM could not anonymize all contact data.', 'bfcamel-crm' ) );
+            }
+        }
+
+        if ( ! Schema::commit() ) {
+            Schema::rollback();
+            return $this->erase_error( __( 'BfCamel CRM could not save the privacy erasure result.', 'bfcamel-crm' ) );
         }
 
         return array(
-            'items_removed'  => $removed,
-            'items_retained' => $retained,
-            'messages'       => $messages,
+            'items_removed'  => true,
+            'items_retained' => true,
+            'messages'       => array( __( 'BfCamel CRM removed contact identifiers, submission contents, internal notes and technical metadata. Anonymized consent timestamps and document evidence were retained for audit purposes.', 'bfcamel-crm' ) ),
             'done'           => true,
         );
     }
@@ -148,53 +189,124 @@ final class Privacy {
         if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
             return;
         }
-
-        $content = '<p>' . esc_html__( 'If forms created with BfCamel CRM are used on this site, the plugin may store submitted form data, CRM contacts, internal notes, consent events, source URLs and browser User-Agent strings. IP address storage is optional and disabled by default. Administrators should describe the actual forms, purposes, retention periods and legal basis used on their site.', 'bfcamel-crm' ) . '</p>';
-        wp_add_privacy_policy_content( 'BfCamel CRM', wp_kses_post( wpautop( $content ) ) );
+        $content = '<p>' . esc_html__( 'If forms created with BfCamel CRM are used on this site, the plugin may store submitted form data, CRM contacts, internal notes, consent events, source URLs and browser information. IP address storage is optional and disabled by default. Site owners choose whether to provide links to legal documents and remain responsible for the legal basis, consent wording and retention periods used on their site.', 'bfcamel-crm' ) . '</p>';
+        wp_add_privacy_policy_content( __( 'BfCamel CRM', 'bfcamel-crm' ), wp_kses_post( wpautop( $content ) ) );
     }
 
-    private function submissions_for_contact( $contact_id ) {
-        global $wpdb;
-        $table = Schema::table( 'submissions' );
-        return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE contact_id=%d ORDER BY id ASC", absint( $contact_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-    }
-
-    private function scrub_submission_payload( $submission ) {
-        global $wpdb;
-        $revision = Repository::get_revision( $submission->revision_id );
-        $schema   = Repository::decode_schema( $revision );
-        $payload  = json_decode( $submission->payload_json, true );
-        $payload  = is_array( $payload ) ? $payload : array();
-
-        foreach ( $schema as $field ) {
-            $mapping = (string) ( $field['mapping'] ?? 'submission_only' );
-            $name    = sanitize_key( $field['name'] ?? '' );
-            if ( $name && 0 === strpos( $mapping, 'contact.' ) && array_key_exists( $name, $payload ) ) {
-                $payload[ $name ] = is_array( $payload[ $name ] ) ? array() : '';
-            }
+    private function contact_export_item( $contact_id ) {
+        $contact = ContactService::get( $contact_id );
+        if ( ! $contact ) {
+            return null;
         }
-
-        $wpdb->update(
-            Schema::table( 'submissions' ),
-            array(
-                'payload_json' => wp_json_encode( $payload ),
-                'source_ip'    => '',
-                'user_agent'   => '',
-            ),
-            array( 'id' => absint( $submission->id ) ),
-            array( '%s', '%s', '%s' ),
-            array( '%d' )
+        $items = array(
+            array( 'name' => __( 'Display name', 'bfcamel-crm' ), 'value' => $contact->display_name ),
+            array( 'name' => __( 'Organization', 'bfcamel-crm' ), 'value' => $contact->organization ),
+            array( 'name' => __( 'Status', 'bfcamel-crm' ), 'value' => $contact->status ),
+        );
+        foreach ( ContactService::get_emails( $contact_id ) as $email ) {
+            $items[] = array( 'name' => __( 'Email', 'bfcamel-crm' ), 'value' => $email->value );
+        }
+        foreach ( ContactService::get_phones( $contact_id ) as $phone ) {
+            $items[] = array( 'name' => __( 'Phone', 'bfcamel-crm' ), 'value' => $phone->value );
+        }
+        foreach ( ContactService::get_custom_fields( $contact_id ) as $key => $value ) {
+            $items[] = array( 'name' => $key, 'value' => $value );
+        }
+        foreach ( NoteService::for_entity( 'contact', $contact_id ) as $note ) {
+            $items[] = array( 'name' => __( 'Internal note', 'bfcamel-crm' ), 'value' => $note->note_text );
+        }
+        return array(
+            'group_id'    => 'bfcamel-crm-contact',
+            'group_label' => __( 'BfCamel CRM contact', 'bfcamel-crm' ),
+            'item_id'     => 'contact-' . absint( $contact_id ),
+            'data'        => $items,
         );
     }
 
-    private function scrub_consent_metadata( $contact_id ) {
+    private function paged_rows( $table_name, $contact_ids, $page ) {
         global $wpdb;
-        $wpdb->update(
-            Schema::table( 'consent_events' ),
-            array( 'source_ip' => '', 'user_agent' => '' ),
-            array( 'contact_id' => absint( $contact_id ) ),
-            array( '%s', '%s' ),
+        $table        = Schema::table( $table_name );
+        $placeholders = implode( ',', array_fill( 0, count( $contact_ids ), '%d' ) );
+        $offset       = ( max( 1, absint( $page ) ) - 1 ) * self::PAGE_SIZE;
+        $args         = array_merge( array_map( 'absint', $contact_ids ), array( self::PAGE_SIZE + 1, $offset ) );
+        $sql          = "SELECT * FROM {$table} WHERE contact_id IN ({$placeholders}) ORDER BY id ASC LIMIT %d OFFSET %d";
+        $rows         = $wpdb->get_results( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Table names and the IN placeholder list are generated internally.
+        $has_more     = count( $rows ) > self::PAGE_SIZE;
+        return array( 'rows' => array_slice( $rows, 0, self::PAGE_SIZE ), 'has_more' => $has_more );
+    }
+
+    private function paged_activity( $contact_ids, $page ) {
+        global $wpdb;
+        $activity     = Schema::table( 'activity_log' );
+        $submissions  = Schema::table( 'submissions' );
+        $placeholders = implode( ',', array_fill( 0, count( $contact_ids ), '%d' ) );
+        $offset       = ( max( 1, absint( $page ) ) - 1 ) * self::PAGE_SIZE;
+        $args         = array_merge( array_map( 'absint', $contact_ids ), array_map( 'absint', $contact_ids ), array( self::PAGE_SIZE + 1, $offset ) );
+        $sql          = "SELECT a.* FROM {$activity} a WHERE (a.entity_type='contact' AND a.entity_id IN ({$placeholders})) OR (a.entity_type='submission' AND a.entity_id IN (SELECT s.id FROM {$submissions} s WHERE s.contact_id IN ({$placeholders}))) ORDER BY a.id ASC LIMIT %d OFFSET %d";
+        $rows         = $wpdb->get_results( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Table names and the IN placeholder list are generated internally.
+        $has_more     = count( $rows ) > self::PAGE_SIZE;
+        return array( 'rows' => array_slice( $rows, 0, self::PAGE_SIZE ), 'has_more' => $has_more );
+    }
+
+    private function scrub_submission( $submission ) {
+        global $wpdb;
+        $payload = json_decode( (string) $submission->payload_json, true );
+        $payload = is_array( $payload ) ? array_map( array( $this, 'empty_value' ), $payload ) : array();
+        $updated = $wpdb->update(
+            Schema::table( 'submissions' ),
+            array( 'payload_json' => wp_json_encode( $payload ), 'source_url' => '', 'source_ip' => '', 'user_agent' => '' ),
+            array( 'id' => absint( $submission->id ) ),
+            array( '%s', '%s', '%s', '%s' ),
             array( '%d' )
         );
+        if ( false === $updated || false === NoteService::delete_for_entity( 'submission', $submission->id ) ) {
+            return false;
+        }
+        return $this->scrub_activity( 'submission', array( absint( $submission->id ) ) );
+    }
+
+    private function scrub_contact_relations( $contact_id ) {
+        global $wpdb;
+        if ( false === NoteService::delete_for_entity( 'contact', $contact_id ) ) {
+            return false;
+        }
+        $consents = $wpdb->update(
+            Schema::table( 'consent_events' ),
+            array( 'source_url' => '', 'source_ip' => '', 'user_agent' => '', 'recorded_by' => 0 ),
+            array( 'contact_id' => absint( $contact_id ) ),
+            array( '%s', '%s', '%s', '%d' ),
+            array( '%d' )
+        );
+        if ( false === $consents ) {
+            return false;
+        }
+        return $this->scrub_activity( 'contact', array( absint( $contact_id ) ) );
+    }
+
+    private function scrub_activity( $entity_type, $entity_ids ) {
+        global $wpdb;
+        $entity_ids   = array_values( array_filter( array_map( 'absint', $entity_ids ) ) );
+        $placeholders = implode( ',', array_fill( 0, count( $entity_ids ), '%d' ) );
+        if ( ! $placeholders ) {
+            return true;
+        }
+        $args = array_merge( array( '{}', '', sanitize_key( $entity_type ) ), $entity_ids );
+        $sql  = "UPDATE " . Schema::table( 'activity_log' ) . " SET meta_json=%s,message=%s,user_id=0 WHERE entity_type=%s AND entity_id IN ({$placeholders})";
+        return false !== $wpdb->query( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Table name and the IN placeholder list are generated internally.
+    }
+
+    private function empty_value( $value ) {
+        return is_array( $value ) ? array() : '';
+    }
+
+    private function export_value( $value ) {
+        if ( is_array( $value ) || is_object( $value ) ) {
+            return wp_json_encode( $value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+        }
+        return (string) $value;
+    }
+
+    private function erase_error( $message ) {
+        return array( 'items_removed' => false, 'items_retained' => true, 'messages' => array( $message ), 'done' => true );
     }
 }

@@ -88,6 +88,7 @@ final class Exporter {
 
         $headers = array( 'ID', 'UUID', __( 'Form', 'bfcamel-crm' ), __( 'Contact', 'bfcamel-crm' ), __( 'Status', 'bfcamel-crm' ), __( 'Priority', 'bfcamel-crm' ), __( 'Responsible', 'bfcamel-crm' ), __( 'Tags', 'bfcamel-crm' ), __( 'Received', 'bfcamel-crm' ), __( 'Source URL', 'bfcamel-crm' ) );
         foreach ( $payload_keys as $key ) {
+            /* translators: %s: form field key. */
             $headers[] = sprintf( __( 'Field: %s', 'bfcamel-crm' ), $key );
         }
 
@@ -129,7 +130,7 @@ final class Exporter {
         header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
         header( 'Content-Length: ' . filesize( $path ) );
         readfile( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
-        @unlink( $path );
+        wp_delete_file( $path );
         exit;
     }
 

@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class RoleManager {
     const OPTION = 'bfcamel_crm_role_permissions';
     const VERSION_OPTION = 'bfcamel_crm_role_permissions_version';
-    const VERSION = '2';
+    const VERSION = '3';
     const ACCESS_CAPABILITY = 'bfcamel_crm_access';
 
     public static function register() {
@@ -58,14 +58,19 @@ final class RoleManager {
         $changed = false;
         foreach ( array_keys( $roles->roles ) as $role_slug ) {
             if ( ! isset( $matrix[ $role_slug ] ) || ! is_array( $matrix[ $role_slug ] ) ) {
-                $matrix[ $role_slug ] = self::default_permissions();
+                $matrix[ $role_slug ] = self::default_permissions( $role_slug );
                 $changed = true;
             } else {
+                $legacy_all_access = self::VERSION !== $version && 'administrator' !== $role_slug && self::all_enabled( $matrix[ $role_slug ] );
                 foreach ( self::capability_keys() as $capability ) {
                     if ( ! array_key_exists( $capability, $matrix[ $role_slug ] ) ) {
-                        $matrix[ $role_slug ][ $capability ] = true;
+                        $matrix[ $role_slug ][ $capability ] = 'administrator' === $role_slug;
                         $changed = true;
                     }
+                }
+                if ( $legacy_all_access ) {
+                    $matrix[ $role_slug ] = self::default_permissions( $role_slug );
+                    $changed = true;
                 }
                 if ( ! empty( $matrix[ $role_slug ]['bfcamel_crm_edit_submissions'] ) && empty( $matrix[ $role_slug ]['bfcamel_crm_view_submissions'] ) ) {
                     $matrix[ $role_slug ]['bfcamel_crm_view_submissions'] = true;
@@ -118,8 +123,23 @@ final class RoleManager {
         return is_array( $value ) ? $value : array();
     }
 
-    private static function default_permissions() {
-        return array_fill_keys( self::capability_keys(), true );
+    private static function default_permissions( $role_slug = '' ) {
+        return array_fill_keys( self::capability_keys(), 'administrator' === $role_slug );
+    }
+
+    /**
+     * Detects the unsafe permission matrix created by releases before 0.5.0.
+     *
+     * @param array $permissions Stored role permissions.
+     * @return bool
+     */
+    private static function all_enabled( $permissions ) {
+        foreach ( self::capability_keys() as $capability ) {
+            if ( empty( $permissions[ $capability ] ) ) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static function apply( $matrix ) {

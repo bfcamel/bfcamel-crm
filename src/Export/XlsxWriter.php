@@ -18,7 +18,7 @@ final class XlsxWriter {
 
         $zip = new \ZipArchive();
         if ( true !== $zip->open( $path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE ) ) {
-            @unlink( $path );
+            wp_delete_file( $path );
             return new \WP_Error( 'bfcamel_crm_export_zip', __( 'Could not create the XLSX archive.', 'bfcamel-crm' ) );
         }
 
@@ -30,7 +30,7 @@ final class XlsxWriter {
         $written = $zip->addFromString( 'xl/worksheets/sheet1.xml', self::sheet( $headers, $rows ) ) && $written;
         $closed = $zip->close();
         if ( ! $written || ! $closed ) {
-            @unlink( $path );
+            wp_delete_file( $path );
             return new \WP_Error( 'bfcamel_crm_export_zip_write', __( 'Could not create the XLSX archive.', 'bfcamel-crm' ) );
         }
 

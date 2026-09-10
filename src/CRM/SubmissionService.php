@@ -21,9 +21,14 @@ final class SubmissionService {
     public static function get( $submission_id, $for_update = false ) {
         global $wpdb;
         $submissions = Schema::table( 'submissions' ); $forms = Schema::table( 'forms' ); $contacts = Schema::table( 'contacts' ); $users = $wpdb->users;
+        if ( $for_update ) {
+            return $wpdb->get_row( $wpdb->prepare(
+                "SELECT s.*, f.name AS form_name, c.display_name AS contact_name, u.display_name AS assignee_name FROM {$submissions} s LEFT JOIN {$forms} f ON f.id=s.form_id LEFT JOIN {$contacts} c ON c.id=s.contact_id LEFT JOIN {$users} u ON u.ID=s.assigned_to WHERE s.id=%d LIMIT 1 FOR UPDATE", absint( $submission_id )
+            ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        }
         return $wpdb->get_row( $wpdb->prepare(
-            "SELECT s.*, f.name AS form_name, c.display_name AS contact_name, u.display_name AS assignee_name FROM {$submissions} s LEFT JOIN {$forms} f ON f.id=s.form_id LEFT JOIN {$contacts} c ON c.id=s.contact_id LEFT JOIN {$users} u ON u.ID=s.assigned_to WHERE s.id=%d LIMIT 1" . ( $for_update ? ' FOR UPDATE' : '' ), absint( $submission_id )
-        ) );
+            "SELECT s.*, f.name AS form_name, c.display_name AS contact_name, u.display_name AS assignee_name FROM {$submissions} s LEFT JOIN {$forms} f ON f.id=s.form_id LEFT JOIN {$contacts} c ON c.id=s.contact_id LEFT JOIN {$users} u ON u.ID=s.assigned_to WHERE s.id=%d LIMIT 1", absint( $submission_id )
+        ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     }
 
     public static function query( $filters = array(), $page = 1, $per_page = 25 ) {
@@ -54,10 +59,10 @@ final class SubmissionService {
         if ( $date_to ) { $where[] = 's.submitted_at <= %s'; $args[] = $date_to . ' 23:59:59'; }
         $where_sql = implode( ' AND ', $where );
         $base_from = "FROM {$submissions} s LEFT JOIN {$forms} f ON f.id=s.form_id LEFT JOIN {$contacts} c ON c.id=s.contact_id LEFT JOIN {$users} u ON u.ID=s.assigned_to";
-        $total = (int) $wpdb->get_var( self::prepare_sql( "SELECT COUNT(*) {$base_from} WHERE {$where_sql}", $args ) );
+        $total = (int) $wpdb->get_var( self::prepare_sql( "SELECT COUNT(*) {$base_from} WHERE {$where_sql}", $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- SQL is assembled from fixed clauses and prepared by prepare_sql().
         $page = max( 1, absint( $page ) ); $per_page = min( 500, max( 1, absint( $per_page ) ) ); $offset = ( $page - 1 ) * $per_page;
         $select_sql = "SELECT s.*, f.name AS form_name, c.display_name AS contact_name, u.display_name AS assignee_name, (SELECT GROUP_CONCAT(t.name ORDER BY t.name SEPARATOR ', ') FROM {$links} st INNER JOIN {$tags} t ON t.id=st.tag_id WHERE st.submission_id=s.id) AS tag_names {$base_from} WHERE {$where_sql} ORDER BY s.submitted_at DESC,s.id DESC LIMIT %d OFFSET %d";
-        $rows = $wpdb->get_results( self::prepare_sql( $select_sql, array_merge( $args, array( $per_page, $offset ) ) ) );
+        $rows = $wpdb->get_results( self::prepare_sql( $select_sql, array_merge( $args, array( $per_page, $offset ) ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- SQL is assembled from fixed clauses and prepared by prepare_sql().
         return array( 'rows'=>$rows,'total'=>$total,'page'=>$page,'per_page'=>$per_page,'total_pages'=>max( 1, (int) ceil( $total / $per_page ) ) );
     }
 
@@ -109,12 +114,15 @@ final class SubmissionService {
     public static function dashboard_counts() {
         global $wpdb; $table=Schema::table('submissions'); $default=WorkflowService::default_status(); $review=WorkflowService::is_valid('status','needs_review')?'needs_review':''; $top=WorkflowService::highest_priority();
         $completed = isset( self::statuses()['completed'] ) ? 'completed' : '';
+        $unassigned = $completed
+            ? (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE assigned_to=0 AND status<>%s", $completed ) )
+            : (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE assigned_to=0" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         return array(
             'total'=>(int)$wpdb->get_var("SELECT COUNT(*) FROM {$table}"),
             'new'=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE status=%s",$default)),
             'needs_review'=>$review?(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE status=%s",$review)):0,
             'urgent'=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE priority=%s",$top)),
-            'unassigned'=>(int)$wpdb->get_var($completed ? $wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE assigned_to=0 AND status<>%s",$completed) : "SELECT COUNT(*) FROM {$table} WHERE assigned_to=0"),
+            'unassigned'=>$unassigned,
             'default_status'=>$default,
             'review_status'=>$review,
             'top_priority'=>$top,
@@ -135,5 +143,5 @@ final class SubmissionService {
     public static function status_label( $status ) { return WorkflowService::label( 'status', $status ); }
     public static function priority_label( $priority ) { return WorkflowService::label( 'priority', $priority ); }
     private static function date_value( $value ) { $value=sanitize_text_field((string)$value); return preg_match('/^\d{4}-\d{2}-\d{2}$/',$value)?$value:''; }
-    private static function prepare_sql( $sql, $args ) { global $wpdb; return $args ? $wpdb->prepare($sql,$args) : $sql; }
+    private static function prepare_sql( $sql, $args ) { global $wpdb; return $args ? $wpdb->prepare($sql,$args) : $sql; } // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Callers provide only fixed SQL fragments and a complete placeholder argument list.
 }

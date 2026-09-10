@@ -13,7 +13,29 @@ final class ContactService {
         $mapped = self::extract_mapped_values( $schema, $payload );
         $email  = self::normalize_email( $mapped['email'] );
         $phone  = self::normalize_phone( $mapped['phone'] );
+        $locks  = self::identifier_locks( $email, $phone );
+        $locked = array();
 
+        foreach ( $locks as $lock ) {
+            if ( ! self::acquire_lock( $lock ) ) {
+                foreach ( array_reverse( $locked ) as $acquired ) {
+                    self::release_lock( $acquired );
+                }
+                return array( 'contact_id' => 0, 'status' => 'error' );
+            }
+            $locked[] = $lock;
+        }
+
+        try {
+            return self::resolve_and_sync_locked( $mapped, $email, $phone );
+        } finally {
+            foreach ( array_reverse( $locked ) as $lock ) {
+                self::release_lock( $lock );
+            }
+        }
+    }
+
+    private static function resolve_and_sync_locked( $mapped, $email, $phone ) {
         $email_ids = $email ? self::find_by_email( $email ) : array();
         $phone_ids = $phone ? self::find_by_phone( $phone ) : array();
         $all_ids   = array_values( array_unique( array_merge( $email_ids, $phone_ids ) ) );
@@ -57,10 +79,41 @@ final class ContactService {
         return array( 'contact_id' => $contact_id, 'status' => $status );
     }
 
+    private static function identifier_locks( $email, $phone ) {
+        $identifiers = array();
+        if ( $email ) {
+            $identifiers[] = 'email|' . $email;
+        }
+        if ( $phone ) {
+            $identifiers[] = 'phone|' . $phone;
+        }
+        $locks = array_map(
+            static function ( $identifier ) {
+                return 'bfcamel_crm_' . substr( hash( 'sha256', $identifier ), 0, 48 );
+            },
+            $identifiers
+        );
+        sort( $locks, SORT_STRING );
+        return array_values( array_unique( $locks ) );
+    }
+
+    private static function acquire_lock( $name ) {
+        global $wpdb;
+        return 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 10)', $name ) );
+    }
+
+    private static function release_lock( $name ) {
+        global $wpdb;
+        $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) );
+    }
+
     public static function get( $contact_id, $for_update = false ) {
         global $wpdb;
         $table = Schema::table( 'contacts' );
-        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id=%d LIMIT 1" . ( $for_update ? ' FOR UPDATE' : '' ), absint( $contact_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        if ( $for_update ) {
+            return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id=%d LIMIT 1 FOR UPDATE", absint( $contact_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        }
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id=%d LIMIT 1", absint( $contact_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     }
 
     public static function query( $filters = array(), $page = 1, $per_page = 25 ) {
@@ -304,6 +357,7 @@ final class ContactService {
             $matches = 'email' === $kind ? self::find_by_email( self::normalize_email( $value ) ) : self::find_by_phone( self::normalize_phone( $value ) );
             $matches = array_values( array_diff( $matches, array( $contact_id ) ) );
             if ( $matches ) {
+                /* translators: %s: existing contact IDs. */
                 return new \WP_Error( 'bfcamel_crm_contact_duplicate', sprintf( __( 'A contact with this email or phone already exists: #%s.', 'bfcamel-crm' ), implode( ', #', array_map( 'absint', $matches ) ) ) );
             }
         }
@@ -371,12 +425,19 @@ final class ContactService {
             return false;
         }
 
-        $wpdb->delete( Schema::table( 'contact_emails' ), array( 'contact_id' => $contact_id ), array( '%d' ) );
-        $wpdb->delete( Schema::table( 'contact_phones' ), array( 'contact_id' => $contact_id ), array( '%d' ) );
-        $wpdb->delete( Schema::table( 'contact_fields' ), array( 'contact_id' => $contact_id ), array( '%d' ) );
-        $wpdb->update(
+        if ( false === $wpdb->delete( Schema::table( 'contact_emails' ), array( 'contact_id' => $contact_id ), array( '%d' ) ) ) {
+            return false;
+        }
+        if ( false === $wpdb->delete( Schema::table( 'contact_phones' ), array( 'contact_id' => $contact_id ), array( '%d' ) ) ) {
+            return false;
+        }
+        if ( false === $wpdb->delete( Schema::table( 'contact_fields' ), array( 'contact_id' => $contact_id ), array( '%d' ) ) ) {
+            return false;
+        }
+        $updated = $wpdb->update(
             Schema::table( 'contacts' ),
             array(
+                /* translators: %d: anonymized contact ID. */
                 'display_name' => sprintf( __( 'Anonymized contact #%d', 'bfcamel-crm' ), $contact_id ),
                 'organization' => '',
                 'status'       => 'anonymized',
@@ -387,8 +448,10 @@ final class ContactService {
             array( '%d' )
         );
 
-        Schema::log( 'contact', $contact_id, 'anonymized', 'Contact personal data anonymized.' );
-        return true;
+        if ( false === $updated ) {
+            return false;
+        }
+        return Schema::log( 'contact', $contact_id, 'anonymized', 'Contact personal data anonymized.' );
     }
 
     private static function extract_mapped_values( $schema, $payload ) {
@@ -632,7 +695,7 @@ final class ContactService {
 
     private static function prepare_sql( $sql, $args ) {
         global $wpdb;
-        return $args ? $wpdb->prepare( $sql, $args ) : $sql;
+        return $args ? $wpdb->prepare( $sql, $args ) : $sql; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL fragments and placeholders are assembled internally from fixed columns.
     }
 
     private static function rollback_error( $message ) {

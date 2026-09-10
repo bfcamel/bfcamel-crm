@@ -7,6 +7,17 @@
   }
 
   ready(function () {
+    var adminConfig = window.BfCamelCRMAdmin || {};
+    var adminStrings = adminConfig.strings || {};
+
+    document.querySelectorAll('[data-bfcamel-confirm]').forEach(function (control) {
+      control.addEventListener('click', function (event) {
+        if (!window.confirm(adminStrings.confirm || 'Are you sure you want to continue?')) {
+          event.preventDefault();
+        }
+      });
+    });
+
     document.querySelectorAll('.bfcamel-crm-select-all').forEach(function (toggle) {
       toggle.addEventListener('change', function () {
         var form = toggle.closest('form');
@@ -16,6 +27,37 @@
         });
       });
     });
+
+    function tagsForScope(scope) {
+      return scope === 'contact' ? (adminConfig.contactTags || []) : (adminConfig.submissionTags || []);
+    }
+
+    function makeTagPicker(input, scope) {
+      if (!input || input.dataset.bfcamelPicker === '1') return;
+      input.dataset.bfcamelPicker = '1';
+      input.type = 'hidden';
+      var select = document.createElement('select');
+      select.multiple = true;
+      select.className = 'bfcamel-crm-tag-picker';
+      select.setAttribute('aria-label', adminStrings.tagPicker || 'Select tags');
+      var current = String(input.value || '').split(',').map(function (value) { return value.trim(); }).filter(Boolean);
+      tagsForScope(scope).forEach(function (tag) {
+        var option = document.createElement('option');
+        option.value = tag.name;
+        option.textContent = tag.name;
+        option.selected = current.indexOf(tag.name) !== -1;
+        select.appendChild(option);
+      });
+      select.addEventListener('change', function () {
+        input.value = Array.from(select.selectedOptions).map(function (option) { return option.value; }).join(', ');
+      });
+      input.parentNode.insertBefore(select, input.nextSibling);
+    }
+
+    var page = new URLSearchParams(window.location.search).get('page') || '';
+    var scope = page.indexOf('contacts') !== -1 ? 'contact' : 'submission';
+    document.querySelectorAll('input[name="tags"]').forEach(function (input) { makeTagPicker(input, scope); });
+    document.querySelectorAll('input[name="bulk_tags"]').forEach(function (input) { makeTagPicker(input, 'submission'); });
 
     var root = document.getElementById('bfcamel-crm-builder');
     var hidden = document.getElementById('bfcamel-crm-schema-json');
@@ -39,7 +81,8 @@
     var widths = [
       ['100', '100%'],
       ['50', '50%'],
-      ['33', '33%']
+      ['33', '33%'],
+      ['25', '25%']
     ];
 
     function fieldTemplate(type) {
@@ -53,6 +96,7 @@
         placeholder: '',
         mapping: 'submission_only',
         custom_key: '',
+        css_class: '',
         options: []
       };
 
@@ -194,6 +238,16 @@
           });
           grid.appendChild(inputRow(labels.width || 'Width', width));
 
+          var cssClass = document.createElement('input');
+          cssClass.type = 'text';
+          cssClass.value = field.css_class || '';
+          cssClass.placeholder = 'my-custom-field';
+          cssClass.addEventListener('input', function () {
+            field.css_class = cssClass.value.replace(/[^a-zA-Z0-9_\- ]/g, ' ').replace(/\s+/g, ' ').trim();
+            sync();
+          });
+          grid.appendChild(inputRow(labels.cssClass || 'Field CSS class', cssClass));
+
           var mapping = makeSelect(mappings, field.mapping || 'submission_only');
           mapping.addEventListener('change', function () {
             field.mapping = mapping.value;
@@ -253,8 +307,17 @@
 
     var editor = document.getElementById('bfcamel-crm-form-editor');
     if (editor) {
+      var dirty = false;
+      editor.addEventListener('change', function () { dirty = true; });
+      editor.addEventListener('input', function () { dirty = true; });
       editor.addEventListener('submit', function () {
+        dirty = false;
         sync();
+      });
+      window.addEventListener('beforeunload', function (event) {
+        if (!dirty) return;
+        event.preventDefault();
+        event.returnValue = adminStrings.unsaved || 'You have unsaved changes.';
       });
     }
 

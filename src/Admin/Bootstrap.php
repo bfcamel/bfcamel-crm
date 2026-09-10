@@ -15,7 +15,6 @@ final class Bootstrap {
         $admin = Admin::instance(); $submissions = SubmissionsPage::instance(); $contacts = ContactsPage::instance(); $workflow = WorkflowPage::instance();
         add_action( 'admin_menu', array( $this, 'menu' ) );
         add_action( 'admin_enqueue_scripts', array( $admin, 'assets' ) );
-        add_action( 'admin_enqueue_scripts', array( $workflow, 'assets' ), 20 );
         add_action( 'admin_notices', array( $workflow, 'legal_notice' ) );
         add_action( 'admin_post_bfcamel_crm_save_form', array( $admin, 'save_form' ) );
         add_action( 'admin_post_bfcamel_crm_save_settings', array( $admin, 'save_settings' ) );
@@ -41,9 +40,9 @@ final class Bootstrap {
         $admin = Admin::instance(); $submissions = SubmissionsPage::instance(); $contacts = ContactsPage::instance(); $workflow = WorkflowPage::instance();
         add_menu_page( __( 'BfCamel CRM', 'bfcamel-crm' ), __( 'BfCamel CRM', 'bfcamel-crm' ), RoleManager::ACCESS_CAPABILITY, 'bfcamel-crm', array( $this, 'landing' ), 'dashicons-feedback', 26 );
         add_submenu_page( 'bfcamel-crm', __( 'Dashboard', 'bfcamel-crm' ), __( 'Dashboard', 'bfcamel-crm' ), 'bfcamel_crm_view_dashboard', 'bfcamel-crm', '' );
-        add_submenu_page( 'bfcamel-crm', __( 'Forms', 'bfcamel-crm' ), __( 'Forms', 'bfcamel-crm' ), 'bfcamel_crm_manage_forms', 'bfcamel-crm-forms', array( $admin, 'forms_page' ) );
         add_submenu_page( 'bfcamel-crm', __( 'Submissions', 'bfcamel-crm' ), __( 'Submissions', 'bfcamel-crm' ), 'bfcamel_crm_view_submissions', 'bfcamel-crm-submissions', array( $submissions, 'page' ) );
         add_submenu_page( 'bfcamel-crm', __( 'Contacts', 'bfcamel-crm' ), __( 'Contacts', 'bfcamel-crm' ), 'bfcamel_crm_manage_contacts', 'bfcamel-crm-contacts', array( $contacts, 'page' ) );
+        add_submenu_page( 'bfcamel-crm', __( 'Forms', 'bfcamel-crm' ), __( 'Forms', 'bfcamel-crm' ), 'bfcamel_crm_manage_forms', 'bfcamel-crm-forms', array( $admin, 'forms_page' ) );
         add_submenu_page( 'bfcamel-crm', __( 'CRM configuration', 'bfcamel-crm' ), __( 'Configuration', 'bfcamel-crm' ), 'bfcamel_crm_manage_settings', 'bfcamel-crm-workflow', array( $workflow, 'page' ) );
         add_submenu_page( 'bfcamel-crm', __( 'Settings', 'bfcamel-crm' ), __( 'Settings', 'bfcamel-crm' ), 'bfcamel_crm_manage_settings', 'bfcamel-crm-settings', array( $admin, 'settings_page' ) );
     }

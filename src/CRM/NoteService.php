@@ -16,6 +16,9 @@ final class NoteService {
         if ( ! in_array( $entity_type, array( 'contact', 'submission' ), true ) || ! $entity_id || '' === $text ) {
             return new \WP_Error( 'bfcamel_crm_invalid_note', __( 'Enter a note.', 'bfcamel-crm' ) );
         }
+        if ( ! Schema::begin_transaction() ) {
+            return new \WP_Error( 'bfcamel_crm_note_transaction_failed', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
+        }
         $ok = $wpdb->insert(
             Schema::table( 'notes' ),
             array(
@@ -28,10 +31,15 @@ final class NoteService {
             array( '%s', '%d', '%s', '%d', '%s' )
         );
         if ( ! $ok ) {
+            Schema::rollback();
             return new \WP_Error( 'bfcamel_crm_note_save_failed', __( 'Could not save the note.', 'bfcamel-crm' ) );
         }
-        Schema::log( $entity_type, $entity_id, 'note_added', 'Internal note added.', array( 'note_id' => absint( $wpdb->insert_id ) ), absint( $user_id ) );
-        return absint( $wpdb->insert_id );
+        $note_id = absint( $wpdb->insert_id );
+        if ( ! Schema::log( $entity_type, $entity_id, 'note_added', 'Internal note added.', array( 'note_id' => $note_id ), absint( $user_id ) ) || ! Schema::commit() ) {
+            Schema::rollback();
+            return new \WP_Error( 'bfcamel_crm_note_history_failed', __( 'Could not save the note history.', 'bfcamel-crm' ) );
+        }
+        return $note_id;
     }
 
     public static function for_entity( $entity_type, $entity_id ) {

@@ -46,13 +46,16 @@ final class ContactsPage {
                 <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-contacts' ) ); ?>"><?php esc_html_e( 'Reset', 'bfcamel-crm' ); ?></a>
             </form>
             <?php if ( isset( $_GET['bulk_updated'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Selected contacts updated.', 'bfcamel-crm' ); ?></p></div><?php endif; ?>
-            <p class="bfcamel-crm-results-count"><?php echo esc_html( sprintf( __( 'Found: %d', 'bfcamel-crm' ), $result['total'] ) ); ?></p>
+            <p class="bfcamel-crm-results-count"><?php
+                /* translators: %d: number of matching contacts. */
+                echo esc_html( sprintf( __( 'Found: %d', 'bfcamel-crm' ), $result['total'] ) );
+            ?></p>
             <?php $this->pagination( $result, $filters, 'top' ); ?>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="bfcamel-crm-bulk-form">
                 <input type="hidden" name="action" value="bfcamel_crm_bulk_contacts"><?php wp_nonce_field( 'bfcamel_crm_bulk_contacts' ); ?>
                 <div class="bfcamel-crm-bulk-bar">
                     <select name="bulk_action"><option value=""><?php esc_html_e( 'Bulk actions', 'bfcamel-crm' ); ?></option><option value="add_tags"><?php esc_html_e( 'Add tags', 'bfcamel-crm' ); ?></option><option value="remove_tags"><?php esc_html_e( 'Remove tags', 'bfcamel-crm' ); ?></option></select>
-                    <input type="text" name="bulk_value" placeholder="<?php echo esc_attr__( 'Tags, separated by commas', 'bfcamel-crm' ); ?>">
+                    <input type="text" name="bulk_tags" placeholder="<?php echo esc_attr__( 'Select tags', 'bfcamel-crm' ); ?>">
                     <button class="button" type="submit"><?php esc_html_e( 'Apply', 'bfcamel-crm' ); ?></button>
                     <span class="bfcamel-crm-bulk-spacer"></span>
                     <?php if ( current_user_can( 'bfcamel_crm_export_data' ) ) : ?><button class="button" type="submit" name="export_selected" value="csv"><?php esc_html_e( 'Export selected CSV', 'bfcamel-crm' ); ?></button><button class="button" type="submit" name="export_selected" value="xlsx"><?php esc_html_e( 'Export selected XLSX', 'bfcamel-crm' ); ?></button><?php endif; ?>
@@ -101,7 +104,7 @@ final class ContactsPage {
         }
         $action = isset( $_POST['bulk_action'] ) ? sanitize_key( $_POST['bulk_action'] ) : '';
         if ( ! in_array( $action, array( 'add_tags', 'remove_tags' ), true ) ) wp_die( esc_html__( 'Choose a bulk action.', 'bfcamel-crm' ), '', array( 'back_link' => true ) );
-        $incoming = array_values( array_filter( array_map( 'trim', preg_split( '/[,;\n\r]+/u', (string) wp_unslash( $_POST['bulk_value'] ?? '' ) ) ) ) );
+        $incoming = array_values( array_filter( array_map( 'trim', preg_split( '/[,;\n\r]+/u', (string) wp_unslash( $_POST['bulk_tags'] ?? '' ) ) ) ) );
         if ( ! Schema::begin_transaction() ) wp_die( esc_html__( 'Could not start a database transaction.', 'bfcamel-crm' ) );
         foreach ( $ids as $id ) {
             $old = TagService::names_for_contact( $id );
