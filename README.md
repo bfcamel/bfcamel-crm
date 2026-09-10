@@ -4,6 +4,10 @@
 
 Version **0.5.1** is the current public release prepared for distribution through WordPress.org. It preserves the established plugin identity and the in-place update path from earlier BfCamel CRM versions.
 
+## Documentation
+
+Full user and developer documentation is maintained in [`docs/wiki/Home.md`](docs/wiki/Home.md). The `docs/wiki/` directory is structured as a GitHub Wiki source set and includes installation, forms, submissions, contacts, workflow, consent/privacy, permissions, export, data model, developer, localization and troubleshooting guides.
+
 ## 0.5.1 release highlights
 
 - Clearer administration menu terminology for workflow and general settings.
