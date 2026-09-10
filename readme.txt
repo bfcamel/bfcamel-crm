@@ -4,7 +4,7 @@ Tags: crm, forms, contacts, consent, submissions
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.5.0
+Stable tag: 0.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -87,9 +87,16 @@ Yes. Choose Theme / unstyled in the form editor and use the stable `bfcamel-form
 
 = Is multisite supported? =
 
-Version 0.5.0 supports activation on individual sites. Network-wide activation is not supported.
+Version 0.5.1 supports activation on individual sites. Network-wide activation is not supported.
 
 == Changelog ==
+
+= 0.5.1 =
+
+* Clarified the workflow menu label so it is no longer confused with general settings.
+* Standardized the Russian interface term for submissions as “Заявки”.
+* Made the dashboard action buttons equal in size and hover behavior.
+* Simplified status badges to a clean pill shape without the colored left inset.
 
 = 0.5.0 =
 
@@ -121,6 +128,10 @@ Version 0.5.0 supports activation on individual sites. Network-wide activation i
 * Added contact editing, internal notes, bulk actions, consent filters, assignments and selected exports.
 
 == Upgrade Notice ==
+
+= 0.5.1 =
+
+This interface update clarifies CRM terminology and standardizes dashboard controls without changing stored data.
 
 = 0.5.0 =
 

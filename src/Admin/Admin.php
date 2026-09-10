@@ -347,13 +347,11 @@ final class Admin {
 
     private function badge_styles() {
         $rules = array();
-        foreach ( array( 'status' => 'bfcamel-crm-badge', 'priority' => 'bfcamel-crm-priority' ) as $type => $class ) {
-            foreach ( WorkflowService::definitions( $type, false ) as $item ) {
-                $slug  = sanitize_html_class( $item['slug'] );
-                $color = WorkflowService::color( $type, $item['slug'] );
-                if ( $slug && $color ) {
-                    $rules[] = '.' . $class . '--' . $slug . '{box-shadow:inset 4px 0 0 ' . $color . ';}';
-                }
+        foreach ( WorkflowService::definitions( 'priority', false ) as $item ) {
+            $slug  = sanitize_html_class( $item['slug'] );
+            $color = WorkflowService::color( 'priority', $item['slug'] );
+            if ( $slug && $color ) {
+                $rules[] = '.bfcamel-crm-priority--' . $slug . '{box-shadow:inset 4px 0 0 ' . $color . ';}';
             }
         }
         return implode( '', $rules );

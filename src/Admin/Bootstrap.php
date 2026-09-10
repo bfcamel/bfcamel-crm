@@ -43,7 +43,7 @@ final class Bootstrap {
         add_submenu_page( 'bfcamel-crm', __( 'Submissions', 'bfcamel-crm' ), __( 'Submissions', 'bfcamel-crm' ), 'bfcamel_crm_view_submissions', 'bfcamel-crm-submissions', array( $submissions, 'page' ) );
         add_submenu_page( 'bfcamel-crm', __( 'Contacts', 'bfcamel-crm' ), __( 'Contacts', 'bfcamel-crm' ), 'bfcamel_crm_manage_contacts', 'bfcamel-crm-contacts', array( $contacts, 'page' ) );
         add_submenu_page( 'bfcamel-crm', __( 'Forms', 'bfcamel-crm' ), __( 'Forms', 'bfcamel-crm' ), 'bfcamel_crm_manage_forms', 'bfcamel-crm-forms', array( $admin, 'forms_page' ) );
-        add_submenu_page( 'bfcamel-crm', __( 'CRM configuration', 'bfcamel-crm' ), __( 'Configuration', 'bfcamel-crm' ), 'bfcamel_crm_manage_settings', 'bfcamel-crm-workflow', array( $workflow, 'page' ) );
+        add_submenu_page( 'bfcamel-crm', __( 'CRM configuration', 'bfcamel-crm' ), __( 'Workflow', 'bfcamel-crm' ), 'bfcamel_crm_manage_settings', 'bfcamel-crm-workflow', array( $workflow, 'page' ) );
         add_submenu_page( 'bfcamel-crm', __( 'Settings', 'bfcamel-crm' ), __( 'Settings', 'bfcamel-crm' ), 'bfcamel_crm_manage_settings', 'bfcamel-crm-settings', array( $admin, 'settings_page' ) );
     }
 

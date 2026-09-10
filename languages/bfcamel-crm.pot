@@ -6,7 +6,7 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: BfCamel CRM 0.5.0\n"
+"Project-Id-Version: BfCamel CRM 0.5.1\n"
 "Report-Msgid-Bugs-To: https://github.com/bfcamel/bfcamel-crm/issues\n"
 "POT-Creation-Date: 2026-09-10 15:55+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -266,7 +266,7 @@ msgstr ""
 msgid "CRM configuration"
 msgstr ""
 
-#: src/Admin/Admin.php:372 src/Admin/ContactsPage.php:185
+#: src/Admin/Admin.php:370 src/Admin/ContactsPage.php:185
 #: src/Admin/DashboardPage.php:20 src/Admin/SubmissionsPage.php:70
 #: src/Export/Exporter.php:20
 msgid "CRM database update required"
@@ -318,10 +318,6 @@ msgstr ""
 
 #: src/Admin/WorkflowPage.php:87
 msgid "Condition"
-msgstr ""
-
-#: src/Admin/Bootstrap.php:46
-msgid "Configuration"
 msgstr ""
 
 #: src/Admin/Admin.php:264
@@ -645,7 +641,7 @@ msgid ""
 "into consent evidence so later edits do not rewrite history."
 msgstr ""
 
-#: src/Admin/Admin.php:364
+#: src/Admin/Admin.php:362
 msgid "Document title"
 msgstr ""
 
@@ -669,7 +665,7 @@ msgstr ""
 msgid "Edit submissions"
 msgstr ""
 
-#: src/Admin/Admin.php:364
+#: src/Admin/Admin.php:362
 msgid "Effective date"
 msgstr ""
 
@@ -964,7 +960,7 @@ msgstr ""
 msgid "Legal documents"
 msgstr ""
 
-#: src/Admin/Admin.php:364
+#: src/Admin/Admin.php:362
 msgid "Link text"
 msgstr ""
 
@@ -1101,7 +1097,7 @@ msgstr ""
 msgid "One of the selected submissions no longer exists."
 msgstr ""
 
-#: src/Admin/Admin.php:378
+#: src/Admin/Admin.php:376
 msgid "Only administrators can access CRM settings."
 msgstr ""
 
@@ -1647,7 +1643,7 @@ msgstr ""
 msgid "To"
 msgstr ""
 
-#: src/Admin/Admin.php:364
+#: src/Admin/Admin.php:362
 msgid "URL (optional)"
 msgstr ""
 
@@ -1697,7 +1693,7 @@ msgstr ""
 msgid "Value"
 msgstr ""
 
-#: src/Admin/Admin.php:364
+#: src/Admin/Admin.php:362
 msgid "Version"
 msgstr ""
 
@@ -1729,11 +1725,11 @@ msgstr ""
 msgid "WordPress roles are unavailable."
 msgstr ""
 
-#: src/Admin/Admin.php:193
+#: src/Admin/Admin.php:193 src/Admin/Bootstrap.php:46
 msgid "Workflow"
 msgstr ""
 
-#: src/Admin/Admin.php:369 src/Admin/Bootstrap.php:55
+#: src/Admin/Admin.php:367 src/Admin/Bootstrap.php:55
 #: src/Admin/ContactsPage.php:185 src/Admin/DashboardPage.php:17
 #: src/Admin/SubmissionsPage.php:70 src/Admin/WorkflowPage.php:165
 #: src/Admin/WorkflowPage.php:166

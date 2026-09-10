@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: BfCamel CRM 0.5.0\n"
+"Project-Id-Version: BfCamel CRM 0.5.1\n"
 "Report-Msgid-Bugs-To: https://github.com/bfcamel/bfcamel-crm/issues\n"
 "POT-Creation-Date: 2026-09-10 15:55+0800\n"
 "PO-Revision-Date: 2026-09-10 07:38+0000\n"
@@ -230,7 +230,7 @@ msgstr "Настройки BfCamel CRM"
 
 #: src/Privacy/Privacy.php:87
 msgid "BfCamel CRM submissions"
-msgstr "Обращения BfCamel CRM"
+msgstr "Заявки BfCamel CRM"
 
 #: src/Forms/Renderer.php:28
 msgid "BfCamel CRM: form not found."
@@ -282,7 +282,7 @@ msgstr "Действие CRM зарегистрировано."
 msgid "CRM configuration"
 msgstr "Настройка CRM"
 
-#: src/Admin/Admin.php:372 src/Admin/ContactsPage.php:185
+#: src/Admin/Admin.php:370 src/Admin/ContactsPage.php:185
 #: src/Admin/DashboardPage.php:20 src/Admin/SubmissionsPage.php:70
 #: src/Export/Exporter.php:20
 msgid "CRM database update required"
@@ -338,10 +338,6 @@ msgstr "Завершено"
 #: src/Admin/WorkflowPage.php:87
 msgid "Condition"
 msgstr "Условие"
-
-#: src/Admin/Bootstrap.php:46
-msgid "Configuration"
-msgstr "Настройка"
 
 #: src/Admin/Admin.php:264
 msgid "Configure privacy, legal documents, storage and access in one place."
@@ -671,7 +667,7 @@ msgstr ""
 "сохраняются вместе с подтверждением согласия, поэтому последующие изменения "
 "не переписывают историю."
 
-#: src/Admin/Admin.php:364
+#: src/Admin/Admin.php:362
 msgid "Document title"
 msgstr "Название документа"
 
@@ -695,7 +691,7 @@ msgstr "Редактировать форму: %s"
 msgid "Edit submissions"
 msgstr "Редактировать заявки"
 
-#: src/Admin/Admin.php:364
+#: src/Admin/Admin.php:362
 msgid "Effective date"
 msgstr "Дата вступления в силу"
 
@@ -845,7 +841,7 @@ msgstr "Отправка формы"
 
 #: src/CRM/ActivityFormatter.php:22
 msgid "Form submission received."
-msgstr "Получено новое обращение из формы."
+msgstr "Получена новая заявка из формы."
 
 #. translators: %s: contact synchronization result.
 #: src/CRM/ActivityFormatter.php:18
@@ -1006,7 +1002,7 @@ msgstr "Оставьте это поле пустым"
 msgid "Legal documents"
 msgstr "Юридические документы"
 
-#: src/Admin/Admin.php:364
+#: src/Admin/Admin.php:362
 msgid "Link text"
 msgstr "Текст ссылки"
 
@@ -1119,7 +1115,7 @@ msgstr "Нет открытых заявок."
 
 #: src/Admin/DashboardPage.php:111 src/Admin/SubmissionsPage.php:65
 msgid "No submissions yet."
-msgstr "Обращений пока нет."
+msgstr "Заявок пока нет."
 
 #: src/CRM/ActivityFormatter.php:124
 msgid "No tags"
@@ -1145,7 +1141,7 @@ msgstr "Число"
 msgid "One of the selected submissions no longer exists."
 msgstr "Одна из выбранных заявок больше не существует."
 
-#: src/Admin/Admin.php:378
+#: src/Admin/Admin.php:376
 msgid "Only administrators can access CRM settings."
 msgstr "Только администраторы могут открывать настройки CRM."
 
@@ -1282,7 +1278,7 @@ msgstr "Получено"
 
 #: src/Admin/DashboardPage.php:76
 msgid "Recent submissions"
-msgstr "Последние обращения"
+msgstr "Последние заявки"
 
 #: src/Privacy/Privacy.php:102 src/Privacy/Privacy.php:119
 msgid "Recorded at"
@@ -1530,7 +1526,7 @@ msgstr "Режим оформления"
 #: src/Admin/SubmissionDetailPage.php:46
 #, php-format
 msgid "Submission #%d"
-msgstr "Обращение #%d"
+msgstr "Заявка #%d"
 
 #: src/Admin/SubmissionDetailPage.php:90
 msgid "Submission history"
@@ -1539,11 +1535,11 @@ msgstr "История заявки"
 #: src/Admin/SubmissionDetailPage.php:20 src/Admin/SubmissionDetailPage.php:163
 #: src/Admin/SubmissionsPage.php:62
 msgid "Submission not found."
-msgstr "Обращение не найдено."
+msgstr "Заявка не найдена."
 
 #: src/Admin/Admin.php:82
 msgid "Submission only"
-msgstr "Только в обращении"
+msgstr "Только в заявке"
 
 #: src/Admin/WorkflowPage.php:53
 msgid "Submission priorities"
@@ -1560,7 +1556,7 @@ msgstr "Заявка обновлена."
 #: src/Admin/Bootstrap.php:43 src/Admin/ContactsPage.php:170
 #: src/Admin/SubmissionsPage.php:30 src/Admin/WorkflowPage.php:74
 msgid "Submissions"
-msgstr "Обращения"
+msgstr "Заявки"
 
 #: src/Forms/Repository.php:97
 msgid "Submit"
@@ -1631,7 +1627,7 @@ msgstr "Многострочный текст"
 
 #: src/Forms/Repository.php:97
 msgid "Thank you. Your message has been received."
-msgstr "Спасибо. Ваше обращение получено."
+msgstr "Спасибо. Ваша заявка получена."
 
 #: src/Database/Schema.php:46
 msgid "The BfCamel CRM database update is not complete."
@@ -1705,7 +1701,7 @@ msgstr "Тема / без стилей"
 msgid "To"
 msgstr "По"
 
-#: src/Admin/Admin.php:364
+#: src/Admin/Admin.php:362
 msgid "URL (optional)"
 msgstr "URL (необязательно)"
 
@@ -1755,7 +1751,7 @@ msgstr "Пользователь #%d"
 msgid "Value"
 msgstr "Значение"
 
-#: src/Admin/Admin.php:364
+#: src/Admin/Admin.php:362
 msgid "Version"
 msgstr "Версия"
 
@@ -1787,11 +1783,11 @@ msgstr "Ширина"
 msgid "WordPress roles are unavailable."
 msgstr "Роли WordPress недоступны."
 
-#: src/Admin/Admin.php:193
+#: src/Admin/Admin.php:193 src/Admin/Bootstrap.php:46
 msgid "Workflow"
 msgstr "Процесс обработки"
 
-#: src/Admin/Admin.php:369 src/Admin/Bootstrap.php:55
+#: src/Admin/Admin.php:367 src/Admin/Bootstrap.php:55
 #: src/Admin/ContactsPage.php:185 src/Admin/DashboardPage.php:17
 #: src/Admin/SubmissionsPage.php:70 src/Admin/WorkflowPage.php:165
 #: src/Admin/WorkflowPage.php:166

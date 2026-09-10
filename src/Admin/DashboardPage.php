@@ -50,12 +50,12 @@ final class DashboardPage {
                     <h1><?php esc_html_e( 'BfCamel CRM', 'bfcamel-crm' ); ?></h1>
                     <p class="description"><?php esc_html_e( 'Current workload and the latest CRM activity.', 'bfcamel-crm' ); ?></p>
                 </div>
-                <div class="bfcamel-crm-actions">
+                <div class="bfcamel-crm-actions bfcamel-crm-dashboard-actions">
                     <?php if ( current_user_can( 'bfcamel_crm_manage_contacts' ) ) : ?>
                         <a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-contacts&action=new' ) ); ?>"><?php esc_html_e( 'Add contact', 'bfcamel-crm' ); ?></a>
                     <?php endif; ?>
                     <?php if ( current_user_can( 'bfcamel_crm_manage_forms' ) ) : ?>
-                        <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-forms&action=new' ) ); ?>"><?php esc_html_e( 'Add form', 'bfcamel-crm' ); ?></a>
+                        <a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-forms&action=new' ) ); ?>"><?php esc_html_e( 'Add form', 'bfcamel-crm' ); ?></a>
                     <?php endif; ?>
                 </div>
             </div>

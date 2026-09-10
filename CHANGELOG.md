@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.1
+
+### Interface polish
+- Renamed the ambiguous workflow menu item from “Configuration” to “Workflow”.
+- Standardized the Russian interface term for submissions as “Заявки”.
+- Made the dashboard “Add contact” and “Add form” actions equal in size and interaction style.
+- Removed the colored left inset from status badges while preserving their compact pill shape.
+
 ## 0.5.0
 
 ### Security and privacy

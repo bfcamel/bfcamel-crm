@@ -2,7 +2,13 @@
 
 **BfCamel CRM** is an open-source WordPress form builder and lightweight CRM developed by the People & Camels Charity Foundation.
 
-Version **0.5.0** is the first public release prepared for submission to WordPress.org. It preserves the established plugin identity and the in-place update path from earlier BfCamel CRM versions.
+Version **0.5.1** is the current public release prepared for distribution through WordPress.org. It preserves the established plugin identity and the in-place update path from earlier BfCamel CRM versions.
+
+## 0.5.1 release highlights
+
+- Clearer administration menu terminology for workflow and general settings.
+- Consistent Russian terminology: submissions are displayed as “Заявки”.
+- Uniform dashboard action buttons and simplified pill-shaped status badges.
 
 ## 0.5.0 release highlights
 
