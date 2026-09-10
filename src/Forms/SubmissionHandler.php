@@ -37,7 +37,31 @@ final class SubmissionHandler {
         do_action('bfcamel_crm_submission_created',$submission_id,$contact_id,$form_id,$revision_id);$this->redirect($return_url,$form_id,'success');
     }
 
-    private function validate_payload($schema,$posted){$payload=array();foreach((array)$schema as $field){$name=sanitize_key($field['name']??'');$type=sanitize_key($field['type']??'text');$required=!empty($field['required']);if(!$name||'html'===$type)continue;$raw=isset($posted[$name])?wp_unslash($posted[$name]):'';$value=$this->sanitize_value($type,$raw,(array)($field['options']??array()));if(is_wp_error($value))return $value;if($required&&$this->is_empty($value))return new \WP_Error('bfcamel_crm_required',sprintf(__( 'Required field missing: %s', 'bfcamel-crm' ),$name));if('email'===$type&&''!==$value&&!is_email($value))return new \WP_Error('bfcamel_crm_email',__( 'Invalid email address.', 'bfcamel-crm' ));$payload[$name]=in_array($type,array('consent_personal_data','consent_marketing'),true)?($value?'1':''):$value;}return $payload;}
+    private function validate_payload( $schema, $posted ) {
+        $payload = array();
+        foreach ( (array) $schema as $field ) {
+            $name     = sanitize_key( $field['name'] ?? '' );
+            $type     = sanitize_key( $field['type'] ?? 'text' );
+            $required = ! empty( $field['required'] );
+            if ( ! $name || 'html' === $type ) {
+                continue;
+            }
+            $raw   = isset( $posted[ $name ] ) ? wp_unslash( $posted[ $name ] ) : '';
+            $value = $this->sanitize_value( $type, $raw, (array) ( $field['options'] ?? array() ) );
+            if ( is_wp_error( $value ) ) {
+                return $value;
+            }
+            if ( $required && $this->is_empty( $value ) ) {
+                /* translators: %s: required form field key. */
+                return new \WP_Error( 'bfcamel_crm_required', sprintf( __( 'Required field missing: %s', 'bfcamel-crm' ), $name ) );
+            }
+            if ( 'email' === $type && '' !== $value && ! is_email( $value ) ) {
+                return new \WP_Error( 'bfcamel_crm_email', __( 'Invalid email address.', 'bfcamel-crm' ) );
+            }
+            $payload[ $name ] = in_array( $type, array( 'consent_personal_data', 'consent_marketing' ), true ) ? ( $value ? '1' : '' ) : $value;
+        }
+        return $payload;
+    }
     private function sanitize_value($type,$raw,$options){switch($type){case'email':return sanitize_email(is_scalar($raw)?$raw:'');case'tel':case'text':case'hidden':case'date':return sanitize_text_field(is_scalar($raw)?$raw:'');case'number':if(''===$raw||null===$raw)return'';return is_numeric($raw)?(string)$raw:new \WP_Error('bfcamel_crm_number',__( 'Invalid number.', 'bfcamel-crm' ));case'textarea':return sanitize_textarea_field(is_scalar($raw)?$raw:'');case'select':case'radio':$value=sanitize_text_field(is_scalar($raw)?$raw:'');if(''===$value)return'';return in_array($value,$options,true)?$value:new \WP_Error('bfcamel_crm_option',__( 'Invalid option.', 'bfcamel-crm' ));case'checkbox':$values=array();foreach((array)$raw as $item){$item=sanitize_text_field($item);if(in_array($item,$options,true))$values[]=$item;}return array_values(array_unique($values));case'consent_personal_data':case'consent_marketing':return !empty($raw);default:return sanitize_text_field(is_scalar($raw)?$raw:'');}}
     private function is_empty($value){if(is_array($value))return 0===count($value);if(is_bool($value))return false===$value;return''===trim((string)$value);}
     private function source_context($source_url){$settings=get_option('bfcamel_crm_settings',array());$store_ip=!empty($settings['store_ip']);$store_url=!isset($settings['store_source_url'])||!empty($settings['store_source_url']);$store_agent=!isset($settings['store_user_agent'])||!empty($settings['store_user_agent']);$ip='';if($store_ip&&!empty($_SERVER['REMOTE_ADDR'])){$candidate=sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR']));if(filter_var($candidate,FILTER_VALIDATE_IP))$ip=$candidate;}return array('source_url'=>$store_url?esc_url_raw($source_url):'','source_ip'=>$ip,'user_agent'=>$store_agent&&isset($_SERVER['HTTP_USER_AGENT'])?substr(sanitize_textarea_field(wp_unslash($_SERVER['HTTP_USER_AGENT'])),0,1000):'');}

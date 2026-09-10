@@ -110,7 +110,10 @@ final class ContactService {
     public static function get( $contact_id, $for_update = false ) {
         global $wpdb;
         $table = Schema::table( 'contacts' );
-        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id=%d LIMIT 1" . ( $for_update ? ' FOR UPDATE' : '' ), absint( $contact_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        if ( $for_update ) {
+            return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id=%d LIMIT 1 FOR UPDATE", absint( $contact_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        }
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id=%d LIMIT 1", absint( $contact_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     }
 
     public static function query( $filters = array(), $page = 1, $per_page = 25 ) {
@@ -354,6 +357,7 @@ final class ContactService {
             $matches = 'email' === $kind ? self::find_by_email( self::normalize_email( $value ) ) : self::find_by_phone( self::normalize_phone( $value ) );
             $matches = array_values( array_diff( $matches, array( $contact_id ) ) );
             if ( $matches ) {
+                /* translators: %s: existing contact IDs. */
                 return new \WP_Error( 'bfcamel_crm_contact_duplicate', sprintf( __( 'A contact with this email or phone already exists: #%s.', 'bfcamel-crm' ), implode( ', #', array_map( 'absint', $matches ) ) ) );
             }
         }
@@ -433,6 +437,7 @@ final class ContactService {
         $updated = $wpdb->update(
             Schema::table( 'contacts' ),
             array(
+                /* translators: %d: anonymized contact ID. */
                 'display_name' => sprintf( __( 'Anonymized contact #%d', 'bfcamel-crm' ), $contact_id ),
                 'organization' => '',
                 'status'       => 'anonymized',
@@ -690,7 +695,7 @@ final class ContactService {
 
     private static function prepare_sql( $sql, $args ) {
         global $wpdb;
-        return $args ? $wpdb->prepare( $sql, $args ) : $sql;
+        return $args ? $wpdb->prepare( $sql, $args ) : $sql; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL fragments and placeholders are assembled internally from fixed columns.
     }
 
     private static function rollback_error( $message ) {

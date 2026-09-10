@@ -230,7 +230,7 @@ final class Privacy {
         $offset       = ( max( 1, absint( $page ) ) - 1 ) * self::PAGE_SIZE;
         $args         = array_merge( array_map( 'absint', $contact_ids ), array( self::PAGE_SIZE + 1, $offset ) );
         $sql          = "SELECT * FROM {$table} WHERE contact_id IN ({$placeholders}) ORDER BY id ASC LIMIT %d OFFSET %d";
-        $rows         = $wpdb->get_results( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $rows         = $wpdb->get_results( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Table names and the IN placeholder list are generated internally.
         $has_more     = count( $rows ) > self::PAGE_SIZE;
         return array( 'rows' => array_slice( $rows, 0, self::PAGE_SIZE ), 'has_more' => $has_more );
     }
@@ -243,7 +243,7 @@ final class Privacy {
         $offset       = ( max( 1, absint( $page ) ) - 1 ) * self::PAGE_SIZE;
         $args         = array_merge( array_map( 'absint', $contact_ids ), array_map( 'absint', $contact_ids ), array( self::PAGE_SIZE + 1, $offset ) );
         $sql          = "SELECT a.* FROM {$activity} a WHERE (a.entity_type='contact' AND a.entity_id IN ({$placeholders})) OR (a.entity_type='submission' AND a.entity_id IN (SELECT s.id FROM {$submissions} s WHERE s.contact_id IN ({$placeholders}))) ORDER BY a.id ASC LIMIT %d OFFSET %d";
-        $rows         = $wpdb->get_results( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $rows         = $wpdb->get_results( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Table names and the IN placeholder list are generated internally.
         $has_more     = count( $rows ) > self::PAGE_SIZE;
         return array( 'rows' => array_slice( $rows, 0, self::PAGE_SIZE ), 'has_more' => $has_more );
     }
@@ -292,7 +292,7 @@ final class Privacy {
         }
         $args = array_merge( array( '{}', '', sanitize_key( $entity_type ) ), $entity_ids );
         $sql  = "UPDATE " . Schema::table( 'activity_log' ) . " SET meta_json=%s,message=%s,user_id=0 WHERE entity_type=%s AND entity_id IN ({$placeholders})";
-        return false !== $wpdb->query( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return false !== $wpdb->query( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Table name and the IN placeholder list are generated internally.
     }
 
     private function empty_value( $value ) {

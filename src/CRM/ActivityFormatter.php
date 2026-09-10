@@ -115,6 +115,7 @@ final class ActivityFormatter {
             return __( 'Unassigned', 'bfcamel-crm' );
         }
         $user = get_userdata( $user_id );
+        /* translators: %d: WordPress user ID. */
         return $user ? $user->display_name : sprintf( __( 'User #%d', 'bfcamel-crm' ), $user_id );
     }
 

@@ -145,12 +145,16 @@ final class Admin {
         $version  = $revision ? absint( $revision->version ) : 0;
 
         $notice = isset( $_GET['saved'] ) ? sanitize_key( $_GET['saved'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        /* translators: %s: form name. */
+        $heading = $form ? sprintf( __( 'Edit form: %s', 'bfcamel-crm' ), $form->name ) : __( 'Add form', 'bfcamel-crm' );
+        /* translators: %d: form revision number. */
+        $revision_label = $version ? sprintf( __( 'Current revision: %d', 'bfcamel-crm' ), $version ) : '';
         ?>
         <div class="wrap bfcamel-crm-admin">
             <div class="bfcamel-crm-page-title">
                 <div>
-                    <h1><?php echo esc_html( $form ? sprintf( __( 'Edit form: %s', 'bfcamel-crm' ), $form->name ) : __( 'Add form', 'bfcamel-crm' ) ); ?></h1>
-                    <?php if ( $version ) : ?><p class="description"><?php echo esc_html( sprintf( __( 'Current revision: %d', 'bfcamel-crm' ), $version ) ); ?></p><?php endif; ?>
+                    <h1><?php echo esc_html( $heading ); ?></h1>
+                    <?php if ( $version ) : ?><p class="description"><?php echo esc_html( $revision_label ); ?></p><?php endif; ?>
                 </div>
                 <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-forms' ) ); ?>"><?php esc_html_e( 'Back to forms', 'bfcamel-crm' ); ?></a>
             </div>

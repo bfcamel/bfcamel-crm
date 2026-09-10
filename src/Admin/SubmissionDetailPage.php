@@ -41,7 +41,10 @@ final class SubmissionDetailPage {
         <div class="wrap bfcamel-crm-admin">
             <div class="bfcamel-crm-page-title">
                 <div>
-                    <h1><?php echo esc_html( sprintf( __( 'Submission #%d', 'bfcamel-crm' ), $id ) ); ?></h1>
+                    <h1><?php
+                        /* translators: %d: submission ID. */
+                        echo esc_html( sprintf( __( 'Submission #%d', 'bfcamel-crm' ), $id ) );
+                    ?></h1>
                     <p class="description"><?php echo esc_html( $form ? $form->name : '#' . $row->form_id ); ?> · UUID <code><?php echo esc_html( $row->submission_uuid ); ?></code></p>
                 </div>
                 <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-submissions' ) ); ?>"><?php esc_html_e( 'Back', 'bfcamel-crm' ); ?></a>

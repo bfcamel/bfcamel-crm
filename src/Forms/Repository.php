@@ -21,7 +21,8 @@ final class Repository {
     public static function restore( $id, $user_id = 0 ) { return self::set_status($id,'publish',$user_id); }
     private static function set_status( $id, $status, $user_id ) {
         global $wpdb; $id=absint($id); $status='publish'===$status?'publish':'archived'; if(!$id||!self::get($id)||!Schema::begin_transaction())return false;
-        if(!$wpdb->get_var($wpdb->prepare("SELECT id FROM ".Schema::table('forms')." WHERE id=%d FOR UPDATE",$id))){Schema::rollback();return false;}
+        $forms = Schema::table( 'forms' );
+        if(!$wpdb->get_var($wpdb->prepare("SELECT id FROM {$forms} WHERE id=%d FOR UPDATE",$id))){Schema::rollback();return false;} // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $ok=$wpdb->update(Schema::table('forms'),array('status'=>$status,'updated_at'=>current_time('mysql')),array('id'=>$id),array('%s','%s'),array('%d'));
         if(false===$ok){Schema::rollback();return false;}
         if(!Schema::log('form',$id,'publish'===$status?'form_restored':'form_archived','publish'===$status?'Form restored.':'Form archived. To preserve submission history the form record was not physically deleted.',array('status'=>$status),absint($user_id))){Schema::rollback();return false;}
@@ -69,6 +70,7 @@ final class Repository {
         if ( false === $wpdb->update( $forms, array( 'current_revision_id'=>$revision_id, 'updated_at'=>$now ), array( 'id'=>$id ), array( '%d','%s' ), array( '%d' ) ) ) {
             return self::rollback_error( 'bfcamel_crm_form_update', __( 'The form could not be updated.', 'bfcamel-crm' ) );
         }
+        /* translators: %d: form revision number. */
         if ( ! Schema::log( 'form', $id, 'revision_published', sprintf( __( 'Form revision %d published.', 'bfcamel-crm' ), $version ), array( 'revision_id'=>$revision_id, 'version'=>$version ), $user_id ) ) {
             return self::rollback_error( 'bfcamel_crm_form_update', __( 'The form could not be updated.', 'bfcamel-crm' ) );
         }
@@ -103,7 +105,11 @@ final class Repository {
         $allowed_mappings=array('submission_only','contact.name','contact.email','contact.phone','contact.organization','contact.custom');$allowed_widths=array('100','50','33','25');$result=array();$names=array();
         foreach($schema as $field){if(!is_array($field))continue;$type=sanitize_key($field['type']??'text');if(!in_array($type,$allowed_types,true))$type='text';$name=sanitize_key($field['name']??'');
             if('html'===$type){if(''===$name)$name='content_'.wp_generate_password(8,false,false);}elseif(''===$name)return new \WP_Error('bfcamel_crm_field_name',__( 'Every form field needs a unique field key.', 'bfcamel-crm' ));
-            if(isset($names[$name]))return new \WP_Error('bfcamel_crm_field_duplicate',sprintf(__( 'Duplicate field key: %s.', 'bfcamel-crm' ),$name));$names[$name]=true;
+            if(isset($names[$name])) {
+                /* translators: %s: duplicate form field key. */
+                return new \WP_Error('bfcamel_crm_field_duplicate',sprintf(__( 'Duplicate field key: %s.', 'bfcamel-crm' ),$name));
+            }
+            $names[$name]=true;
             $mapping=sanitize_text_field($field['mapping']??'submission_only');if(!in_array($mapping,$allowed_mappings,true))$mapping='submission_only';$width=sanitize_text_field($field['width']??'100');if(!in_array($width,$allowed_widths,true))$width='100';
             $options=array();foreach((array)($field['options']??array()) as $option){$option=sanitize_text_field($option);if(''!==$option)$options[]=$option;}
             $label='html'===$type?wp_kses_post($field['label']??''):sanitize_textarea_field($field['label']??'');

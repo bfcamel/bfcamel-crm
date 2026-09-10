@@ -46,7 +46,10 @@ final class ContactsPage {
                 <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-contacts' ) ); ?>"><?php esc_html_e( 'Reset', 'bfcamel-crm' ); ?></a>
             </form>
             <?php if ( isset( $_GET['bulk_updated'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Selected contacts updated.', 'bfcamel-crm' ); ?></p></div><?php endif; ?>
-            <p class="bfcamel-crm-results-count"><?php echo esc_html( sprintf( __( 'Found: %d', 'bfcamel-crm' ), $result['total'] ) ); ?></p>
+            <p class="bfcamel-crm-results-count"><?php
+                /* translators: %d: number of matching contacts. */
+                echo esc_html( sprintf( __( 'Found: %d', 'bfcamel-crm' ), $result['total'] ) );
+            ?></p>
             <?php $this->pagination( $result, $filters, 'top' ); ?>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="bfcamel-crm-bulk-form">
                 <input type="hidden" name="action" value="bfcamel_crm_bulk_contacts"><?php wp_nonce_field( 'bfcamel_crm_bulk_contacts' ); ?>
