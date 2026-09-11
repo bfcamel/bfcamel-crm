@@ -8,6 +8,7 @@ use BfCamel\CRM\CRM\TagService;
 use BfCamel\CRM\CRM\WorkflowService;
 use BfCamel\CRM\Database\Schema;
 use BfCamel\CRM\Forms\Repository;
+use BfCamel\CRM\Support\Request;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -36,7 +37,7 @@ final class SubmissionDetailPage {
         $all_tags = $can_edit ? TagService::all() : array();
         $activity = SubmissionService::activity( $id );
         $notes = NoteService::for_entity( 'submission', $id );
-        $updated = isset( $_GET['updated'] ) ? sanitize_key( $_GET['updated'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $updated = Request::get_key( 'updated' );
         ?>
         <div class="wrap bfcamel-crm-admin">
             <div class="bfcamel-crm-page-title">
@@ -51,7 +52,7 @@ final class SubmissionDetailPage {
             </div>
 
             <?php if ( '1' === $updated ) : ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Submission updated.', 'bfcamel-crm' ); ?></p></div><?php endif; ?>
-            <?php if ( isset( $_GET['note_added'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Internal note added.', 'bfcamel-crm' ); ?></p></div><?php endif; ?>
+            <?php if ( Request::get_flag( 'note_added' ) ) : ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Internal note added.', 'bfcamel-crm' ); ?></p></div><?php endif; ?>
 
             <div class="bfcamel-crm-editor-grid">
                 <main>
@@ -150,7 +151,7 @@ final class SubmissionDetailPage {
     }
 
     public static function update() {
-        $id = isset( $_POST['submission_id'] ) ? absint( $_POST['submission_id'] ) : 0;
+        $id = Request::post_id( 'submission_id' );
         check_admin_referer( 'bfcamel_crm_update_submission_' . $id );
 
         if ( ! Schema::begin_transaction() ) {
@@ -164,14 +165,14 @@ final class SubmissionDetailPage {
         }
 
         $statuses = SubmissionService::statuses();
-        $status = isset( $_POST['status'] ) ? sanitize_key( $_POST['status'] ) : WorkflowService::default_status();
+        $status = Request::post_key( 'status', WorkflowService::default_status() );
         if ( ! isset( $statuses[ $status ] ) && $status !== sanitize_key( $current->status ) ) $status = WorkflowService::default_status();
 
         $priorities = SubmissionService::priorities();
-        $priority = isset( $_POST['priority'] ) ? sanitize_key( $_POST['priority'] ) : WorkflowService::default_priority();
+        $priority = Request::post_key( 'priority', WorkflowService::default_priority() );
         if ( ! isset( $priorities[ $priority ] ) && $priority !== sanitize_key( $current->priority ) ) $priority = WorkflowService::default_priority();
 
-        $assigned_to = isset( $_POST['assigned_to'] ) ? absint( $_POST['assigned_to'] ) : 0;
+        $assigned_to = Request::post_id( 'assigned_to' );
         if ( $assigned_to ) {
             $allowed_assignees = array_map( 'absint', wp_list_pluck( SubmissionService::assignees(), 'ID' ) );
             if ( ! in_array( $assigned_to, $allowed_assignees, true ) ) {
@@ -179,11 +180,11 @@ final class SubmissionDetailPage {
             }
         }
 
-        $raw_tags = isset( $_POST['tags'] ) ? wp_unslash( $_POST['tags'] ) : '';
+        $raw_tags = Request::post_textarea( 'tags' );
         $old_tags = TagService::names_for_submission( $id );
 
         global $wpdb;
-        $updated = $wpdb->update(
+        $updated = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional write to the plugin's custom submissions table.
             Schema::table( 'submissions' ),
             array(
                 'status'      => $status,

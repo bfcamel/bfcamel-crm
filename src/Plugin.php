@@ -19,7 +19,6 @@ final class Plugin {
 
     public function boot(){
         if($this->booted)return;$this->booted=true;
-        add_action( 'init', array( 'BfCamel\\CRM\\I18n', 'load' ), 0 );
         if(is_admin()||(defined('WP_CLI')&&WP_CLI))add_action('init',array($this,'upgrade'),1);
         RoleManager::register();Renderer::instance()->register();SubmissionHandler::instance()->register();Privacy::instance()->register();
         if(is_admin()){add_action('admin_notices',array('BfCamel\\CRM\\Database\\Schema','admin_notice'));Bootstrap::instance()->register();}

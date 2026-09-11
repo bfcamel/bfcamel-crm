@@ -69,7 +69,7 @@ jobs:
         with:
           exclude-directories: '.git,.github,scripts,tests,build'
           include-experimental: false
-          ignore-warnings: true
+          ignore-warnings: false
 
   release:
     needs: package

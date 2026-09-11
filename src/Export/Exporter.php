@@ -6,6 +6,7 @@ use BfCamel\CRM\Consent\ConsentService;
 use BfCamel\CRM\CRM\ContactService;
 use BfCamel\CRM\CRM\SubmissionService;
 use BfCamel\CRM\Database\Schema;
+use BfCamel\CRM\Support\Request;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -19,8 +20,8 @@ final class Exporter {
         if ( ! Schema::is_current() ) {
             wp_die( esc_html( Schema::readiness_message() ), esc_html__( 'CRM database update required', 'bfcamel-crm' ), array( 'back_link' => true ) );
         }
-        $type = isset( $_GET['type'] ) ? sanitize_key( $_GET['type'] ) : '';
-        $format = isset( $_GET['format'] ) ? sanitize_key( $_GET['format'] ) : '';
+        $type = Request::get_key( 'type' );
+        $format = Request::get_key( 'format' );
         if ( ! in_array( $type, array( 'contacts', 'submissions' ), true ) || ! in_array( $format, array( 'csv', 'xlsx' ), true ) ) {
             wp_die( esc_html__( 'Invalid export request.', 'bfcamel-crm' ) );
         }
@@ -33,7 +34,7 @@ final class Exporter {
         if ( 'contacts' === $type ) {
             list( $headers, $rows ) = self::contacts();
         } else {
-            list( $headers, $rows ) = self::submissions();
+            list( $headers, $rows ) = self::submissions( self::submission_filters() );
         }
         $filename = 'bfcamel-crm-' . $type . '-' . gmdate( 'Y-m-d-His' ) . '.' . $format;
         self::download( $filename, $format, $headers, $rows );
@@ -68,8 +69,7 @@ final class Exporter {
         return array( $headers, $rows );
     }
 
-    private static function submissions() {
-        $filters = self::submission_filters();
+    private static function submissions( $filters ) {
         $items = SubmissionService::all_for_export( $filters );
         $payload_keys = array();
         $payloads = array();
@@ -106,15 +106,15 @@ final class Exporter {
 
     private static function submission_filters() {
         return array(
-            'search'      => isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '',
-            'status'      => isset( $_GET['status'] ) ? sanitize_key( $_GET['status'] ) : '',
-            'form_id'     => isset( $_GET['form_id'] ) ? absint( $_GET['form_id'] ) : 0,
-            'assigned_to' => isset( $_GET['assigned_to'] ) ? sanitize_text_field( wp_unslash( $_GET['assigned_to'] ) ) : '',
-            'priority'    => isset( $_GET['priority'] ) ? sanitize_key( $_GET['priority'] ) : '',
-            'tag_id'      => isset( $_GET['tag_id'] ) ? absint( $_GET['tag_id'] ) : 0,
-            'date_from'   => isset( $_GET['date_from'] ) ? sanitize_text_field( wp_unslash( $_GET['date_from'] ) ) : '',
-            'date_to'     => isset( $_GET['date_to'] ) ? sanitize_text_field( wp_unslash( $_GET['date_to'] ) ) : '',
-        ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            'search'      => Request::get_text( 's' ),
+            'status'      => Request::get_key( 'status' ),
+            'form_id'     => Request::get_id( 'form_id' ),
+            'assigned_to' => Request::get_text( 'assigned_to' ),
+            'priority'    => Request::get_key( 'priority' ),
+            'tag_id'      => Request::get_id( 'tag_id' ),
+            'date_from'   => Request::get_text( 'date_from' ),
+            'date_to'     => Request::get_text( 'date_to' ),
+        );
     }
 
     private static function download( $filename, $format, $headers, $rows ) {

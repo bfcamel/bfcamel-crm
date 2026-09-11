@@ -326,7 +326,7 @@ final class Schema {
             }
 
             $wpdb->last_error = '';
-            $changed = $wpdb->query( "ALTER TABLE `{$table}` ENGINE=InnoDB" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $changed = $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ENGINE=InnoDB', $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Installation must update the plugin-owned table engine and requires a fresh result.
             if ( false === $changed || $wpdb->last_error ) {
                 self::$install_errors[] = $wpdb->last_error ?: sprintf( 'Could not enable transactions for %s.', $table );
             }
@@ -341,7 +341,7 @@ final class Schema {
 
         foreach ( $required_tables as $suffix ) {
             $table = self::table( $suffix );
-            $found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
+            $found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema verification must inspect the current database state.
             if ( $table !== $found ) {
                 $missing[] = $table;
             }
@@ -359,7 +359,7 @@ final class Schema {
             );
             foreach ( $required_columns as $suffix => $expected ) {
                 $table = self::table( $suffix );
-                $columns = $wpdb->get_col( "SHOW COLUMNS FROM `{$table}`", 0 ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ), 0 ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema verification must inspect the current database state.
                 foreach ( $expected as $column ) {
                     if ( ! in_array( $column, (array) $columns, true ) ) {
                         $missing[] = $table . '.' . $column;
@@ -426,13 +426,13 @@ final class Schema {
 
     private static function table_engine( $table ) {
         global $wpdb;
-        $status = $wpdb->get_row( $wpdb->prepare( 'SHOW TABLE STATUS LIKE %s', $wpdb->esc_like( $table ) ) );
+        $status = $wpdb->get_row( $wpdb->prepare( 'SHOW TABLE STATUS LIKE %s', $wpdb->esc_like( $table ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema verification must inspect the current database state.
         return $status && isset( $status->Engine ) ? (string) $status->Engine : '';
     }
 
     private static function index_columns( $table, $index_name ) {
         global $wpdb;
-        $rows = $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $rows = $wpdb->get_results( $wpdb->prepare( 'SHOW INDEX FROM %i', $table ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema verification must inspect the current database state.
         $columns = array();
         foreach ( (array) $rows as $row ) {
             if ( isset( $row['Key_name'], $row['Column_name'] ) && (string) $row['Key_name'] === (string) $index_name ) {
@@ -446,7 +446,7 @@ final class Schema {
 
     private static function index_is_unique( $table, $index_name ) {
         global $wpdb;
-        $rows = $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $rows = $wpdb->get_results( $wpdb->prepare( 'SHOW INDEX FROM %i', $table ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema verification must inspect the current database state.
         foreach ( (array) $rows as $row ) {
             if ( isset( $row['Key_name'], $row['Non_unique'] ) && (string) $row['Key_name'] === (string) $index_name ) {
                 return 0 === absint( $row['Non_unique'] );
@@ -464,28 +464,32 @@ final class Schema {
 
     public static function begin_transaction() {
         global $wpdb;
-        return false !== $wpdb->query( 'START TRANSACTION' );
+        return false !== $wpdb->query( 'START TRANSACTION' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom CRM tables require an explicit transaction and cannot use cached state.
     }
 
     public static function commit() {
         global $wpdb;
-        return false !== $wpdb->query( 'COMMIT' );
+        return false !== $wpdb->query( 'COMMIT' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Commits the explicit custom-table transaction.
     }
 
     public static function rollback() {
         global $wpdb;
-        $wpdb->query( 'ROLLBACK' );
+        $wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Rolls back the explicit custom-table transaction.
     }
 
     public static function table( $name ) {
         global $wpdb;
-        return $wpdb->prefix . 'bfcamel_crm_' . sanitize_key( $name );
+        $name = sanitize_key( $name );
+        if ( ! in_array( $name, self::required_tables(), true ) ) {
+            throw new \InvalidArgumentException( 'Unknown BfCamel CRM database table.' );
+        }
+        return $wpdb->prefix . 'bfcamel_crm_' . $name;
     }
 
     public static function log( $entity_type, $entity_id, $event_type, $message, $meta = array(), $user_id = 0 ) {
         global $wpdb;
 
-        return (bool) $wpdb->insert(
+        return (bool) $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Writes an audit event to the plugin's custom activity table.
             self::table( 'activity_log' ),
             array(
                 'entity_type' => sanitize_key( $entity_type ),

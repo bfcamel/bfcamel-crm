@@ -6,6 +6,7 @@ use BfCamel\CRM\CRM\TagService;
 use BfCamel\CRM\CRM\WorkflowService;
 use BfCamel\CRM\Database\Schema;
 use BfCamel\CRM\Forms\Repository;
+use BfCamel\CRM\Support\Request;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -55,7 +56,7 @@ final class Admin {
         );
 
         if ( 'bfcamel-crm_page_bfcamel-crm-forms' === $hook ) {
-            $id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $id = Request::get_id( 'id' );
             $form = $id ? Repository::get( $id ) : null;
             $revision = $form ? Repository::current_revision( $form ) : null;
             $schema = $revision ? Repository::decode_schema( $revision ) : Repository::default_schema();
@@ -98,7 +99,7 @@ final class Admin {
 
     public function forms_page() {
         $this->guard( 'bfcamel_crm_manage_forms' );
-        $action = isset( $_GET['action'] ) ? sanitize_key( $_GET['action'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $action = Request::get_key( 'action' );
         if ( in_array( $action, array( 'new', 'edit' ), true ) ) {
             $this->form_editor();
             return;
@@ -138,13 +139,13 @@ final class Admin {
     }
 
     private function form_editor() {
-        $id       = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $id       = Request::get_id( 'id' );
         $form     = $id ? Repository::get( $id ) : null;
         $revision = $form ? Repository::current_revision( $form ) : null;
         $settings = $revision ? Repository::decode_settings( $revision ) : Repository::default_settings();
         $version  = $revision ? absint( $revision->version ) : 0;
 
-        $notice = isset( $_GET['saved'] ) ? sanitize_key( $_GET['saved'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $notice = Request::get_key( 'saved' );
         /* translators: %s: form name. */
         $heading = $form ? sprintf( __( 'Edit form: %s', 'bfcamel-crm' ), $form->name ) : __( 'Add form', 'bfcamel-crm' );
         /* translators: %d: form revision number. */
@@ -222,12 +223,15 @@ final class Admin {
         $this->guard( 'bfcamel_crm_manage_forms' );
         check_admin_referer( 'bfcamel_crm_save_form' );
 
-        $schema_json = isset( $_POST['schema_json'] ) ? wp_unslash( $_POST['schema_json'] ) : '';
-        $schema      = json_decode( $schema_json, true );
-        $settings    = isset( $_POST['settings'] ) && is_array( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : array();
-        $id          = isset( $_POST['form_id'] ) ? absint( $_POST['form_id'] ) : 0;
-        $name        = isset( $_POST['form_name'] ) ? sanitize_text_field( wp_unslash( $_POST['form_name'] ) ) : '';
-        $slug        = isset( $_POST['form_slug'] ) ? sanitize_title( wp_unslash( $_POST['form_slug'] ) ) : '';
+        $schema   = Request::post_json( 'schema_json' );
+        $settings = Request::post_array( 'settings' );
+        $id       = Request::post_id( 'form_id' );
+        $name     = Request::post_text( 'form_name' );
+        $slug     = sanitize_title( Request::post_text( 'form_slug' ) );
+
+        if ( is_wp_error( $schema ) ) {
+            wp_die( esc_html( $schema->get_error_message() ), esc_html__( 'Could not save form', 'bfcamel-crm' ), array( 'back_link' => true ) );
+        }
 
         $saved = Repository::save( $id, $name, $slug, $schema, $settings, get_current_user_id() );
         if ( is_wp_error( $saved ) ) {
@@ -259,7 +263,7 @@ final class Admin {
         $settings = get_option( 'bfcamel_crm_settings', array() );
         $permissions = RoleManager::permissions();
         $roles = wp_roles();
-        $saved = isset( $_GET['saved'] ) ? sanitize_key( $_GET['saved'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $saved = Request::get_key( 'saved' );
         ?>
         <div class="wrap bfcamel-crm-admin"><div class="bfcamel-crm-page-title"><div><h1><?php esc_html_e( 'BfCamel CRM settings', 'bfcamel-crm' ); ?></h1><p class="description"><?php esc_html_e( 'Configure privacy, legal documents, storage and access in one place.', 'bfcamel-crm' ); ?></p></div></div><?php if ( '1' === $saved ) : ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Settings saved.', 'bfcamel-crm' ); ?></p></div><?php endif; ?>
         <nav class="bfcamel-crm-section-nav" aria-label="<?php echo esc_attr__( 'Settings sections', 'bfcamel-crm' ); ?>"><a href="#bfcamel-legal"><?php esc_html_e( 'Legal documents', 'bfcamel-crm' ); ?></a><a href="#bfcamel-privacy"><?php esc_html_e( 'Privacy', 'bfcamel-crm' ); ?></a><a href="#bfcamel-access"><?php esc_html_e( 'Access', 'bfcamel-crm' ); ?></a></nav>
@@ -285,7 +289,7 @@ final class Admin {
     public function save_settings() {
         $this->guard_settings();
         check_admin_referer( 'bfcamel_crm_save_settings' );
-        $posted_legal = isset( $_POST['legal'] ) && is_array( $_POST['legal'] ) ? wp_unslash( $_POST['legal'] ) : array();
+        $posted_legal = Request::post_array( 'legal' );
         $legal = array();
         foreach ( array( 'personal_data_consent', 'privacy_policy', 'marketing_consent' ) as $type ) {
             $legal[ $type ] = array(
@@ -298,7 +302,7 @@ final class Admin {
         }
         update_option( 'bfcamel_crm_legal_documents', $legal, false );
 
-        $settings = isset( $_POST['settings'] ) && is_array( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : array();
+        $settings = Request::post_array( 'settings' );
         $acknowledged = ! empty( $settings['legal_risk_acknowledged'] );
         update_option(
             'bfcamel_crm_settings',
@@ -313,7 +317,7 @@ final class Admin {
             false
         );
 
-        $posted_permissions = isset( $_POST['role_permissions'] ) && is_array( $_POST['role_permissions'] ) ? wp_unslash( $_POST['role_permissions'] ) : array();
+        $posted_permissions = Request::post_array( 'role_permissions' );
         $saved_permissions = RoleManager::save( $posted_permissions );
         if ( is_wp_error( $saved_permissions ) ) {
             wp_die( esc_html( $saved_permissions->get_error_message() ), esc_html__( 'Could not save role permissions', 'bfcamel-crm' ), array( 'back_link' => true ) );

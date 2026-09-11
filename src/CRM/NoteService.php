@@ -19,7 +19,7 @@ final class NoteService {
         if ( ! Schema::begin_transaction() ) {
             return new \WP_Error( 'bfcamel_crm_note_transaction_failed', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
         }
-        $ok = $wpdb->insert(
+        $ok = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional insert into the plugin's custom notes table.
             Schema::table( 'notes' ),
             array(
                 'entity_type' => $entity_type,
@@ -46,17 +46,17 @@ final class NoteService {
         global $wpdb;
         $notes = Schema::table( 'notes' );
         $users = $wpdb->users;
-        return $wpdb->get_results(
+        return $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Notes and their actors must reflect current custom-table state.
             $wpdb->prepare(
-                "SELECT n.*,u.display_name AS actor_name FROM {$notes} n LEFT JOIN {$users} u ON u.ID=n.user_id WHERE n.entity_type=%s AND n.entity_id=%d ORDER BY n.created_at DESC,n.id DESC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                sanitize_key( $entity_type ), absint( $entity_id )
+                'SELECT n.*,u.display_name AS actor_name FROM %i n LEFT JOIN %i u ON u.ID=n.user_id WHERE n.entity_type=%s AND n.entity_id=%d ORDER BY n.created_at DESC,n.id DESC',
+                $notes, $users, sanitize_key( $entity_type ), absint( $entity_id )
             )
         );
     }
 
     public static function delete_for_entity( $entity_type, $entity_id ) {
         global $wpdb;
-        return false !== $wpdb->delete(
+        return false !== $wpdb->delete( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Privacy erasure must delete current custom-table notes.
             Schema::table( 'notes' ),
             array( 'entity_type' => sanitize_key( $entity_type ), 'entity_id' => absint( $entity_id ) ),
             array( '%s', '%d' )

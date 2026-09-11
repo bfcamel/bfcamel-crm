@@ -228,9 +228,9 @@ final class Privacy {
         $table        = Schema::table( $table_name );
         $placeholders = implode( ',', array_fill( 0, count( $contact_ids ), '%d' ) );
         $offset       = ( max( 1, absint( $page ) ) - 1 ) * self::PAGE_SIZE;
-        $args         = array_merge( array_map( 'absint', $contact_ids ), array( self::PAGE_SIZE + 1, $offset ) );
-        $sql          = "SELECT * FROM {$table} WHERE contact_id IN ({$placeholders}) ORDER BY id ASC LIMIT %d OFFSET %d";
-        $rows         = $wpdb->get_results( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Table names and the IN placeholder list are generated internally.
+        $args         = array_merge( array( $table ), array_map( 'absint', $contact_ids ), array( self::PAGE_SIZE + 1, $offset ) );
+        $sql          = "SELECT * FROM %i WHERE contact_id IN ({$placeholders}) ORDER BY id ASC LIMIT %d OFFSET %d";
+        $rows         = $wpdb->get_results( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Privacy export requires fresh rows; identifier uses %i and the generated IN list contains placeholders only.
         $has_more     = count( $rows ) > self::PAGE_SIZE;
         return array( 'rows' => array_slice( $rows, 0, self::PAGE_SIZE ), 'has_more' => $has_more );
     }
@@ -241,9 +241,9 @@ final class Privacy {
         $submissions  = Schema::table( 'submissions' );
         $placeholders = implode( ',', array_fill( 0, count( $contact_ids ), '%d' ) );
         $offset       = ( max( 1, absint( $page ) ) - 1 ) * self::PAGE_SIZE;
-        $args         = array_merge( array_map( 'absint', $contact_ids ), array_map( 'absint', $contact_ids ), array( self::PAGE_SIZE + 1, $offset ) );
-        $sql          = "SELECT a.* FROM {$activity} a WHERE (a.entity_type='contact' AND a.entity_id IN ({$placeholders})) OR (a.entity_type='submission' AND a.entity_id IN (SELECT s.id FROM {$submissions} s WHERE s.contact_id IN ({$placeholders}))) ORDER BY a.id ASC LIMIT %d OFFSET %d";
-        $rows         = $wpdb->get_results( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Table names and the IN placeholder list are generated internally.
+        $args         = array_merge( array( $activity ), array_map( 'absint', $contact_ids ), array( $submissions ), array_map( 'absint', $contact_ids ), array( self::PAGE_SIZE + 1, $offset ) );
+        $sql          = "SELECT a.* FROM %i a WHERE (a.entity_type='contact' AND a.entity_id IN ({$placeholders})) OR (a.entity_type='submission' AND a.entity_id IN (SELECT s.id FROM %i s WHERE s.contact_id IN ({$placeholders}))) ORDER BY a.id ASC LIMIT %d OFFSET %d";
+        $rows         = $wpdb->get_results( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Privacy export requires fresh rows; identifiers use %i and generated IN lists contain placeholders only.
         $has_more     = count( $rows ) > self::PAGE_SIZE;
         return array( 'rows' => array_slice( $rows, 0, self::PAGE_SIZE ), 'has_more' => $has_more );
     }
@@ -252,7 +252,7 @@ final class Privacy {
         global $wpdb;
         $payload = json_decode( (string) $submission->payload_json, true );
         $payload = is_array( $payload ) ? array_map( array( $this, 'empty_value' ), $payload ) : array();
-        $updated = $wpdb->update(
+        $updated = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Privacy erasure must update current custom-table data.
             Schema::table( 'submissions' ),
             array( 'payload_json' => wp_json_encode( $payload ), 'source_url' => '', 'source_ip' => '', 'user_agent' => '' ),
             array( 'id' => absint( $submission->id ) ),
@@ -270,7 +270,7 @@ final class Privacy {
         if ( false === NoteService::delete_for_entity( 'contact', $contact_id ) ) {
             return false;
         }
-        $consents = $wpdb->update(
+        $consents = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Privacy erasure must update current consent evidence metadata.
             Schema::table( 'consent_events' ),
             array( 'source_url' => '', 'source_ip' => '', 'user_agent' => '', 'recorded_by' => 0 ),
             array( 'contact_id' => absint( $contact_id ) ),
@@ -290,9 +290,9 @@ final class Privacy {
         if ( ! $placeholders ) {
             return true;
         }
-        $args = array_merge( array( '{}', '', sanitize_key( $entity_type ) ), $entity_ids );
-        $sql  = "UPDATE " . Schema::table( 'activity_log' ) . " SET meta_json=%s,message=%s,user_id=0 WHERE entity_type=%s AND entity_id IN ({$placeholders})";
-        return false !== $wpdb->query( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Table name and the IN placeholder list are generated internally.
+        $args = array_merge( array( Schema::table( 'activity_log' ), '{}', '', sanitize_key( $entity_type ) ), $entity_ids );
+        $sql  = "UPDATE %i SET meta_json=%s,message=%s,user_id=0 WHERE entity_type=%s AND entity_id IN ({$placeholders})";
+        return false !== $wpdb->query( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Privacy erasure uses %i and a generated list containing placeholders only.
     }
 
     private function empty_value( $value ) {

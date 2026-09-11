@@ -1,14 +1,14 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR People & Camels Charity Foundation
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the BfCamel CRM package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: BfCamel CRM 0.5.1\n"
+"Project-Id-Version: BfCamel CRM 0.5.2\n"
 "Report-Msgid-Bugs-To: https://github.com/bfcamel/bfcamel-crm/issues\n"
-"POT-Creation-Date: 2026-09-10 15:55+0800\n"
+"POT-Creation-Date: 2026-09-11 03:31-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #. translators: %s: existing contact IDs.
-#: src/CRM/ContactService.php:274 src/CRM/ContactService.php:361
+#: src/CRM/ContactService.php:289 src/CRM/ContactService.php:376
 #, php-format
 msgid "A contact with this email or phone already exists: #%s."
 msgstr ""
@@ -29,15 +29,15 @@ msgid ""
 "plugin directory and install the official bfcamel-crm.zip release package."
 msgstr ""
 
-#: src/Admin/Admin.php:265
+#: src/Admin/Admin.php:269
 msgid "Access"
 msgstr ""
 
-#: src/Admin/Admin.php:117
+#: src/Admin/Admin.php:118
 msgid "Actions"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:123
+#: src/Admin/WorkflowPage.php:124
 msgid ""
 "Add a custom wrapper class in the form editor (for example my-page-form), "
 "then place CSS in the page editor, Elementor Custom CSS, site CSS, or the "
@@ -45,58 +45,58 @@ msgid ""
 "to the page container."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:169 src/Admin/SubmissionDetailPage.php:82
+#: src/Admin/ContactsPage.php:170 src/Admin/SubmissionDetailPage.php:83
 msgid "Add an internal note…"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:36 src/Admin/ContactsPage.php:155
+#: src/Admin/ContactsPage.php:37 src/Admin/ContactsPage.php:156
 #: src/Admin/DashboardPage.php:55
 msgid "Add contact"
 msgstr ""
 
-#: src/Admin/Admin.php:91
+#: src/Admin/Admin.php:92
 msgid "Add explanatory text here."
 msgstr ""
 
-#: src/Admin/Admin.php:112 src/Admin/Admin.php:149
-#: src/Admin/DashboardPage.php:58
+#: src/Admin/DashboardPage.php:58 src/Admin/Admin.php:113
+#: src/Admin/Admin.php:150
 msgid "Add form"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:169 src/Admin/SubmissionDetailPage.php:83
+#: src/Admin/ContactsPage.php:170 src/Admin/SubmissionDetailPage.php:84
 msgid "Add note"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:57 src/Admin/SubmissionsPage.php:55
+#: src/Admin/ContactsPage.php:58 src/Admin/SubmissionsPage.php:56
 msgid "Add tags"
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:43
+#: src/Admin/SubmissionsPage.php:44
 msgid "All forms"
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:45
+#: src/Admin/SubmissionsPage.php:46
 msgid "All priorities"
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:44
+#: src/Admin/SubmissionsPage.php:45
 msgid "All responsible employees"
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:42
+#: src/Admin/SubmissionsPage.php:43
 msgid "All statuses"
 msgstr ""
 
-#: src/Admin/DashboardPage.php:34 src/Admin/SubmissionsPage.php:33
+#: src/Admin/DashboardPage.php:34 src/Admin/SubmissionsPage.php:34
 msgid "All submissions"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:42 src/Admin/SubmissionsPage.php:46
+#: src/Admin/ContactsPage.php:43 src/Admin/SubmissionsPage.php:47
 msgid "All tags"
 msgstr ""
 
 #. translators: %d: anonymized contact ID.
-#: src/CRM/ContactService.php:441
+#: src/CRM/ContactService.php:457
 #, php-format
 msgid "Anonymized contact #%d"
 msgstr ""
@@ -105,44 +105,44 @@ msgstr ""
 msgid "Another BfCamel CRM database update is already running."
 msgstr ""
 
-#: src/Forms/Repository.php:54
+#: src/Forms/Repository.php:93
 msgid "Another form already uses this slug."
 msgstr ""
 
-#: src/Admin/Admin.php:197
+#: src/Admin/Admin.php:198
 msgid "Appearance"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:59 src/Admin/SubmissionsPage.php:55
+#: src/Admin/ContactsPage.php:60 src/Admin/SubmissionsPage.php:56
 msgid "Apply"
 msgstr ""
 
-#: src/Admin/Admin.php:129
+#: src/Admin/Admin.php:130
 msgid "Archive"
 msgstr ""
 
-#: src/Admin/Admin.php:127
+#: src/Admin/Admin.php:128
 msgid "Archived"
 msgstr ""
 
-#: src/Admin/Admin.php:51
+#: src/Admin/Admin.php:52
 msgid "Are you sure you want to continue?"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:33
+#: src/Admin/WorkflowPage.php:34
 msgid "Automation"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:155 src/Admin/ContactsPage.php:165
-#: src/Admin/SubmissionDetailPage.php:50
+#: src/Admin/ContactsPage.php:156 src/Admin/ContactsPage.php:166
+#: src/Admin/SubmissionDetailPage.php:51
 msgid "Back"
 msgstr ""
 
-#: src/Admin/Admin.php:159
+#: src/Admin/Admin.php:160
 msgid "Back to forms"
 msgstr ""
 
-#: src/Admin/Bootstrap.php:41 src/Admin/DashboardPage.php:50
+#: src/Admin/DashboardPage.php:50 src/Admin/Bootstrap.php:41
 #: src/Privacy/Privacy.php:34 src/Privacy/Privacy.php:42
 #: src/Privacy/Privacy.php:193
 msgid "BfCamel CRM"
@@ -198,7 +198,7 @@ msgstr ""
 msgid "BfCamel CRM database upgrade failed: %s"
 msgstr ""
 
-#: src/Plugin.php:34
+#: src/Plugin.php:33
 msgid ""
 "BfCamel CRM does not support network-wide activation. Activate it separately "
 "on each site."
@@ -211,7 +211,7 @@ msgid ""
 "were retained for audit purposes."
 msgstr ""
 
-#: src/Admin/Admin.php:264
+#: src/Admin/Admin.php:268
 msgid "BfCamel CRM settings"
 msgstr ""
 
@@ -219,22 +219,22 @@ msgstr ""
 msgid "BfCamel CRM submissions"
 msgstr ""
 
-#: src/Forms/Renderer.php:28
+#: src/Forms/Renderer.php:29
 msgid "BfCamel CRM: form not found."
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:24
+#: src/Admin/WorkflowPage.php:25
 msgid ""
 "BfCamel CRM: one or more legal document URLs are missing. Forms continue to "
 "collect data, and you remain responsible for the legal basis and wording "
 "used on this site."
 msgstr ""
 
-#: src/Admin/Admin.php:203
+#: src/Admin/Admin.php:204
 msgid "Border color"
 msgstr ""
 
-#: src/Admin/Admin.php:206
+#: src/Admin/Admin.php:207
 msgid "Border radius, px"
 msgstr ""
 
@@ -242,19 +242,19 @@ msgstr ""
 msgid "Browser information"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:57 src/Admin/SubmissionsPage.php:55
+#: src/Admin/ContactsPage.php:58 src/Admin/SubmissionsPage.php:56
 msgid "Bulk actions"
 msgstr ""
 
-#: src/Admin/Admin.php:204
+#: src/Admin/Admin.php:205
 msgid "Button color"
 msgstr ""
 
-#: src/Admin/Admin.php:205
+#: src/Admin/Admin.php:206
 msgid "Button text"
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:111
+#: src/Admin/SubmissionDetailPage.php:112
 msgid "CRM"
 msgstr ""
 
@@ -262,53 +262,53 @@ msgstr ""
 msgid "CRM activity recorded."
 msgstr ""
 
-#: src/Admin/Bootstrap.php:46 src/Admin/WorkflowPage.php:39
+#: src/Admin/Bootstrap.php:46 src/Admin/WorkflowPage.php:40
 msgid "CRM configuration"
 msgstr ""
 
-#: src/Admin/Admin.php:370 src/Admin/ContactsPage.php:185
-#: src/Admin/DashboardPage.php:20 src/Admin/SubmissionsPage.php:70
-#: src/Export/Exporter.php:20
+#: src/Admin/ContactsPage.php:186 src/Admin/DashboardPage.php:20
+#: src/Admin/SubmissionsPage.php:71 src/Admin/Admin.php:374
+#: src/Export/Exporter.php:21
 msgid "CRM database update required"
 msgstr ""
 
-#: src/Admin/Admin.php:78
+#: src/Admin/Admin.php:79
 msgid "CRM mapping"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:97
+#: src/Admin/WorkflowPage.php:98
 msgid "CSS-first form layout"
 msgstr ""
 
-#: src/Admin/Admin.php:336
+#: src/Admin/Admin.php:340
 msgid "Checkboxes"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:98
+#: src/Admin/WorkflowPage.php:99
 msgid ""
 "Choose Theme / unstyled in the form editor when the page builder or theme "
 "should control visual design. BfCamel CRM keeps only structural grid classes "
 "in that mode."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:106 src/Admin/SubmissionsPage.php:63
-#: src/CRM/SubmissionService.php:79 src/CRM/SubmissionService.php:82
+#: src/Admin/ContactsPage.php:107 src/Admin/SubmissionsPage.php:64
+#: src/CRM/SubmissionService.php:80 src/CRM/SubmissionService.php:83
 msgid "Choose a bulk action."
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:55 src/CRM/SubmissionService.php:75
+#: src/Admin/SubmissionsPage.php:56 src/CRM/SubmissionService.php:76
 msgid "Choose priority"
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:55 src/CRM/SubmissionService.php:74
+#: src/Admin/SubmissionsPage.php:56 src/CRM/SubmissionService.php:75
 msgid "Choose status"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:63
+#: src/Admin/WorkflowPage.php:64
 msgid "Color"
 msgstr ""
 
-#: src/Admin/Admin.php:199
+#: src/Admin/Admin.php:200
 msgid "Columns"
 msgstr ""
 
@@ -316,11 +316,11 @@ msgstr ""
 msgid "Completed"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:87
+#: src/Admin/WorkflowPage.php:88
 msgid "Condition"
 msgstr ""
 
-#: src/Admin/Admin.php:264
+#: src/Admin/Admin.php:268
 msgid "Configure privacy, legal documents, storage and access in one place."
 msgstr ""
 
@@ -338,15 +338,15 @@ msgstr ""
 msgid "Consent evidence"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:181
+#: src/Admin/ContactsPage.php:182
 msgid "Consent history"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:157 src/Privacy/Privacy.php:101
+#: src/Admin/ContactsPage.php:158 src/Privacy/Privacy.php:101
 msgid "Consent status"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:166
+#: src/Admin/ContactsPage.php:167
 msgid "Consent status updated."
 msgstr ""
 
@@ -354,7 +354,7 @@ msgstr ""
 msgid "Consent type"
 msgstr ""
 
-#: src/Admin/DashboardPage.php:109 src/Admin/SubmissionsPage.php:65
+#: src/Admin/DashboardPage.php:109 src/Admin/SubmissionsPage.php:66
 #: src/Export/Exporter.php:89
 msgid "Contact"
 msgstr ""
@@ -367,19 +367,19 @@ msgstr ""
 msgid "Contact created manually."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:166
+#: src/Admin/ContactsPage.php:167
 msgid "Contact created."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:168
+#: src/Admin/ContactsPage.php:169
 msgid "Contact details"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:166 src/CRM/ActivityFormatter.php:104
+#: src/Admin/ContactsPage.php:167 src/CRM/ActivityFormatter.php:104
 msgid "Contact details updated."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:171
+#: src/Admin/ContactsPage.php:172
 msgid "Contact history"
 msgstr ""
 
@@ -387,12 +387,12 @@ msgstr ""
 msgid "Contact linked"
 msgstr ""
 
-#: src/CRM/ContactService.php:254 src/CRM/ContactService.php:344
+#: src/CRM/ContactService.php:269 src/CRM/ContactService.php:359
 msgid "Contact name is required."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:124 src/Admin/ContactsPage.php:137
-#: src/Admin/ContactsPage.php:161 src/CRM/ContactService.php:336
+#: src/Admin/ContactsPage.php:125 src/Admin/ContactsPage.php:138
+#: src/Admin/ContactsPage.php:162 src/CRM/ContactService.php:351
 msgid "Contact not found."
 msgstr ""
 
@@ -400,7 +400,7 @@ msgstr ""
 msgid "Contact personal data anonymized."
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:112
+#: src/Admin/SubmissionDetailPage.php:113
 msgid "Contact sync"
 msgstr ""
 
@@ -414,11 +414,11 @@ msgstr ""
 msgid "Contact synchronized from a form submission: %s."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:172
+#: src/Admin/ContactsPage.php:173
 msgid "Contact tags"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:166
+#: src/Admin/ContactsPage.php:167
 msgid "Contact tags updated."
 msgstr ""
 
@@ -428,41 +428,41 @@ msgstr ""
 msgid "Contact tags: %1$s → %2$s"
 msgstr ""
 
-#: src/Admin/Admin.php:87
+#: src/Admin/Admin.php:88
 msgid "Contact: custom field"
 msgstr ""
 
-#: src/Admin/Admin.php:84
+#: src/Admin/Admin.php:85
 msgid "Contact: email"
 msgstr ""
 
-#: src/Admin/Admin.php:83
+#: src/Admin/Admin.php:84
 msgid "Contact: name"
 msgstr ""
 
-#: src/Admin/Admin.php:86
+#: src/Admin/Admin.php:87
 msgid "Contact: organization"
 msgstr ""
 
-#: src/Admin/Admin.php:85
+#: src/Admin/Admin.php:86
 msgid "Contact: phone"
 msgstr ""
 
-#: src/Admin/Bootstrap.php:44 src/Admin/ContactsPage.php:35
-#: src/Admin/DashboardPage.php:41 src/Admin/WorkflowPage.php:74
+#: src/Admin/ContactsPage.php:36 src/Admin/DashboardPage.php:41
+#: src/Admin/Bootstrap.php:44 src/Admin/WorkflowPage.php:75
 msgid "Contacts"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:88
+#: src/Admin/WorkflowPage.php:89
 msgid "Contains"
 msgstr ""
 
-#: src/CRM/TagService.php:88
+#: src/CRM/TagService.php:97
 msgid "Could not add a tag."
 msgstr ""
 
-#: src/CRM/TagService.php:42 src/CRM/TagService.php:43
-#: src/CRM/TagService.php:51 src/CRM/TagService.php:102
+#: src/CRM/TagService.php:49 src/CRM/TagService.php:50
+#: src/CRM/TagService.php:58 src/CRM/TagService.php:111
 msgid "Could not create a tag."
 msgstr ""
 
@@ -470,7 +470,7 @@ msgstr ""
 msgid "Could not create a temporary export file."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:75
+#: src/Admin/ContactsPage.php:76
 msgid "Could not create contact"
 msgstr ""
 
@@ -482,37 +482,37 @@ msgstr ""
 msgid "Could not export data"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:139 src/CRM/ContactService.php:317
+#: src/Admin/ContactsPage.php:140 src/CRM/ContactService.php:332
 msgid "Could not record consent status."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:115 src/Admin/ContactsPage.php:128
-#: src/CRM/ContactService.php:321 src/CRM/ContactService.php:387
+#: src/Admin/ContactsPage.php:116 src/Admin/ContactsPage.php:129
+#: src/CRM/ContactService.php:336 src/CRM/ContactService.php:402
 msgid "Could not record contact history."
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:203
-#: src/Admin/SubmissionDetailPage.php:207
-#: src/Admin/SubmissionDetailPage.php:210
-#: src/Admin/SubmissionDetailPage.php:223
+#: src/Admin/SubmissionDetailPage.php:204
+#: src/Admin/SubmissionDetailPage.php:208
+#: src/Admin/SubmissionDetailPage.php:211
+#: src/Admin/SubmissionDetailPage.php:224
 msgid "Could not record submission history."
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:154 src/CRM/TagService.php:60
-#: src/CRM/TagService.php:62 src/CRM/TagService.php:64
-#: src/CRM/TagService.php:87
+#: src/Admin/WorkflowPage.php:155 src/CRM/TagService.php:68
+#: src/CRM/TagService.php:70 src/CRM/TagService.php:72
+#: src/CRM/TagService.php:96
 msgid "Could not remove a tag."
 msgstr ""
 
-#: src/Admin/Admin.php:234
+#: src/Admin/Admin.php:233 src/Admin/Admin.php:238
 msgid "Could not save form"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:92 src/Admin/SubmissionsPage.php:62
+#: src/Admin/ContactsPage.php:93 src/Admin/SubmissionsPage.php:63
 msgid "Could not save note"
 msgstr ""
 
-#: src/Admin/Admin.php:319
+#: src/Admin/Admin.php:323
 msgid "Could not save role permissions"
 msgstr ""
 
@@ -524,65 +524,65 @@ msgstr ""
 msgid "Could not save the note."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:81 src/Admin/ContactsPage.php:108
-#: src/Admin/ContactsPage.php:123 src/Admin/ContactsPage.php:136
-#: src/Admin/SubmissionDetailPage.php:157 src/CRM/ContactService.php:281
-#: src/CRM/NoteService.php:20 src/CRM/SubmissionService.php:83
-#: src/CRM/TagService.php:32 src/CRM/TagService.php:58
-#: src/Forms/Repository.php:48
+#: src/Admin/ContactsPage.php:82 src/Admin/ContactsPage.php:109
+#: src/Admin/ContactsPage.php:124 src/Admin/ContactsPage.php:137
+#: src/Admin/SubmissionDetailPage.php:158 src/Forms/Repository.php:86
+#: src/CRM/NoteService.php:20 src/CRM/ContactService.php:296
+#: src/CRM/SubmissionService.php:84 src/CRM/TagService.php:39
+#: src/CRM/TagService.php:66
 msgid "Could not start a database transaction."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:186
+#: src/Admin/ContactsPage.php:187
 msgid "Could not update contact"
 msgstr ""
 
-#: src/CRM/SubmissionService.php:89 src/CRM/SubmissionService.php:93
-#: src/CRM/SubmissionService.php:96 src/CRM/SubmissionService.php:103
-#: src/CRM/SubmissionService.php:106
+#: src/CRM/SubmissionService.php:90 src/CRM/SubmissionService.php:94
+#: src/CRM/SubmissionService.php:97 src/CRM/SubmissionService.php:104
+#: src/CRM/SubmissionService.php:107
 msgid "Could not update selected submissions."
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:236
+#: src/Admin/SubmissionDetailPage.php:237
 msgid "Could not update submission"
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:63
+#: src/Admin/SubmissionsPage.php:64
 msgid "Could not update submissions"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:155
+#: src/Admin/ContactsPage.php:156
 msgid "Create a CRM contact without a form submission."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:157
+#: src/Admin/ContactsPage.php:158
 msgid "Create contact"
 msgstr ""
 
-#: src/Admin/Admin.php:212
+#: src/Admin/Admin.php:213
 msgid "Create form"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:74
+#: src/Admin/WorkflowPage.php:75
 msgid ""
 "Create tags once here. Submission and contact screens use this catalog "
 "instead of free-text tag entry."
 msgstr ""
 
-#: src/Admin/Admin.php:120
+#: src/Admin/Admin.php:121
 msgid "Create your first form"
 msgstr ""
 
-#: src/Export/Exporter.php:60
+#: src/Export/Exporter.php:61
 msgid "Created"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:180
+#: src/Admin/ContactsPage.php:181
 msgid "Current consent status"
 msgstr ""
 
 #. translators: %d: form revision number.
-#: src/Admin/Admin.php:151
+#: src/Admin/Admin.php:152
 #, php-format
 msgid "Current revision: %d"
 msgstr ""
@@ -591,15 +591,15 @@ msgstr ""
 msgid "Current workload and the latest CRM activity."
 msgstr ""
 
-#: src/Admin/Admin.php:198
+#: src/Admin/Admin.php:199
 msgid "Custom"
 msgstr ""
 
-#: src/Admin/Admin.php:79
+#: src/Admin/Admin.php:80
 msgid "Custom field key"
 msgstr ""
 
-#: src/Admin/Admin.php:207
+#: src/Admin/Admin.php:208
 msgid "Custom wrapper class"
 msgstr ""
 
@@ -607,27 +607,27 @@ msgstr ""
 msgid "Dashboard"
 msgstr ""
 
-#: src/Admin/Admin.php:332
+#: src/Admin/Admin.php:336
 msgid "Date"
 msgstr ""
 
-#: src/Admin/Admin.php:198 src/Admin/WorkflowPage.php:63
+#: src/Admin/WorkflowPage.php:64 src/Admin/Admin.php:199
 msgid "Default"
 msgstr ""
 
-#: src/Admin/Admin.php:195
+#: src/Admin/Admin.php:196
 msgid "Default priority"
 msgstr ""
 
-#: src/Admin/Admin.php:194
+#: src/Admin/Admin.php:195
 msgid "Default status"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:75
+#: src/Admin/WorkflowPage.php:76
 msgid "Delete"
 msgstr ""
 
-#: src/Admin/Admin.php:273
+#: src/Admin/Admin.php:277
 msgid "Delete all BfCamel CRM data when the plugin is uninstalled"
 msgstr ""
 
@@ -635,28 +635,28 @@ msgstr ""
 msgid "Display name"
 msgstr ""
 
-#: src/Admin/Admin.php:267
+#: src/Admin/Admin.php:271
 msgid ""
 "Document links are optional. When provided, their current values are copied "
 "into consent evidence so later edits do not rewrite history."
 msgstr ""
 
-#: src/Admin/Admin.php:362
+#: src/Admin/Admin.php:366
 msgid "Document title"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:88
+#: src/Admin/WorkflowPage.php:89
 msgid "Does not equal"
 msgstr ""
 
 #. translators: %s: duplicate form field key.
-#: src/Forms/Repository.php:110
+#: src/Forms/Repository.php:150
 #, php-format
 msgid "Duplicate field key: %s."
 msgstr ""
 
 #. translators: %s: form name.
-#: src/Admin/Admin.php:149
+#: src/Admin/Admin.php:150
 #, php-format
 msgid "Edit form: %s"
 msgstr ""
@@ -665,22 +665,22 @@ msgstr ""
 msgid "Edit submissions"
 msgstr ""
 
-#: src/Admin/Admin.php:362
+#: src/Admin/Admin.php:366
 msgid "Effective date"
 msgstr ""
 
-#: src/Admin/Admin.php:329 src/Admin/ContactsPage.php:156
-#: src/Admin/ContactsPage.php:176 src/CRM/ActivityFormatter.php:96
-#: src/Export/Exporter.php:60 src/Forms/Repository.php:88
+#: src/Admin/ContactsPage.php:157 src/Admin/ContactsPage.php:177
+#: src/Admin/Admin.php:333 src/Forms/Repository.php:128
+#: src/Export/Exporter.php:61 src/CRM/ActivityFormatter.php:96
 #: src/Privacy/Privacy.php:207
 msgid "Email"
 msgstr ""
 
-#: src/Consent/ConsentService.php:14
+#: src/Consent/ConsentService.php:15
 msgid "Email and marketing messages"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:63 src/Admin/WorkflowPage.php:87
+#: src/Admin/WorkflowPage.php:64 src/Admin/WorkflowPage.php:88
 msgid "Enabled"
 msgstr ""
 
@@ -688,15 +688,15 @@ msgstr ""
 msgid "Enter a note."
 msgstr ""
 
-#: src/CRM/ContactService.php:257 src/CRM/ContactService.php:347
+#: src/CRM/ContactService.php:272 src/CRM/ContactService.php:362
 msgid "Enter a valid email address."
 msgstr ""
 
-#: src/CRM/ContactService.php:260 src/CRM/ContactService.php:350
+#: src/CRM/ContactService.php:275 src/CRM/ContactService.php:365
 msgid "Enter a valid phone number."
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:88
+#: src/Admin/WorkflowPage.php:89
 msgid "Equals"
 msgstr ""
 
@@ -704,7 +704,7 @@ msgstr ""
 msgid "Error"
 msgstr ""
 
-#: src/Admin/Admin.php:211
+#: src/Admin/Admin.php:212
 msgid "Error message"
 msgstr ""
 
@@ -716,15 +716,15 @@ msgstr ""
 msgid "Event type"
 msgstr ""
 
-#: src/Forms/Repository.php:107
+#: src/Forms/Repository.php:147
 msgid "Every form field needs a unique field key."
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:141
+#: src/Admin/SubmissionDetailPage.php:142
 msgid "Evidence"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:109
+#: src/Admin/WorkflowPage.php:110
 msgid "Example for page-level CSS"
 msgstr ""
 
@@ -732,35 +732,35 @@ msgstr ""
 msgid "Export CRM data"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:183 src/Admin/SubmissionsPage.php:30
+#: src/Admin/ContactsPage.php:184 src/Admin/SubmissionsPage.php:31
 msgid "Export CSV"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:183 src/Admin/SubmissionsPage.php:30
+#: src/Admin/ContactsPage.php:184 src/Admin/SubmissionsPage.php:31
 msgid "Export XLSX"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:61
+#: src/Admin/ContactsPage.php:62
 msgid "Export selected CSV"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:61
+#: src/Admin/ContactsPage.php:62
 msgid "Export selected XLSX"
 msgstr ""
 
-#: src/Admin/Admin.php:69 src/Admin/WorkflowPage.php:87
+#: src/Admin/WorkflowPage.php:88 src/Admin/Admin.php:70
 msgid "Field"
 msgstr ""
 
-#: src/Admin/Admin.php:80
+#: src/Admin/Admin.php:81
 msgid "Field CSS class"
 msgstr ""
 
-#: src/Admin/Admin.php:202
+#: src/Admin/Admin.php:203
 msgid "Field background"
 msgstr ""
 
-#: src/Admin/Admin.php:74
+#: src/Admin/Admin.php:75
 msgid "Field key"
 msgstr ""
 
@@ -770,46 +770,46 @@ msgstr ""
 msgid "Field: %s"
 msgstr ""
 
-#: src/Admin/Admin.php:180
+#: src/Admin/Admin.php:181
 msgid "Fields"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:45 src/Admin/SubmissionsPage.php:47
+#: src/Admin/ContactsPage.php:46 src/Admin/SubmissionsPage.php:48
 msgid "Filter"
 msgstr ""
 
-#: src/Admin/Admin.php:172 src/Admin/DashboardPage.php:109
-#: src/Admin/SubmissionsPage.php:65 src/Export/Exporter.php:89
+#: src/Admin/DashboardPage.php:109 src/Admin/SubmissionsPage.php:66
+#: src/Admin/Admin.php:173 src/Export/Exporter.php:89
 msgid "Form"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:34
+#: src/Admin/WorkflowPage.php:35
 msgid "Form CSS"
 msgstr ""
 
-#: src/Forms/Repository.php:42
+#: src/Forms/Repository.php:80
 msgid "Form name is required."
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:142
+#: src/Admin/SubmissionDetailPage.php:143
 msgid "Form revision"
 msgstr ""
 
 #. translators: %d: form revision number.
-#: src/Forms/Repository.php:74
+#: src/Forms/Repository.php:113
 #, php-format
 msgid "Form revision %d published."
 msgstr ""
 
-#: src/Admin/Admin.php:162
+#: src/Admin/Admin.php:163
 msgid "Form saved and a new revision was published."
 msgstr ""
 
-#: src/Forms/Repository.php:43
+#: src/Forms/Repository.php:81
 msgid "Form slug is required."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:181
+#: src/Admin/ContactsPage.php:182
 msgid "Form submission"
 msgstr ""
 
@@ -823,12 +823,12 @@ msgstr ""
 msgid "Form submission received; contact sync: %s."
 msgstr ""
 
-#: src/Admin/Admin.php:111 src/Admin/Bootstrap.php:45
-#: src/Admin/DashboardPage.php:44
+#: src/Admin/DashboardPage.php:44 src/Admin/Bootstrap.php:45
+#: src/Admin/Admin.php:112
 msgid "Forms"
 msgstr ""
 
-#: src/Admin/Admin.php:271
+#: src/Admin/Admin.php:275
 msgid ""
 "Forms continue to work without document links. BfCamel CRM records that "
 "documents were not configured at the time of consent."
@@ -836,20 +836,20 @@ msgstr ""
 
 #. translators: %d: number of matching contacts.
 #. translators: %d: number of matching submissions.
-#: src/Admin/ContactsPage.php:51 src/Admin/SubmissionsPage.php:51
+#: src/Admin/ContactsPage.php:52 src/Admin/SubmissionsPage.php:52
 #, php-format
 msgid "Found: %d"
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:47
+#: src/Admin/SubmissionsPage.php:48
 msgid "From"
 msgstr ""
 
-#: src/CRM/ActivityFormatter.php:150 src/Consent/ConsentService.php:21
+#: src/CRM/ActivityFormatter.php:150 src/Consent/ConsentService.php:22
 msgid "Granted"
 msgstr ""
 
-#: src/Admin/Admin.php:337
+#: src/Admin/Admin.php:341
 msgid "Hidden"
 msgstr ""
 
@@ -857,23 +857,23 @@ msgstr ""
 msgid "High"
 msgstr ""
 
-#: src/Forms/Repository.php:86
+#: src/Forms/Repository.php:126
 msgid "How should we address you?"
 msgstr ""
 
-#: src/Admin/Admin.php:89 src/Forms/Repository.php:91
+#: src/Admin/Admin.php:90 src/Forms/Repository.php:131
 msgid ""
 "I consent to receive informational and marketing messages under the "
 "{marketing_consent}."
 msgstr ""
 
-#: src/Admin/Admin.php:88 src/Forms/Repository.php:90
+#: src/Admin/Admin.php:89 src/Forms/Repository.php:130
 msgid ""
 "I consent to {personal_data_consent} and confirm that I have read the "
 "{privacy_policy}."
 msgstr ""
 
-#: src/Admin/Admin.php:271
+#: src/Admin/Admin.php:275
 msgid ""
 "I understand that I have not provided links to legal documents and that I am "
 "responsible for the lawfulness of data collection and processing."
@@ -883,11 +883,11 @@ msgstr ""
 msgid "IP address"
 msgstr ""
 
-#: src/Admin/Admin.php:273
+#: src/Admin/Admin.php:277
 msgid "IP address storage is disabled by default."
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:144
+#: src/Admin/SubmissionDetailPage.php:145
 msgid "IP stored"
 msgstr ""
 
@@ -909,58 +909,58 @@ msgstr ""
 msgid "Internal note"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:166 src/Admin/SubmissionDetailPage.php:54
+#: src/Admin/ContactsPage.php:167 src/Admin/SubmissionDetailPage.php:55
 #: src/CRM/ActivityFormatter.php:58
 msgid "Internal note added."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:169 src/Admin/SubmissionDetailPage.php:76
+#: src/Admin/ContactsPage.php:170 src/Admin/SubmissionDetailPage.php:77
 msgid "Internal notes"
 msgstr ""
 
-#: src/Forms/SubmissionHandler.php:59
+#: src/Forms/SubmissionHandler.php:60
 msgid "Invalid email address."
 msgstr ""
 
-#: src/Export/Exporter.php:25 src/Export/Exporter.php:48
+#: src/Export/Exporter.php:26 src/Export/Exporter.php:49
 msgid "Invalid export request."
 msgstr ""
 
-#: src/Forms/SubmissionHandler.php:65
+#: src/Forms/SubmissionHandler.php:66
 msgid "Invalid number."
 msgstr ""
 
-#: src/Forms/SubmissionHandler.php:65
+#: src/Forms/SubmissionHandler.php:66
 msgid "Invalid option."
 msgstr ""
 
-#: src/CRM/TagService.php:82
+#: src/CRM/TagService.php:91
 msgid "Invalid tag target."
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:88
+#: src/Admin/WorkflowPage.php:89
 msgid "Is filled"
 msgstr ""
 
-#: src/Admin/Admin.php:273
+#: src/Admin/Admin.php:277
 msgid ""
 "Keep this disabled unless you explicitly want uninstall.php to remove CRM "
 "tables and settings."
 msgstr ""
 
-#: src/Admin/Admin.php:73
+#: src/Admin/Admin.php:74
 msgid "Label / text"
 msgstr ""
 
-#: src/Forms/Renderer.php:42
+#: src/Forms/Renderer.php:43
 msgid "Leave this field empty"
 msgstr ""
 
-#: src/Admin/Admin.php:265 src/Admin/Admin.php:267
+#: src/Admin/Admin.php:269 src/Admin/Admin.php:271
 msgid "Legal documents"
 msgstr ""
 
-#: src/Admin/Admin.php:362
+#: src/Admin/Admin.php:366
 msgid "Link text"
 msgstr ""
 
@@ -976,11 +976,11 @@ msgstr ""
 msgid "Manage forms"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:39
+#: src/Admin/WorkflowPage.php:40
 msgid "Manage workflow, shared tags, automation and form styling."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:181
+#: src/Admin/ContactsPage.php:182
 msgid "Manual change"
 msgstr ""
 
@@ -988,44 +988,44 @@ msgstr ""
 msgid "Marketing"
 msgstr ""
 
-#: src/Admin/Admin.php:270
+#: src/Admin/Admin.php:274
 msgid "Marketing / Information Messages Consent"
 msgstr ""
 
-#: src/Forms/Renderer.php:75
+#: src/Forms/Renderer.php:76
 msgid "Marketing Consent"
 msgstr ""
 
-#: src/Admin/Admin.php:339 src/Admin/ContactsPage.php:44
-#: src/Admin/ContactsPage.php:176 src/Export/Exporter.php:60
+#: src/Admin/ContactsPage.php:45 src/Admin/ContactsPage.php:177
+#: src/Admin/Admin.php:343 src/Export/Exporter.php:61
 msgid "Marketing consent"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:44
+#: src/Admin/ContactsPage.php:45
 msgid "Marketing: all"
 msgstr ""
 
-#: src/Forms/Repository.php:89
+#: src/Forms/Repository.php:129
 msgid "Message"
 msgstr ""
 
-#: src/Admin/Admin.php:72
+#: src/Admin/Admin.php:73
 msgid "Move down"
 msgstr ""
 
-#: src/Admin/Admin.php:71
+#: src/Admin/Admin.php:72
 msgid "Move up"
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:34
+#: src/Admin/SubmissionsPage.php:35
 msgid "My submissions"
 msgstr ""
 
-#: src/Admin/Admin.php:117 src/Admin/Admin.php:174
-#: src/Admin/ContactsPage.php:156 src/Admin/ContactsPage.php:168
-#: src/Admin/ContactsPage.php:176 src/Admin/WorkflowPage.php:63
-#: src/Admin/WorkflowPage.php:74 src/CRM/ActivityFormatter.php:94
-#: src/Export/Exporter.php:60 src/Forms/Repository.php:86
+#: src/Admin/ContactsPage.php:157 src/Admin/ContactsPage.php:169
+#: src/Admin/ContactsPage.php:177 src/Admin/WorkflowPage.php:64
+#: src/Admin/WorkflowPage.php:75 src/Admin/Admin.php:118
+#: src/Admin/Admin.php:175 src/Forms/Repository.php:126
+#: src/Export/Exporter.php:61 src/CRM/ActivityFormatter.php:94
 msgid "Name"
 msgstr ""
 
@@ -1033,7 +1033,7 @@ msgstr ""
 msgid "Need review"
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:65 src/CRM/WorkflowService.php:246
+#: src/Admin/SubmissionsPage.php:66 src/CRM/WorkflowService.php:246
 msgid "Needs review"
 msgstr ""
 
@@ -1041,11 +1041,11 @@ msgstr ""
 msgid "New"
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:144
+#: src/Admin/SubmissionDetailPage.php:145
 msgid "No"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:176
+#: src/Admin/ContactsPage.php:177
 msgid "No contacts yet."
 msgstr ""
 
@@ -1053,15 +1053,15 @@ msgstr ""
 msgid "No dashboard data is available for your role."
 msgstr ""
 
-#: src/Admin/Admin.php:120
+#: src/Admin/Admin.php:121
 msgid "No forms yet."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:171 src/Admin/SubmissionDetailPage.php:92
+#: src/Admin/ContactsPage.php:172 src/Admin/SubmissionDetailPage.php:93
 msgid "No history entries yet."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:179 src/Admin/SubmissionDetailPage.php:86
+#: src/Admin/ContactsPage.php:180 src/Admin/SubmissionDetailPage.php:87
 msgid "No internal notes yet."
 msgstr ""
 
@@ -1069,7 +1069,7 @@ msgstr ""
 msgid "No open submissions."
 msgstr ""
 
-#: src/Admin/DashboardPage.php:111 src/Admin/SubmissionsPage.php:65
+#: src/Admin/DashboardPage.php:111 src/Admin/SubmissionsPage.php:66
 msgid "No submissions yet."
 msgstr ""
 
@@ -1081,33 +1081,33 @@ msgstr ""
 msgid "Normal"
 msgstr ""
 
-#: src/CRM/ActivityFormatter.php:151 src/Consent/ConsentService.php:22
+#: src/CRM/ActivityFormatter.php:151 src/Consent/ConsentService.php:23
 msgid "Not granted"
 msgstr ""
 
-#: src/Consent/ConsentService.php:20
+#: src/Consent/ConsentService.php:21
 msgid "Not specified"
 msgstr ""
 
-#: src/Admin/Admin.php:331
+#: src/Admin/Admin.php:335
 msgid "Number"
 msgstr ""
 
-#: src/CRM/SubmissionService.php:86
+#: src/CRM/SubmissionService.php:87
 msgid "One of the selected submissions no longer exists."
 msgstr ""
 
-#: src/Admin/Admin.php:376
+#: src/Admin/Admin.php:380
 msgid "Only administrators can access CRM settings."
 msgstr ""
 
-#: src/Admin/Admin.php:275
+#: src/Admin/Admin.php:279
 msgid ""
 "Only administrators have CRM access by default. Grant every additional "
 "permission explicitly."
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:113
+#: src/Admin/SubmissionDetailPage.php:114
 msgid "Open contact"
 msgstr ""
 
@@ -1115,17 +1115,17 @@ msgstr ""
 msgid "Open workload"
 msgstr ""
 
-#: src/Admin/Admin.php:81
+#: src/Admin/Admin.php:82
 msgid "Options, one per line"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:63
+#: src/Admin/WorkflowPage.php:64
 msgid "Order"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:156 src/Admin/ContactsPage.php:168
-#: src/Admin/ContactsPage.php:176 src/CRM/ActivityFormatter.php:95
-#: src/Export/Exporter.php:60 src/Privacy/Privacy.php:203
+#: src/Admin/ContactsPage.php:157 src/Admin/ContactsPage.php:169
+#: src/Admin/ContactsPage.php:177 src/Export/Exporter.php:61
+#: src/CRM/ActivityFormatter.php:95 src/Privacy/Privacy.php:203
 msgid "Organization"
 msgstr ""
 
@@ -1133,7 +1133,7 @@ msgstr ""
 msgid "Pending"
 msgstr ""
 
-#: src/Admin/Admin.php:268 src/Forms/Renderer.php:75
+#: src/Admin/Admin.php:272 src/Forms/Renderer.php:76
 msgid "Personal Data Processing Consent"
 msgstr ""
 
@@ -1141,53 +1141,54 @@ msgstr ""
 msgid "Personal data"
 msgstr ""
 
-#: src/Admin/Admin.php:338 src/Admin/ContactsPage.php:43
-#: src/Admin/ContactsPage.php:176 src/Export/Exporter.php:60
+#: src/Admin/ContactsPage.php:44 src/Admin/ContactsPage.php:177
+#: src/Admin/Admin.php:342 src/Export/Exporter.php:61
 msgid "Personal data consent"
 msgstr ""
 
-#: src/Consent/ConsentService.php:13
+#: src/Consent/ConsentService.php:14
 msgid "Personal data processing"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:43
+#: src/Admin/ContactsPage.php:44
 msgid "Personal data: all"
 msgstr ""
 
-#: src/Admin/Admin.php:330 src/Admin/ContactsPage.php:156
-#: src/Admin/ContactsPage.php:176 src/CRM/ActivityFormatter.php:97
-#: src/Export/Exporter.php:60 src/Forms/Repository.php:87
+#: src/Admin/ContactsPage.php:157 src/Admin/ContactsPage.php:177
+#: src/Admin/Admin.php:334 src/Forms/Repository.php:127
+#: src/Export/Exporter.php:61 src/CRM/ActivityFormatter.php:97
 #: src/Privacy/Privacy.php:210
 msgid "Phone"
 msgstr ""
 
-#: src/Admin/Admin.php:75
+#: src/Admin/Admin.php:76
 msgid "Placeholder / hidden value"
 msgstr ""
 
-#: src/Forms/Repository.php:97
+#: src/Forms/Repository.php:137
 msgid "Please check the form and try again."
 msgstr ""
 
-#: src/Admin/Admin.php:200
+#: src/Admin/Admin.php:201
 msgid "Primary / focus color"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:168
+#: src/Admin/ContactsPage.php:169
 msgid "Primary email"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:168
+#: src/Admin/ContactsPage.php:169
 msgid "Primary phone"
 msgstr ""
 
-#: src/Admin/DashboardPage.php:36 src/Admin/SubmissionDetailPage.php:122
-#: src/Admin/SubmissionDetailPage.php:132 src/Admin/SubmissionsPage.php:65
-#: src/Admin/WorkflowPage.php:87 src/Export/Exporter.php:89
+#: src/Admin/SubmissionDetailPage.php:123
+#: src/Admin/SubmissionDetailPage.php:133 src/Admin/DashboardPage.php:36
+#: src/Admin/SubmissionsPage.php:66 src/Admin/WorkflowPage.php:88
+#: src/Export/Exporter.php:89
 msgid "Priority"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:87
+#: src/Admin/WorkflowPage.php:88
 msgid "Priority rules"
 msgstr ""
 
@@ -1197,34 +1198,34 @@ msgstr ""
 msgid "Priority: %1$s → %2$s"
 msgstr ""
 
-#: src/Admin/Admin.php:265
+#: src/Admin/Admin.php:269
 msgid "Privacy"
 msgstr ""
 
-#: src/Admin/Admin.php:269 src/Forms/Renderer.php:75
+#: src/Admin/Admin.php:273 src/Forms/Renderer.php:76
 msgid "Privacy Policy"
 msgstr ""
 
-#: src/Admin/Admin.php:273
+#: src/Admin/Admin.php:277
 msgid "Privacy and technical metadata"
 msgstr ""
 
-#: src/Admin/Admin.php:127
+#: src/Admin/Admin.php:128
 msgid "Published"
 msgstr ""
 
-#: src/Admin/Admin.php:111
+#: src/Admin/Admin.php:112
 msgid ""
 "Published form schemas are the CRM contracts. Every save creates an "
 "immutable revision."
 msgstr ""
 
-#: src/Admin/Admin.php:335
+#: src/Admin/Admin.php:339
 msgid "Radio"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:170 src/Admin/DashboardPage.php:109
-#: src/Admin/SubmissionsPage.php:65 src/Export/Exporter.php:89
+#: src/Admin/ContactsPage.php:171 src/Admin/DashboardPage.php:109
+#: src/Admin/SubmissionsPage.php:66 src/Export/Exporter.php:89
 msgid "Received"
 msgstr ""
 
@@ -1236,31 +1237,31 @@ msgstr ""
 msgid "Recorded at"
 msgstr ""
 
-#: src/Admin/Admin.php:70
+#: src/Admin/Admin.php:71
 msgid "Remove"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:57 src/Admin/SubmissionsPage.php:55
+#: src/Admin/ContactsPage.php:58 src/Admin/SubmissionsPage.php:56
 msgid "Remove tags"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:53
+#: src/Admin/WorkflowPage.php:54
 msgid ""
 "Rename priorities, add custom values and choose the default. Weight controls "
 "ordering: larger weights represent higher priority."
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:52
+#: src/Admin/WorkflowPage.php:53
 msgid ""
 "Rename statuses, add your own, disable unused values and choose the default "
 "status for new submissions. Existing submissions keep their stored status."
 msgstr ""
 
-#: src/Admin/Admin.php:180
+#: src/Admin/Admin.php:181
 msgid "Reorder fields and map them directly to CRM contact data."
 msgstr ""
 
-#: src/Admin/Admin.php:76
+#: src/Admin/Admin.php:77
 msgid "Required"
 msgstr ""
 
@@ -1271,17 +1272,17 @@ msgid "Required database objects are missing: %s"
 msgstr ""
 
 #. translators: %s: required form field key.
-#: src/Forms/SubmissionHandler.php:56
+#: src/Forms/SubmissionHandler.php:57
 #, php-format
 msgid "Required field missing: %s"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:46 src/Admin/SubmissionsPage.php:47
+#: src/Admin/ContactsPage.php:47 src/Admin/SubmissionsPage.php:48
 msgid "Reset"
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:123
-#: src/Admin/SubmissionDetailPage.php:133 src/Admin/SubmissionsPage.php:65
+#: src/Admin/SubmissionDetailPage.php:124
+#: src/Admin/SubmissionDetailPage.php:134 src/Admin/SubmissionsPage.php:66
 #: src/Export/Exporter.php:89
 msgid "Responsible"
 msgstr ""
@@ -1292,110 +1293,110 @@ msgstr ""
 msgid "Responsible: %1$s → %2$s"
 msgstr ""
 
-#: src/Admin/Admin.php:129
+#: src/Admin/Admin.php:130
 msgid "Restore"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:24
+#: src/Admin/WorkflowPage.php:25
 msgid "Review legal settings"
 msgstr ""
 
-#: src/CRM/ActivityFormatter.php:152 src/Consent/ConsentService.php:23
+#: src/CRM/ActivityFormatter.php:152 src/Consent/ConsentService.php:24
 msgid "Revoked"
 msgstr ""
 
-#: src/Admin/Admin.php:276
+#: src/Admin/Admin.php:280
 msgid "Role"
 msgstr ""
 
-#: src/Admin/Admin.php:275
+#: src/Admin/Admin.php:279
 msgid "Role permissions"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:87
+#: src/Admin/WorkflowPage.php:88
 msgid ""
 "Rules are evaluated after the form default. Later matching rules override "
 "the priority chosen earlier."
 msgstr ""
 
-#: src/Admin/Admin.php:212
+#: src/Admin/Admin.php:213
 msgid "Save & publish revision"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:168
+#: src/Admin/ContactsPage.php:169
 msgid "Save contact"
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:41
+#: src/Admin/SubmissionsPage.php:42
 msgid "Search by ID, name, email, phone or form data"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:41
+#: src/Admin/ContactsPage.php:42
 msgid "Search by name, organization, email or phone"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:41
+#: src/Admin/ContactsPage.php:42
 msgid "Search contacts"
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:41
+#: src/Admin/SubmissionsPage.php:42
 msgid "Search submissions"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:35
+#: src/Admin/ContactsPage.php:36
 msgid "Search, filter and manage CRM contacts."
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:30
+#: src/Admin/SubmissionsPage.php:31
 msgid "Search, filter and manage incoming submissions."
 msgstr ""
 
-#: src/Admin/Admin.php:90
+#: src/Admin/Admin.php:91
 msgid "Section title"
 msgstr ""
 
-#: src/Admin/Admin.php:334
+#: src/Admin/Admin.php:338
 msgid "Select"
 msgstr ""
 
-#: src/Forms/Renderer.php:61
+#: src/Forms/Renderer.php:62
 msgid "Select an option"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:99 src/Export/Exporter.php:52
+#: src/Admin/ContactsPage.php:100 src/Export/Exporter.php:53
 msgid "Select at least one contact."
 msgstr ""
 
-#: src/CRM/SubmissionService.php:72
+#: src/CRM/SubmissionService.php:73
 msgid "Select at least one submission."
 msgstr ""
 
-#: src/Admin/Admin.php:50 src/Admin/ContactsPage.php:58
-#: src/CRM/SubmissionService.php:81
+#: src/Admin/ContactsPage.php:59 src/Admin/Admin.php:51
+#: src/CRM/SubmissionService.php:82
 msgid "Select tags"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:48
+#: src/Admin/ContactsPage.php:49
 msgid "Selected contacts updated."
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:48
+#: src/Admin/SubmissionsPage.php:49
 msgid "Selected submissions updated."
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:126
+#: src/Admin/SubmissionDetailPage.php:127
 msgid "Separate tags with commas."
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:55
+#: src/Admin/SubmissionsPage.php:56
 msgid "Set priority"
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:55
+#: src/Admin/SubmissionsPage.php:56
 msgid "Set responsible"
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:55
+#: src/Admin/SubmissionsPage.php:56
 msgid "Set status"
 msgstr ""
 
@@ -1403,38 +1404,37 @@ msgstr ""
 msgid "Settings"
 msgstr ""
 
-#: src/Admin/Admin.php:264 src/Admin/WorkflowPage.php:41
+#: src/Admin/WorkflowPage.php:42 src/Admin/Admin.php:268
 msgid "Settings saved."
 msgstr ""
 
-#: src/Admin/Admin.php:265
+#: src/Admin/Admin.php:269
 msgid "Settings sections"
 msgstr ""
 
-#: src/Admin/Admin.php:117
+#: src/Admin/Admin.php:118
 msgid "Shortcode"
 msgstr ""
 
-#: src/Admin/Admin.php:117 src/Admin/Admin.php:175
-#: src/Admin/WorkflowPage.php:63
+#: src/Admin/WorkflowPage.php:64 src/Admin/Admin.php:118
+#: src/Admin/Admin.php:176
 msgid "Slug"
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:143 src/Export/Exporter.php:89
+#: src/Admin/SubmissionDetailPage.php:144 src/Export/Exporter.php:89
 #: src/Privacy/Privacy.php:75 src/Privacy/Privacy.php:103
 msgid "Source URL"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:99
+#: src/Admin/WorkflowPage.php:100
 msgid "Stable selectors"
 msgstr ""
 
-#: src/Admin/Admin.php:117 src/Admin/ContactsPage.php:170
-#: src/Admin/DashboardPage.php:35 src/Admin/DashboardPage.php:109
-#: src/Admin/SubmissionDetailPage.php:121
-#: src/Admin/SubmissionDetailPage.php:131 src/Admin/SubmissionsPage.php:65
-#: src/Export/Exporter.php:60 src/Export/Exporter.php:89
-#: src/Privacy/Privacy.php:204
+#: src/Admin/ContactsPage.php:171 src/Admin/SubmissionDetailPage.php:122
+#: src/Admin/SubmissionDetailPage.php:132 src/Admin/DashboardPage.php:35
+#: src/Admin/DashboardPage.php:109 src/Admin/SubmissionsPage.php:66
+#: src/Admin/Admin.php:118 src/Export/Exporter.php:61
+#: src/Export/Exporter.php:89 src/Privacy/Privacy.php:204
 msgid "Status"
 msgstr ""
 
@@ -1444,67 +1444,67 @@ msgstr ""
 msgid "Status: %1$s → %2$s"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:31
+#: src/Admin/WorkflowPage.php:32
 msgid "Statuses & priorities"
 msgstr ""
 
-#: src/Admin/Admin.php:273
+#: src/Admin/Admin.php:277
 msgid "Store browser information (User-Agent)"
 msgstr ""
 
-#: src/Admin/Admin.php:273
+#: src/Admin/Admin.php:277
 msgid "Store the source page URL"
 msgstr ""
 
-#: src/Admin/Admin.php:273
+#: src/Admin/Admin.php:277
 msgid "Store visitor IP addresses as submission and consent evidence"
 msgstr ""
 
-#: src/Admin/Admin.php:198
+#: src/Admin/Admin.php:199
 msgid "Style mode"
 msgstr ""
 
 #. translators: %d: submission ID.
-#: src/Admin/SubmissionDetailPage.php:46
+#: src/Admin/SubmissionDetailPage.php:47
 #, php-format
 msgid "Submission #%d"
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:90
+#: src/Admin/SubmissionDetailPage.php:91
 msgid "Submission history"
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:20 src/Admin/SubmissionDetailPage.php:163
-#: src/Admin/SubmissionsPage.php:62
+#: src/Admin/SubmissionDetailPage.php:21 src/Admin/SubmissionDetailPage.php:164
+#: src/Admin/SubmissionsPage.php:63
 msgid "Submission not found."
 msgstr ""
 
-#: src/Admin/Admin.php:82
+#: src/Admin/Admin.php:83
 msgid "Submission only"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:53
+#: src/Admin/WorkflowPage.php:54
 msgid "Submission priorities"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:52
+#: src/Admin/WorkflowPage.php:53
 msgid "Submission statuses"
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:53
+#: src/Admin/SubmissionDetailPage.php:54
 msgid "Submission updated."
 msgstr ""
 
-#: src/Admin/Bootstrap.php:43 src/Admin/ContactsPage.php:170
-#: src/Admin/SubmissionsPage.php:30 src/Admin/WorkflowPage.php:74
+#: src/Admin/ContactsPage.php:171 src/Admin/SubmissionsPage.php:31
+#: src/Admin/Bootstrap.php:43 src/Admin/WorkflowPage.php:75
 msgid "Submissions"
 msgstr ""
 
-#: src/Forms/Repository.php:97
+#: src/Forms/Repository.php:137
 msgid "Submit"
 msgstr ""
 
-#: src/Admin/Admin.php:209
+#: src/Admin/Admin.php:210
 msgid "Submit button label"
 msgstr ""
 
@@ -1512,36 +1512,36 @@ msgstr ""
 msgid "Submitted at"
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:59
+#: src/Admin/SubmissionDetailPage.php:60
 msgid "Submitted data"
 msgstr ""
 
-#: src/Admin/Admin.php:210
+#: src/Admin/Admin.php:211
 msgid "Success message"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:171 src/Admin/ContactsPage.php:179
-#: src/Admin/SubmissionDetailPage.php:86 src/Admin/SubmissionDetailPage.php:100
+#: src/Admin/ContactsPage.php:172 src/Admin/ContactsPage.php:180
+#: src/Admin/SubmissionDetailPage.php:87 src/Admin/SubmissionDetailPage.php:101
 msgid "System"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:42 src/Admin/WorkflowPage.php:75
+#: src/Admin/ContactsPage.php:43 src/Admin/WorkflowPage.php:76
 msgid "Tag"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:74
+#: src/Admin/WorkflowPage.php:75
 msgid "Tag catalog"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:156 src/Admin/ContactsPage.php:176
-#: src/Admin/SubmissionDetailPage.php:124
-#: src/Admin/SubmissionDetailPage.php:134 src/Admin/SubmissionsPage.php:65
-#: src/Admin/WorkflowPage.php:32 src/Export/Exporter.php:60
+#: src/Admin/ContactsPage.php:157 src/Admin/ContactsPage.php:177
+#: src/Admin/SubmissionDetailPage.php:125
+#: src/Admin/SubmissionDetailPage.php:135 src/Admin/SubmissionsPage.php:66
+#: src/Admin/WorkflowPage.php:33 src/Export/Exporter.php:61
 #: src/Export/Exporter.php:89
 msgid "Tags"
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:55
+#: src/Admin/SubmissionsPage.php:56
 msgid "Tags, separated by commas"
 msgstr ""
 
@@ -1551,23 +1551,23 @@ msgstr ""
 msgid "Tags: %1$s → %2$s"
 msgstr ""
 
-#: src/Admin/Admin.php:328
+#: src/Admin/Admin.php:332
 msgid "Text"
 msgstr ""
 
-#: src/Admin/Admin.php:340
+#: src/Admin/Admin.php:344
 msgid "Text / heading"
 msgstr ""
 
-#: src/Admin/Admin.php:201
+#: src/Admin/Admin.php:202
 msgid "Text color"
 msgstr ""
 
-#: src/Admin/Admin.php:333
+#: src/Admin/Admin.php:337
 msgid "Textarea"
 msgstr ""
 
-#: src/Forms/Repository.php:97
+#: src/Forms/Repository.php:137
 msgid "Thank you. Your message has been received."
 msgstr ""
 
@@ -1579,78 +1579,84 @@ msgstr ""
 msgid "The PHP ZIP extension is required for XLSX export."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:140
+#: src/Admin/ContactsPage.php:141
 msgid "The consent transaction could not be committed."
 msgstr ""
 
-#: src/CRM/ContactService.php:294
+#: src/CRM/ContactService.php:309
 msgid "The contact could not be created."
 msgstr ""
 
-#: src/CRM/ContactService.php:381
+#: src/CRM/ContactService.php:396
 msgid "The contact could not be updated."
 msgstr ""
 
-#: src/CRM/ContactService.php:297
+#: src/CRM/ContactService.php:312
 msgid "The contact email could not be saved."
 msgstr ""
 
-#: src/CRM/ContactService.php:384
+#: src/CRM/ContactService.php:399
 msgid "The contact email or phone could not be updated."
 msgstr ""
 
-#: src/CRM/ContactService.php:300
+#: src/CRM/ContactService.php:315
 msgid "The contact phone could not be saved."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:85 src/Admin/ContactsPage.php:117
-#: src/Admin/ContactsPage.php:129 src/CRM/ContactService.php:324
+#: src/Admin/ContactsPage.php:86 src/Admin/ContactsPage.php:118
+#: src/Admin/ContactsPage.php:130 src/CRM/ContactService.php:339
 msgid "The contact transaction could not be committed."
 msgstr ""
 
-#: src/Forms/Repository.php:61
+#: src/Forms/Repository.php:100
 msgid "The form could not be created."
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:158 src/Admin/WorkflowPage.php:161
-#: src/Forms/Repository.php:51 src/Forms/Repository.php:58
-#: src/Forms/Repository.php:71 src/Forms/Repository.php:75
-#: src/Forms/Repository.php:77
+#: src/Admin/WorkflowPage.php:159 src/Admin/WorkflowPage.php:162
+#: src/Forms/Repository.php:90 src/Forms/Repository.php:97
+#: src/Forms/Repository.php:110 src/Forms/Repository.php:114
+#: src/Forms/Repository.php:116
 msgid "The form could not be updated."
 msgstr ""
 
-#: src/Forms/Repository.php:67
+#: src/Forms/Repository.php:106
 msgid "The form revision could not be created."
 msgstr ""
 
-#: src/Forms/Repository.php:103
+#: src/Forms/Repository.php:143 src/Support/Request.php:99
+#: src/Support/Request.php:108
 msgid "The form schema is invalid."
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:198
+#: src/Support/Request.php:104
+msgid "The form schema is too large."
+msgstr ""
+
+#: src/Admin/SubmissionDetailPage.php:199
 msgid "The submission could not be updated."
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:227
+#: src/Admin/SubmissionDetailPage.php:228
 msgid "The submission transaction could not be committed."
 msgstr ""
 
-#: src/Admin/Admin.php:198
+#: src/Admin/Admin.php:199
 msgid "Theme / unstyled"
 msgstr ""
 
-#: src/Admin/SubmissionsPage.php:47
+#: src/Admin/SubmissionsPage.php:48
 msgid "To"
 msgstr ""
 
-#: src/Admin/Admin.php:362
+#: src/Admin/Admin.php:366
 msgid "URL (optional)"
 msgstr ""
 
-#: src/Admin/DashboardPage.php:90 src/Admin/SubmissionDetailPage.php:123
-#: src/Admin/SubmissionDetailPage.php:133 src/Admin/SubmissionsPage.php:37
-#: src/Admin/SubmissionsPage.php:44 src/Admin/SubmissionsPage.php:55
-#: src/Admin/SubmissionsPage.php:65 src/CRM/ActivityFormatter.php:115
+#: src/Admin/SubmissionDetailPage.php:124
+#: src/Admin/SubmissionDetailPage.php:134 src/Admin/DashboardPage.php:90
+#: src/Admin/SubmissionsPage.php:38 src/Admin/SubmissionsPage.php:45
+#: src/Admin/SubmissionsPage.php:56 src/Admin/SubmissionsPage.php:66
+#: src/CRM/ActivityFormatter.php:115
 msgid "Unassigned"
 msgstr ""
 
@@ -1662,20 +1668,20 @@ msgstr ""
 msgid "Unknown"
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:127
+#: src/Admin/SubmissionDetailPage.php:128
 msgid "Update"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:180
+#: src/Admin/ContactsPage.php:181
 msgid "Update consent status"
 msgstr ""
 
-#: src/Admin/ContactsPage.php:172
+#: src/Admin/ContactsPage.php:173
 msgid "Update tags"
 msgstr ""
 
-#: src/Admin/Admin.php:117 src/Admin/ContactsPage.php:176
-#: src/Export/Exporter.php:60
+#: src/Admin/ContactsPage.php:177 src/Admin/Admin.php:118
+#: src/Export/Exporter.php:61
 msgid "Updated"
 msgstr ""
 
@@ -1689,11 +1695,11 @@ msgstr ""
 msgid "User #%d"
 msgstr ""
 
-#: src/Admin/WorkflowPage.php:87
+#: src/Admin/WorkflowPage.php:88
 msgid "Value"
 msgstr ""
 
-#: src/Admin/Admin.php:362
+#: src/Admin/Admin.php:366
 msgid "Version"
 msgstr ""
 
@@ -1713,11 +1719,11 @@ msgstr ""
 msgid "Waiting"
 msgstr ""
 
-#: src/CRM/ContactService.php:510 src/CRM/ContactService.php:540
+#: src/CRM/ContactService.php:527 src/CRM/ContactService.php:559
 msgid "Website contact"
 msgstr ""
 
-#: src/Admin/Admin.php:77
+#: src/Admin/Admin.php:78
 msgid "Width"
 msgstr ""
 
@@ -1725,38 +1731,38 @@ msgstr ""
 msgid "WordPress roles are unavailable."
 msgstr ""
 
-#: src/Admin/Admin.php:193 src/Admin/Bootstrap.php:46
+#: src/Admin/Bootstrap.php:46 src/Admin/Admin.php:194
 msgid "Workflow"
 msgstr ""
 
-#: src/Admin/Admin.php:367 src/Admin/Bootstrap.php:55
-#: src/Admin/ContactsPage.php:185 src/Admin/DashboardPage.php:17
-#: src/Admin/SubmissionsPage.php:70 src/Admin/WorkflowPage.php:165
-#: src/Admin/WorkflowPage.php:166
+#: src/Admin/ContactsPage.php:186 src/Admin/DashboardPage.php:17
+#: src/Admin/SubmissionsPage.php:71 src/Admin/Bootstrap.php:55
+#: src/Admin/WorkflowPage.php:166 src/Admin/WorkflowPage.php:167
+#: src/Admin/Admin.php:371
 msgid "You do not have permission to access this page."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:102 src/Export/Exporter.php:17
-#: src/Export/Exporter.php:44
+#: src/Admin/ContactsPage.php:103 src/Export/Exporter.php:18
+#: src/Export/Exporter.php:45
 msgid "You do not have permission to export CRM data."
 msgstr ""
 
-#: src/Export/Exporter.php:29
+#: src/Export/Exporter.php:30
 msgid "You do not have permission to export this CRM area."
 msgstr ""
 
-#: src/Admin/ContactsPage.php:134
+#: src/Admin/ContactsPage.php:135
 msgid "You do not have permission to manage consent status."
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:136
+#: src/Admin/SubmissionDetailPage.php:137
 msgid "You have read-only access to this submission."
 msgstr ""
 
-#: src/Admin/Admin.php:52
+#: src/Admin/Admin.php:53
 msgid "You have unsaved changes."
 msgstr ""
 
-#: src/Admin/SubmissionDetailPage.php:124
+#: src/Admin/SubmissionDetailPage.php:125
 msgid "e.g. urgent, transport, volunteer"
 msgstr ""

@@ -2,6 +2,7 @@
 namespace BfCamel\CRM\Consent;
 
 use BfCamel\CRM\Database\Schema;
+use BfCamel\CRM\Support\Request;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -90,7 +91,7 @@ final class ConsentService {
         $source = array(
             'source_url' => '',
             'source_ip'  => '',
-            'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( sanitize_textarea_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 1000 ) : '',
+            'user_agent' => Request::server_textarea( 'HTTP_USER_AGENT', 1000 ),
         );
         return self::record( $contact_id, 0, $consent_type, $status, 0, 0, self::document_snapshot( $consent_type ), $source, $user_id, 'manual' );
     }
@@ -105,7 +106,7 @@ final class ConsentService {
             return false;
         }
 
-        $inserted = $wpdb->insert(
+        $inserted = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Writes immutable evidence to the plugin's custom consent table.
             Schema::table( 'consent_events' ),
             array(
                 'contact_id'     => absint( $contact_id ),
@@ -164,12 +165,12 @@ final class ConsentService {
         global $wpdb;
         $table = Schema::table( 'consent_events' );
         $users = $wpdb->users;
-        return $wpdb->get_results(
+        return $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Consent history is audit evidence and must not be served stale.
             $wpdb->prepare(
-                "SELECT e.*,u.display_name AS recorded_by_name FROM {$table} e LEFT JOIN {$users} u ON u.ID=e.recorded_by WHERE e.contact_id=%d ORDER BY e.event_at DESC,e.id DESC",
-                absint( $contact_id )
+                'SELECT e.*,u.display_name AS recorded_by_name FROM %i e LEFT JOIN %i u ON u.ID=e.recorded_by WHERE e.contact_id=%d ORDER BY e.event_at DESC,e.id DESC',
+                $table, $users, absint( $contact_id )
             )
-        ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        );
     }
 
     private static function document_snapshot( $consent_type, $field = array() ) {
