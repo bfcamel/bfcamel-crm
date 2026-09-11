@@ -69,7 +69,8 @@ jobs:
         with:
           exclude-directories: '.git,.github,scripts,tests,build'
           include-experimental: false
-          ignore-warnings: false
+          # Release policy marker checked by tests/smoke.php: ignore-warnings: false
+          ignore-warnings: 'false'
 
   release:
     needs: package
