@@ -99,7 +99,7 @@ check( false !== strpos( $contacts, "pagination( \$result, \$filters, 'top' )" )
 check( is_file( $root . '/languages/bfcamel-crm-ru_RU.mo' ), 'Russian MO catalog is missing.' );
 check( false === strpos( file_get_contents( $root . '/src/Plugin.php' ), 'load_plugin_textdomain' ), 'Translations must use WordPress just-in-time loading.' );
 check( is_file( $root . '/src/Support/Request.php' ), 'The request-normalization boundary is missing.' );
-check( false !== strpos( $schema, "Unknown BfCamel CRM table" ), 'Custom table identifiers are not allowlisted.' );
+check( false !== strpos( $schema, "Unknown BfCamel CRM database table" ), 'Custom table identifiers are not allowlisted.' );
 check( ! is_file( $root . '/src/CRM/CRM/WorkflowService.php' ), 'Misplaced WorkflowService compatibility bridge is still present.' );
 check( ! is_file( $root . '/assets/admin-03.css' ) && ! is_file( $root . '/assets/admin-04.css' ) && ! is_file( $root . '/assets/admin-04.js' ), 'Legacy admin asset patches are still present.' );
 $renderer = file_get_contents( $root . '/src/Forms/Renderer.php' );
