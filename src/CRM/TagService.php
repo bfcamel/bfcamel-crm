@@ -47,7 +47,7 @@ final class TagService {
                 $slug = self::slug( $name );
                 $duplicate = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE slug=%s AND id<>%d LIMIT 1', $table, $slug, $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional uniqueness check requires current custom-table state.
                 if ( $duplicate ) return self::rollback_error( __( 'Could not create a tag.', 'bfcamel-crm' ) );
-                if ( false === $wpdb->update( $table, array( 'name'=>$name, 'slug'=>$slug, 'updated_at'=>current_time('mysql') ), array( 'id'=>$id ), array('%s','%s','%s'), array('%d') ) ) return self::rollback_error( __( 'Could not create a tag.', 'bfcamel-crm' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional write to the plugin's custom tag catalog.
+                if ( false === $wpdb->update( $table, array( 'name'=>$name, 'slug'=>$slug, 'updated_at'=>current_time('mysql') ), array( 'id'=>$id ), array('%s','%s','%s'), array('%d') ) ) return self::rollback_error( __( 'Could not create a tag.', 'bfcamel-crm' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Transactional data update in the plugin's custom tag catalog; this does not alter the schema.
             } else {
                 $id = self::get_or_create( $name );
                 if ( is_wp_error( $id ) ) { Schema::rollback(); return $id; }
