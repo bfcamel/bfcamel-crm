@@ -7,26 +7,64 @@ use BfCamel\CRM\Database\Schema;
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 final class Repository {
+    const CACHE_GROUP = 'bfcamel_crm';
+
     public static function all( $include_archived = true ) {
-        global $wpdb; $table=Schema::table('forms');
-        $where = $include_archived ? '' : " WHERE status='publish'";
-        return $wpdb->get_results("SELECT * FROM {$table}{$where} ORDER BY updated_at DESC,id DESC");
+        global $wpdb;
+        $cache_key = 'forms:all:' . ( $include_archived ? '1' : '0' );
+        $found = false;
+        $cached = wp_cache_get( $cache_key, self::CACHE_GROUP, false, $found );
+        if ( $found ) return $cached;
+        $table = Schema::table( 'forms' );
+        $sql = $include_archived
+            ? $wpdb->prepare( 'SELECT * FROM %i ORDER BY updated_at DESC,id DESC', $table )
+            : $wpdb->prepare( "SELECT * FROM %i WHERE status='publish' ORDER BY updated_at DESC,id DESC", $table );
+        $rows = $wpdb->get_results( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Query contains only an identifier prepared with %i; the result is cached below.
+        wp_cache_set( $cache_key, $rows, self::CACHE_GROUP );
+        return $rows;
     }
-    public static function get( $id ) { global $wpdb;$table=Schema::table('forms');return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id=%d LIMIT 1",absint($id))); }
-    public static function get_by_slug( $slug ) { global $wpdb;$table=Schema::table('forms');return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE slug=%s LIMIT 1",sanitize_title($slug))); }
-    public static function get_revision( $revision_id ) { global $wpdb;$table=Schema::table('form_revisions');return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id=%d LIMIT 1",absint($revision_id))); }
+    public static function get( $id ) {
+        global $wpdb;
+        $id = absint( $id ); $cache_key = 'form:id:' . $id; $found = false;
+        $cached = wp_cache_get( $cache_key, self::CACHE_GROUP, false, $found );
+        if ( $found ) return $cached ?: null;
+        $row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id=%d LIMIT 1', Schema::table( 'forms' ), $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Cached read from the plugin's custom forms table.
+        wp_cache_set( $cache_key, $row ?: false, self::CACHE_GROUP );
+        if ( $row ) wp_cache_set( 'form:slug:' . sanitize_title( $row->slug ), $row, self::CACHE_GROUP );
+        return $row;
+    }
+    public static function get_by_slug( $slug ) {
+        global $wpdb;
+        $slug = sanitize_title( $slug ); $cache_key = 'form:slug:' . $slug; $found = false;
+        $cached = wp_cache_get( $cache_key, self::CACHE_GROUP, false, $found );
+        if ( $found ) return $cached ?: null;
+        $row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE slug=%s LIMIT 1', Schema::table( 'forms' ), $slug ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Cached read from the plugin's custom forms table.
+        wp_cache_set( $cache_key, $row ?: false, self::CACHE_GROUP );
+        if ( $row ) wp_cache_set( 'form:id:' . absint( $row->id ), $row, self::CACHE_GROUP );
+        return $row;
+    }
+    public static function get_revision( $revision_id ) {
+        global $wpdb;
+        $revision_id = absint( $revision_id ); $cache_key = 'form-revision:' . $revision_id; $found = false;
+        $cached = wp_cache_get( $cache_key, self::CACHE_GROUP, false, $found );
+        if ( $found ) return $cached ?: null;
+        $row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id=%d LIMIT 1', Schema::table( 'form_revisions' ), $revision_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Form revisions are immutable and safe to cache.
+        wp_cache_set( $cache_key, $row ?: false, self::CACHE_GROUP );
+        return $row;
+    }
     public static function current_revision( $form ) { return $form && !empty($form->current_revision_id) ? self::get_revision($form->current_revision_id) : null; }
 
     public static function archive( $id, $user_id = 0 ) { return self::set_status($id,'archived',$user_id); }
     public static function restore( $id, $user_id = 0 ) { return self::set_status($id,'publish',$user_id); }
     private static function set_status( $id, $status, $user_id ) {
-        global $wpdb; $id=absint($id); $status='publish'===$status?'publish':'archived'; if(!$id||!self::get($id)||!Schema::begin_transaction())return false;
+        global $wpdb; $id=absint($id); $status='publish'===$status?'publish':'archived'; $form=self::get($id); if(!$id||!$form||!Schema::begin_transaction())return false;
         $forms = Schema::table( 'forms' );
-        if(!$wpdb->get_var($wpdb->prepare("SELECT id FROM {$forms} WHERE id=%d FOR UPDATE",$id))){Schema::rollback();return false;} // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        $ok=$wpdb->update(Schema::table('forms'),array('status'=>$status,'updated_at'=>current_time('mysql')),array('id'=>$id),array('%s','%s'),array('%d'));
+        if(!$wpdb->get_var($wpdb->prepare('SELECT id FROM %i WHERE id=%d FOR UPDATE',$forms,$id))){Schema::rollback();return false;} // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FOR UPDATE must bypass caches inside the active transaction.
+        $ok=$wpdb->update(Schema::table('forms'),array('status'=>$status,'updated_at'=>current_time('mysql')),array('id'=>$id),array('%s','%s'),array('%d')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional write to the plugin's custom forms table.
         if(false===$ok){Schema::rollback();return false;}
         if(!Schema::log('form',$id,'publish'===$status?'form_restored':'form_archived','publish'===$status?'Form restored.':'Form archived. To preserve submission history the form record was not physically deleted.',array('status'=>$status),absint($user_id))){Schema::rollback();return false;}
         if(!Schema::commit()){Schema::rollback();return false;}
+        self::clear_form_cache( $id, $form->slug );
         return true;
     }
 
@@ -47,27 +85,28 @@ final class Repository {
         $settings = self::sanitize_settings( $settings );
         if ( ! Schema::begin_transaction() ) return new \WP_Error( 'bfcamel_crm_form_transaction', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
 
-        if ( $id && ! $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$forms} WHERE id=%d FOR UPDATE", $id ) ) ) {
+        $previous_form = $id ? self::get( $id ) : null;
+        if ( $id && ! $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE id=%d FOR UPDATE', $forms, $id ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FOR UPDATE must bypass caches inside the active transaction.
             return self::rollback_error( 'bfcamel_crm_form_update', __( 'The form could not be updated.', 'bfcamel-crm' ) );
         }
-        $duplicate = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$forms} WHERE slug=%s AND id<>%d LIMIT 1", $slug, $id ) );
+        $duplicate = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE slug=%s AND id<>%d LIMIT 1', $forms, $slug, $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional uniqueness check requires current custom-table state.
         if ( $duplicate ) return self::rollback_error( 'bfcamel_crm_form_slug_exists', __( 'Another form already uses this slug.', 'bfcamel-crm' ) );
 
         if ( $id ) {
-            $updated = $wpdb->update( $forms, array( 'name'=>$name, 'slug'=>$slug, 'settings_json'=>wp_json_encode($settings), 'updated_at'=>$now ), array( 'id'=>$id ), array( '%s','%s','%s','%s' ), array( '%d' ) );
+            $updated = $wpdb->update( $forms, array( 'name'=>$name, 'slug'=>$slug, 'settings_json'=>wp_json_encode($settings), 'updated_at'=>$now ), array( 'id'=>$id ), array( '%s','%s','%s','%s' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional write to the plugin's custom forms table.
             if ( false === $updated ) return self::rollback_error( 'bfcamel_crm_form_update', __( 'The form could not be updated.', 'bfcamel-crm' ) );
         } else {
-            $inserted = $wpdb->insert( $forms, array( 'name'=>$name, 'slug'=>$slug, 'status'=>'publish', 'current_revision_id'=>0, 'settings_json'=>wp_json_encode($settings), 'created_by'=>$user_id, 'created_at'=>$now, 'updated_at'=>$now ), array( '%s','%s','%s','%d','%s','%d','%s','%s' ) );
+            $inserted = $wpdb->insert( $forms, array( 'name'=>$name, 'slug'=>$slug, 'status'=>'publish', 'current_revision_id'=>0, 'settings_json'=>wp_json_encode($settings), 'created_by'=>$user_id, 'created_at'=>$now, 'updated_at'=>$now ), array( '%s','%s','%s','%d','%s','%d','%s','%s' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional write to the plugin's custom forms table.
             if ( ! $inserted ) return self::rollback_error( 'bfcamel_crm_form_insert', __( 'The form could not be created.', 'bfcamel-crm' ) );
             $id = absint( $wpdb->insert_id );
         }
 
-        $version = (int) $wpdb->get_var( $wpdb->prepare( "SELECT MAX(version) FROM {$revisions} WHERE form_id=%d", $id ) ) + 1;
-        $inserted_revision = $wpdb->insert( $revisions, array( 'form_id'=>$id, 'version'=>$version, 'schema_json'=>wp_json_encode($schema), 'settings_json'=>wp_json_encode($settings), 'created_by'=>$user_id, 'created_at'=>$now ), array( '%d','%d','%s','%s','%d','%s' ) );
+        $version = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(version) FROM %i WHERE form_id=%d', $revisions, $id ) ) + 1; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Revision numbers are allocated inside the transaction.
+        $inserted_revision = $wpdb->insert( $revisions, array( 'form_id'=>$id, 'version'=>$version, 'schema_json'=>wp_json_encode($schema), 'settings_json'=>wp_json_encode($settings), 'created_by'=>$user_id, 'created_at'=>$now ), array( '%d','%d','%s','%s','%d','%s' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional write to the plugin's custom revision table.
         if ( ! $inserted_revision ) return self::rollback_error( 'bfcamel_crm_revision_insert', __( 'The form revision could not be created.', 'bfcamel-crm' ) );
 
         $revision_id = absint( $wpdb->insert_id );
-        if ( false === $wpdb->update( $forms, array( 'current_revision_id'=>$revision_id, 'updated_at'=>$now ), array( 'id'=>$id ), array( '%d','%s' ), array( '%d' ) ) ) {
+        if ( false === $wpdb->update( $forms, array( 'current_revision_id'=>$revision_id, 'updated_at'=>$now ), array( 'id'=>$id ), array( '%d','%s' ), array( '%d' ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional write to the plugin's custom forms table.
             return self::rollback_error( 'bfcamel_crm_form_update', __( 'The form could not be updated.', 'bfcamel-crm' ) );
         }
         /* translators: %d: form revision number. */
@@ -75,6 +114,7 @@ final class Repository {
             return self::rollback_error( 'bfcamel_crm_form_update', __( 'The form could not be updated.', 'bfcamel-crm' ) );
         }
         if ( ! Schema::commit() ) return self::rollback_error( 'bfcamel_crm_form_update', __( 'The form could not be updated.', 'bfcamel-crm' ) );
+        self::clear_form_cache( $id, $slug, $previous_form ? $previous_form->slug : '' );
         return $id;
     }
 
@@ -131,5 +171,14 @@ final class Repository {
         Schema::rollback();
         if ( $database_error ) $message .= ' ' . sanitize_text_field( $database_error );
         return new \WP_Error( $code, $message );
+    }
+
+    private static function clear_form_cache( $id, $slug = '', $old_slug = '' ) {
+        wp_cache_delete( 'forms:all:0', self::CACHE_GROUP );
+        wp_cache_delete( 'forms:all:1', self::CACHE_GROUP );
+        wp_cache_delete( 'form:id:' . absint( $id ), self::CACHE_GROUP );
+        foreach ( array_unique( array_filter( array( sanitize_title( $slug ), sanitize_title( $old_slug ) ) ) ) as $cached_slug ) {
+            wp_cache_delete( 'form:slug:' . $cached_slug, self::CACHE_GROUP );
+        }
     }
 }

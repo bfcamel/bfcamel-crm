@@ -9,6 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class ContactService {
+    const CACHE_GROUP = 'bfcamel_crm';
+
     public static function resolve_and_sync( $schema, $payload ) {
         $mapped = self::extract_mapped_values( $schema, $payload );
         $email  = self::normalize_email( $mapped['email'] );
@@ -99,21 +101,28 @@ final class ContactService {
 
     private static function acquire_lock( $name ) {
         global $wpdb;
-        return 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 10)', $name ) );
+        return 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 10)', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Advisory locks must always query the current database connection.
     }
 
     private static function release_lock( $name ) {
         global $wpdb;
-        $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) );
+        $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Advisory locks must be released on the current database connection.
     }
 
     public static function get( $contact_id, $for_update = false ) {
         global $wpdb;
         $table = Schema::table( 'contacts' );
         if ( $for_update ) {
-            return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id=%d LIMIT 1 FOR UPDATE", absint( $contact_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            return $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id=%d LIMIT 1 FOR UPDATE', $table, absint( $contact_id ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FOR UPDATE must bypass caches inside the active transaction.
         }
-        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id=%d LIMIT 1", absint( $contact_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $contact_id = absint( $contact_id );
+        $cache_key = 'contact:id:' . $contact_id;
+        $found = false;
+        $cached = wp_cache_get( $cache_key, self::CACHE_GROUP, false, $found );
+        if ( $found ) return $cached ?: null;
+        $row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id=%d LIMIT 1', $table, $contact_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Cached read from the plugin's custom contacts table.
+        wp_cache_set( $cache_key, $row ?: false, self::CACHE_GROUP );
+        return $row;
     }
 
     public static function query( $filters = array(), $page = 1, $per_page = 25 ) {
@@ -124,6 +133,12 @@ final class ContactService {
         $tags = Schema::table( 'tags' );
         $links = Schema::table( 'contact_tags' );
         $consents = Schema::table( 'consent_events' );
+        $contacts_sql = $wpdb->prepare( '%i', $contacts );
+        $emails_sql = $wpdb->prepare( '%i', $emails );
+        $phones_sql = $wpdb->prepare( '%i', $phones );
+        $tags_sql = $wpdb->prepare( '%i', $tags );
+        $links_sql = $wpdb->prepare( '%i', $links );
+        $consents_sql = $wpdb->prepare( '%i', $consents );
 
         $where = array( '1=1' );
         $args = array();
@@ -131,14 +146,14 @@ final class ContactService {
         if ( '' !== $search ) {
             $like = '%' . $wpdb->esc_like( $search ) . '%';
             $where[] = "(c.display_name LIKE %s OR c.organization LIKE %s
-                OR EXISTS (SELECT 1 FROM {$emails} e1 WHERE e1.contact_id=c.id AND e1.value LIKE %s)
-                OR EXISTS (SELECT 1 FROM {$phones} p1 WHERE p1.contact_id=c.id AND p1.value LIKE %s))";
+                OR EXISTS (SELECT 1 FROM {$emails_sql} e1 WHERE e1.contact_id=c.id AND e1.value LIKE %s)
+                OR EXISTS (SELECT 1 FROM {$phones_sql} p1 WHERE p1.contact_id=c.id AND p1.value LIKE %s))";
             $args = array_merge( $args, array( $like, $like, $like, $like ) );
         }
 
         $tag_id = isset( $filters['tag_id'] ) ? absint( $filters['tag_id'] ) : 0;
         if ( $tag_id ) {
-            $where[] = "EXISTS (SELECT 1 FROM {$links} ctf WHERE ctf.contact_id=c.id AND ctf.tag_id=%d)";
+            $where[] = "EXISTS (SELECT 1 FROM {$links_sql} ctf WHERE ctf.contact_id=c.id AND ctf.tag_id=%d)";
             $args[] = $tag_id;
         }
 
@@ -153,30 +168,30 @@ final class ContactService {
             $filter_key = $consent_type . '_consent';
             $status = isset( $filters[ $filter_key ] ) ? sanitize_key( $filters[ $filter_key ] ) : '';
             if ( in_array( $status, $allowed_consent, true ) ) {
-                $where[] = "COALESCE((SELECT ce2.status FROM {$consents} ce2 WHERE ce2.contact_id=c.id AND ce2.consent_type=%s ORDER BY ce2.event_at DESC,ce2.id DESC LIMIT 1),'unknown')=%s";
+                $where[] = "COALESCE((SELECT ce2.status FROM {$consents_sql} ce2 WHERE ce2.contact_id=c.id AND ce2.consent_type=%s ORDER BY ce2.event_at DESC,ce2.id DESC LIMIT 1),'unknown')=%s";
                 $args[] = $consent_type;
                 $args[] = $status;
             }
         }
 
         $where_sql = implode( ' AND ', $where );
-        $count_sql = "SELECT COUNT(*) FROM {$contacts} c WHERE {$where_sql}";
-        $total = (int) $wpdb->get_var( self::prepare_sql( $count_sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $count_sql = "SELECT COUNT(*) FROM {$contacts_sql} c WHERE {$where_sql}";
+        $total = (int) $wpdb->get_var( self::prepare_sql( $count_sql, $args ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Identifiers are prepared with %i; WHERE fragments are fixed and values are prepared by prepare_sql().
         $page = max( 1, absint( $page ) );
         $per_page = min( 500, max( 10, absint( $per_page ) ) );
         $offset = ( $page - 1 ) * $per_page;
 
         $select_sql = "SELECT c.*,
-            (SELECT GROUP_CONCAT(e.value ORDER BY e.is_primary DESC,e.id ASC SEPARATOR ', ') FROM {$emails} e WHERE e.contact_id=c.id) AS email_values,
-            (SELECT GROUP_CONCAT(p.value ORDER BY p.is_primary DESC,p.id ASC SEPARATOR ', ') FROM {$phones} p WHERE p.contact_id=c.id) AS phone_values,
-            (SELECT GROUP_CONCAT(t.name ORDER BY t.name SEPARATOR ', ') FROM {$links} ct INNER JOIN {$tags} t ON t.id=ct.tag_id WHERE ct.contact_id=c.id) AS tag_names,
-            (SELECT ce.status FROM {$consents} ce WHERE ce.contact_id=c.id AND ce.consent_type='personal_data' ORDER BY ce.event_at DESC,ce.id DESC LIMIT 1) AS personal_data_consent,
-            (SELECT ce.status FROM {$consents} ce WHERE ce.contact_id=c.id AND ce.consent_type='marketing' ORDER BY ce.event_at DESC,ce.id DESC LIMIT 1) AS marketing_consent
-            FROM {$contacts} c
+            (SELECT GROUP_CONCAT(e.value ORDER BY e.is_primary DESC,e.id ASC SEPARATOR ', ') FROM {$emails_sql} e WHERE e.contact_id=c.id) AS email_values,
+            (SELECT GROUP_CONCAT(p.value ORDER BY p.is_primary DESC,p.id ASC SEPARATOR ', ') FROM {$phones_sql} p WHERE p.contact_id=c.id) AS phone_values,
+            (SELECT GROUP_CONCAT(t.name ORDER BY t.name SEPARATOR ', ') FROM {$links_sql} ct INNER JOIN {$tags_sql} t ON t.id=ct.tag_id WHERE ct.contact_id=c.id) AS tag_names,
+            (SELECT ce.status FROM {$consents_sql} ce WHERE ce.contact_id=c.id AND ce.consent_type='personal_data' ORDER BY ce.event_at DESC,ce.id DESC LIMIT 1) AS personal_data_consent,
+            (SELECT ce.status FROM {$consents_sql} ce WHERE ce.contact_id=c.id AND ce.consent_type='marketing' ORDER BY ce.event_at DESC,ce.id DESC LIMIT 1) AS marketing_consent
+            FROM {$contacts_sql} c
             WHERE {$where_sql}
             ORDER BY c.updated_at DESC,c.id DESC
             LIMIT %d OFFSET %d";
-        $rows = $wpdb->get_results( self::prepare_sql( $select_sql, array_merge( $args, array( $per_page, $offset ) ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $rows = $wpdb->get_results( self::prepare_sql( $select_sql, array_merge( $args, array( $per_page, $offset ) ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Identifiers are prepared with %i; WHERE fragments are fixed and values are prepared by prepare_sql().
 
         return array(
             'rows'        => $rows,
@@ -201,17 +216,17 @@ final class ContactService {
     public static function count() {
         global $wpdb;
         $table = Schema::table( 'contacts' );
-        return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dashboard totals must reflect current custom-table data.
     }
 
     public static function activity( $contact_id ) {
         global $wpdb;
         $activity = Schema::table( 'activity_log' );
         $users = $wpdb->users;
-        return $wpdb->get_results(
+        return $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Audit history must reflect current custom-table state.
             $wpdb->prepare(
-                "SELECT a.*, u.display_name AS actor_name FROM {$activity} a LEFT JOIN {$users} u ON u.ID=a.user_id WHERE a.entity_type='contact' AND a.entity_id=%d ORDER BY a.created_at DESC,a.id DESC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                absint( $contact_id )
+                "SELECT a.*, u.display_name AS actor_name FROM %i a LEFT JOIN %i u ON u.ID=a.user_id WHERE a.entity_type='contact' AND a.entity_id=%d ORDER BY a.created_at DESC,a.id DESC",
+                $activity, $users, absint( $contact_id )
             )
         );
     }
@@ -219,19 +234,19 @@ final class ContactService {
     public static function get_emails( $contact_id ) {
         global $wpdb;
         $table = Schema::table( 'contact_emails' );
-        return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE contact_id=%d ORDER BY is_primary DESC,id ASC", absint( $contact_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE contact_id=%d ORDER BY is_primary DESC,id ASC', $table, absint( $contact_id ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Contact identifiers must reflect current custom-table state.
     }
 
     public static function get_phones( $contact_id ) {
         global $wpdb;
         $table = Schema::table( 'contact_phones' );
-        return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE contact_id=%d ORDER BY is_primary DESC,id ASC", absint( $contact_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE contact_id=%d ORDER BY is_primary DESC,id ASC', $table, absint( $contact_id ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Contact identifiers must reflect current custom-table state.
     }
 
     public static function get_custom_fields( $contact_id ) {
         global $wpdb;
         $table = Schema::table( 'contact_fields' );
-        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT field_key,field_value FROM {$table} WHERE contact_id=%d ORDER BY field_key ASC", absint( $contact_id ) ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $rows = $wpdb->get_results( $wpdb->prepare( 'SELECT field_key,field_value FROM %i WHERE contact_id=%d ORDER BY field_key ASC', $table, absint( $contact_id ) ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Contact fields must reflect current custom-table state.
         $result = array();
         foreach ( (array) $rows as $row ) {
             $result[ $row['field_key'] ] = $row['field_value'];
@@ -372,7 +387,7 @@ final class ContactService {
         if ( $old_email !== $email ) $changes['email'] = array( 'from' => $old_email, 'to' => $email );
         if ( $old_phone !== $phone ) $changes['phone'] = array( 'from' => $old_phone, 'to' => $phone );
 
-        if ( false === $wpdb->update(
+        if ( false === $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional write to the plugin's custom contacts table.
             Schema::table( 'contacts' ),
             array( 'display_name' => $name, 'organization' => $organization, 'updated_at' => current_time( 'mysql' ) ),
             array( 'id' => $contact_id ),
@@ -386,6 +401,7 @@ final class ContactService {
         if ( $changes && ! Schema::log( 'contact', $contact_id, 'contact_updated', 'Contact details updated.', array( 'changes' => $changes ), absint( $user_id ) ) ) {
             return new \WP_Error( 'bfcamel_crm_contact_history_failed', __( 'Could not record contact history.', 'bfcamel-crm' ) );
         }
+        self::clear_contact_cache( $contact_id );
         return true;
     }
 
@@ -396,26 +412,26 @@ final class ContactService {
         $rows = 'email' === $kind ? self::get_emails( $contact_id ) : self::get_phones( $contact_id );
         $normalized = 'email' === $kind ? self::normalize_email( $value ) : self::normalize_phone( $value );
 
-        $wpdb->update( $table, array( 'is_primary' => 0 ), array( 'contact_id' => $contact_id ), array( '%d' ), array( '%d' ) );
+        $wpdb->update( $table, array( 'is_primary' => 0 ), array( 'contact_id' => $contact_id ), array( '%d' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional identifier update requires current custom-table state.
         if ( '' === $value ) {
             if ( $rows ) {
                 $primary_id = absint( $rows[0]->id );
-                $wpdb->delete( $table, array( 'id' => $primary_id ), array( '%d' ) );
+                $wpdb->delete( $table, array( 'id' => $primary_id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional identifier cleanup in a custom table.
             }
-            $next = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE contact_id=%d ORDER BY id ASC LIMIT 1", $contact_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            if ( $next ) $wpdb->update( $table, array( 'is_primary' => 1 ), array( 'id' => $next ), array( '%d' ), array( '%d' ) );
+            $next = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE contact_id=%d ORDER BY id ASC LIMIT 1', $table, $contact_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Identifier synchronization requires current custom-table state.
+            if ( $next ) $wpdb->update( $table, array( 'is_primary' => 1 ), array( 'id' => $next ), array( '%d' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional identifier update requires current custom-table state.
             return true;
         }
 
-        $existing = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE contact_id=%d AND normalized=%s LIMIT 1", $contact_id, $normalized ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $existing = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE contact_id=%d AND normalized=%s LIMIT 1', $table, $contact_id, $normalized ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Identifier synchronization requires current custom-table state.
         if ( $existing ) {
-            return false !== $wpdb->update( $table, array( 'value' => $value, 'is_primary' => 1 ), array( 'id' => $existing ), array( '%s', '%d' ), array( '%d' ) );
+            return false !== $wpdb->update( $table, array( 'value' => $value, 'is_primary' => 1 ), array( 'id' => $existing ), array( '%s', '%d' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional identifier update requires current custom-table state.
         }
         if ( $rows ) {
             $id = absint( $rows[0]->id );
-            return false !== $wpdb->update( $table, array( 'value' => $value, 'normalized' => $normalized, 'is_primary' => 1 ), array( 'id' => $id ), array( '%s', '%s', '%d' ), array( '%d' ) );
+            return false !== $wpdb->update( $table, array( 'value' => $value, 'normalized' => $normalized, 'is_primary' => 1 ), array( 'id' => $id ), array( '%s', '%s', '%d' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional identifier update requires current custom-table state.
         }
-        return (bool) $wpdb->insert( $table, array( 'contact_id' => $contact_id, 'value' => $value, 'normalized' => $normalized, 'is_primary' => 1 ), array( '%d', '%s', '%s', '%d' ) );
+        return (bool) $wpdb->insert( $table, array( 'contact_id' => $contact_id, 'value' => $value, 'normalized' => $normalized, 'is_primary' => 1 ), array( '%d', '%s', '%s', '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional insert into a plugin-owned identifier table.
     }
 
     public static function anonymize( $contact_id ) {
@@ -425,16 +441,16 @@ final class ContactService {
             return false;
         }
 
-        if ( false === $wpdb->delete( Schema::table( 'contact_emails' ), array( 'contact_id' => $contact_id ), array( '%d' ) ) ) {
+        if ( false === $wpdb->delete( Schema::table( 'contact_emails' ), array( 'contact_id' => $contact_id ), array( '%d' ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Privacy erasure must update current custom-table data.
             return false;
         }
-        if ( false === $wpdb->delete( Schema::table( 'contact_phones' ), array( 'contact_id' => $contact_id ), array( '%d' ) ) ) {
+        if ( false === $wpdb->delete( Schema::table( 'contact_phones' ), array( 'contact_id' => $contact_id ), array( '%d' ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Privacy erasure must update current custom-table data.
             return false;
         }
-        if ( false === $wpdb->delete( Schema::table( 'contact_fields' ), array( 'contact_id' => $contact_id ), array( '%d' ) ) ) {
+        if ( false === $wpdb->delete( Schema::table( 'contact_fields' ), array( 'contact_id' => $contact_id ), array( '%d' ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Privacy erasure must update current custom-table data.
             return false;
         }
-        $updated = $wpdb->update(
+        $updated = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Privacy erasure writes anonymized values to the plugin's custom contacts table.
             Schema::table( 'contacts' ),
             array(
                 /* translators: %d: anonymized contact ID. */
@@ -451,6 +467,7 @@ final class ContactService {
         if ( false === $updated ) {
             return false;
         }
+        self::clear_contact_cache( $contact_id );
         return Schema::log( 'contact', $contact_id, 'anonymized', 'Contact personal data anonymized.' );
     }
 
@@ -510,7 +527,7 @@ final class ContactService {
             $name = __( 'Website contact', 'bfcamel-crm' );
         }
 
-        $ok = $wpdb->insert(
+        $ok = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional insert into the plugin's custom contacts table.
             Schema::table( 'contacts' ),
             array(
                 'display_name' => $name,
@@ -522,7 +539,9 @@ final class ContactService {
             array( '%s', '%s', '%s', '%s', '%s' )
         );
 
-        return $ok ? absint( $wpdb->insert_id ) : 0;
+        $contact_id = $ok ? absint( $wpdb->insert_id ) : 0;
+        if ( $contact_id ) self::clear_contact_cache( $contact_id );
+        return $contact_id;
     }
 
     private static function update_contact( $contact_id, $mapped ) {
@@ -546,7 +565,9 @@ final class ContactService {
             $formats[] = '%s';
         }
 
-        return false !== $wpdb->update( Schema::table( 'contacts' ), $data, array( 'id' => absint( $contact_id ) ), $formats, array( '%d' ) );
+        $updated = false !== $wpdb->update( Schema::table( 'contacts' ), $data, array( 'id' => absint( $contact_id ) ), $formats, array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Contact synchronization updates current custom-table data.
+        if ( $updated ) self::clear_contact_cache( $contact_id );
+        return $updated;
     }
 
     private static function add_email( $contact_id, $value ) {
@@ -557,12 +578,12 @@ final class ContactService {
         }
 
         $table = Schema::table( 'contact_emails' );
-        $exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE contact_id=%d AND normalized=%s LIMIT 1", absint( $contact_id ), $normalized ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $exists = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE contact_id=%d AND normalized=%s LIMIT 1', $table, absint( $contact_id ), $normalized ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Identifier uniqueness requires current custom-table state.
         if ( $exists ) {
             return true;
         }
-        $primary = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE contact_id=%d", absint( $contact_id ) ) ) ? 0 : 1; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        return (bool) $wpdb->insert(
+        $primary = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE contact_id=%d', $table, absint( $contact_id ) ) ) ? 0 : 1; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Primary-identifier selection requires current custom-table state.
+        return (bool) $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional insert into a plugin-owned identifier table.
             $table,
             array(
                 'contact_id' => absint( $contact_id ),
@@ -582,12 +603,12 @@ final class ContactService {
         }
 
         $table = Schema::table( 'contact_phones' );
-        $exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE contact_id=%d AND normalized=%s LIMIT 1", absint( $contact_id ), $normalized ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $exists = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE contact_id=%d AND normalized=%s LIMIT 1', $table, absint( $contact_id ), $normalized ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Identifier uniqueness requires current custom-table state.
         if ( $exists ) {
             return true;
         }
-        $primary = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE contact_id=%d", absint( $contact_id ) ) ) ? 0 : 1; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        return (bool) $wpdb->insert(
+        $primary = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE contact_id=%d', $table, absint( $contact_id ) ) ) ? 0 : 1; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Primary-identifier selection requires current custom-table state.
+        return (bool) $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional insert into a plugin-owned identifier table.
             $table,
             array(
                 'contact_id' => absint( $contact_id ),
@@ -608,9 +629,9 @@ final class ContactService {
             return true;
         }
 
-        $exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE contact_id=%d AND field_key=%s LIMIT 1", absint( $contact_id ), $key ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $exists = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE contact_id=%d AND field_key=%s LIMIT 1', $table, absint( $contact_id ), $key ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom-field upsert requires current custom-table state.
         if ( $exists ) {
-            return false !== $wpdb->update(
+            return false !== $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom-field upsert updates current plugin-owned data.
                 $table,
                 array( 'field_value' => $value, 'updated_at' => current_time( 'mysql' ) ),
                 array( 'id' => $exists ),
@@ -618,7 +639,7 @@ final class ContactService {
                 array( '%d' )
             );
         } else {
-            return (bool) $wpdb->insert(
+            return (bool) $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom-field upsert inserts plugin-owned data.
                 $table,
                 array(
                     'contact_id'  => absint( $contact_id ),
@@ -637,7 +658,7 @@ final class ContactService {
             return array();
         }
         $table = Schema::table( 'contact_emails' );
-        return array_values( array_unique( array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare( "SELECT contact_id FROM {$table} WHERE normalized=%s", $normalized ) ) ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return array_values( array_unique( array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare( 'SELECT contact_id FROM %i WHERE normalized=%s', $table, $normalized ) ) ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Contact resolution requires current identifier data.
     }
 
     private static function find_by_phone( $normalized ) {
@@ -646,7 +667,7 @@ final class ContactService {
             return array();
         }
         $table = Schema::table( 'contact_phones' );
-        return array_values( array_unique( array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare( "SELECT contact_id FROM {$table} WHERE normalized=%s", $normalized ) ) ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return array_values( array_unique( array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare( 'SELECT contact_id FROM %i WHERE normalized=%s', $table, $normalized ) ) ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Contact resolution requires current identifier data.
     }
 
     public static function normalize_email( $email ) {
@@ -706,5 +727,9 @@ final class ContactService {
             $message .= ' ' . sanitize_text_field( $database_error );
         }
         return new \WP_Error( 'bfcamel_crm_contact_database_error', $message );
+    }
+
+    private static function clear_contact_cache( $contact_id ) {
+        wp_cache_delete( 'contact:id:' . absint( $contact_id ), self::CACHE_GROUP );
     }
 }

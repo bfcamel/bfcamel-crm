@@ -4,7 +4,7 @@ Tags: crm, forms, contacts, consent, submissions
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.5.1
+Stable tag: 0.5.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -87,9 +87,17 @@ Yes. Choose Theme / unstyled in the form editor and use the stable `bfcamel-form
 
 = Is multisite supported? =
 
-Version 0.5.1 supports activation on individual sites. Network-wide activation is not supported.
+Version 0.5.2 supports activation on individual sites. Network-wide activation is not supported.
 
 == Changelog ==
+
+= 0.5.2 =
+
+* Resolved WordPress Plugin Check warnings for request handling, database identifiers, custom-table access, uninstall scope and translation loading.
+* Added cache-backed form, revision, contact and tag reads with explicit invalidation after writes.
+* Rebuilt frontend return URLs against the trusted WordPress home URL.
+* Made Plugin Check warnings block release publication.
+* Included the interface refinements prepared for 0.5.1.
 
 = 0.5.1 =
 
@@ -128,6 +136,10 @@ Version 0.5.1 supports activation on individual sites. Network-wide activation i
 * Added contact editing, internal notes, bulk actions, consent filters, assignments and selected exports.
 
 == Upgrade Notice ==
+
+= 0.5.2 =
+
+This compliance update resolves the WordPress Plugin Check report without changing the database schema or stored CRM data.
 
 = 0.5.1 =
 

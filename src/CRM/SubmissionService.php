@@ -22,13 +22,13 @@ final class SubmissionService {
         global $wpdb;
         $submissions = Schema::table( 'submissions' ); $forms = Schema::table( 'forms' ); $contacts = Schema::table( 'contacts' ); $users = $wpdb->users;
         if ( $for_update ) {
-            return $wpdb->get_row( $wpdb->prepare(
-                "SELECT s.*, f.name AS form_name, c.display_name AS contact_name, u.display_name AS assignee_name FROM {$submissions} s LEFT JOIN {$forms} f ON f.id=s.form_id LEFT JOIN {$contacts} c ON c.id=s.contact_id LEFT JOIN {$users} u ON u.ID=s.assigned_to WHERE s.id=%d LIMIT 1 FOR UPDATE", absint( $submission_id )
-            ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            return $wpdb->get_row( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FOR UPDATE must bypass caches inside the active transaction.
+                'SELECT s.*, f.name AS form_name, c.display_name AS contact_name, u.display_name AS assignee_name FROM %i s LEFT JOIN %i f ON f.id=s.form_id LEFT JOIN %i c ON c.id=s.contact_id LEFT JOIN %i u ON u.ID=s.assigned_to WHERE s.id=%d LIMIT 1 FOR UPDATE', $submissions, $forms, $contacts, $users, absint( $submission_id )
+            ) );
         }
-        return $wpdb->get_row( $wpdb->prepare(
-            "SELECT s.*, f.name AS form_name, c.display_name AS contact_name, u.display_name AS assignee_name FROM {$submissions} s LEFT JOIN {$forms} f ON f.id=s.form_id LEFT JOIN {$contacts} c ON c.id=s.contact_id LEFT JOIN {$users} u ON u.ID=s.assigned_to WHERE s.id=%d LIMIT 1", absint( $submission_id )
-        ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return $wpdb->get_row( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Submission details must reflect current workflow state.
+            'SELECT s.*, f.name AS form_name, c.display_name AS contact_name, u.display_name AS assignee_name FROM %i s LEFT JOIN %i f ON f.id=s.form_id LEFT JOIN %i c ON c.id=s.contact_id LEFT JOIN %i u ON u.ID=s.assigned_to WHERE s.id=%d LIMIT 1', $submissions, $forms, $contacts, $users, absint( $submission_id )
+        ) );
     }
 
     public static function query( $filters = array(), $page = 1, $per_page = 25 ) {
@@ -39,7 +39,7 @@ final class SubmissionService {
         $search = isset( $filters['search'] ) ? trim( (string) $filters['search'] ) : '';
         if ( '' !== $search ) {
             $like = '%' . $wpdb->esc_like( $search ) . '%';
-            $parts = array( 's.submission_uuid LIKE %s','f.name LIKE %s','c.display_name LIKE %s','s.payload_json LIKE %s',"EXISTS (SELECT 1 FROM {$emails} e WHERE e.contact_id=s.contact_id AND e.value LIKE %s)","EXISTS (SELECT 1 FROM {$phones} p WHERE p.contact_id=s.contact_id AND p.value LIKE %s)" );
+            $parts = array( 's.submission_uuid LIKE %s','f.name LIKE %s','c.display_name LIKE %s','s.payload_json LIKE %s',$wpdb->prepare('EXISTS (SELECT 1 FROM %i e WHERE e.contact_id=s.contact_id AND e.value LIKE %%s)',$emails),$wpdb->prepare('EXISTS (SELECT 1 FROM %i p WHERE p.contact_id=s.contact_id AND p.value LIKE %%s)',$phones) );
             $search_args = array( $like,$like,$like,$like,$like,$like );
             if ( ctype_digit( $search ) ) { array_unshift( $parts, 's.id=%d' ); array_unshift( $search_args, absint( $search ) ); }
             $where[] = '(' . implode( ' OR ', $parts ) . ')'; $args = array_merge( $args, $search_args );
@@ -52,17 +52,18 @@ final class SubmissionService {
         if ( $form_id ) { $where[] = 's.form_id=%d'; $args[] = $form_id; }
         if ( isset( $filters['assigned_to'] ) && '' !== (string) $filters['assigned_to'] ) { $where[] = 's.assigned_to=%d'; $args[] = absint( $filters['assigned_to'] ); }
         $tag_id = isset( $filters['tag_id'] ) ? absint( $filters['tag_id'] ) : 0;
-        if ( $tag_id ) { $where[] = "EXISTS (SELECT 1 FROM {$links} stf WHERE stf.submission_id=s.id AND stf.tag_id=%d)"; $args[] = $tag_id; }
+        if ( $tag_id ) { $where[] = $wpdb->prepare( 'EXISTS (SELECT 1 FROM %i stf WHERE stf.submission_id=s.id AND stf.tag_id=%%d)', $links ); $args[] = $tag_id; }
         $date_from = isset( $filters['date_from'] ) ? self::date_value( $filters['date_from'] ) : '';
         if ( $date_from ) { $where[] = 's.submitted_at >= %s'; $args[] = $date_from . ' 00:00:00'; }
         $date_to = isset( $filters['date_to'] ) ? self::date_value( $filters['date_to'] ) : '';
         if ( $date_to ) { $where[] = 's.submitted_at <= %s'; $args[] = $date_to . ' 23:59:59'; }
         $where_sql = implode( ' AND ', $where );
-        $base_from = "FROM {$submissions} s LEFT JOIN {$forms} f ON f.id=s.form_id LEFT JOIN {$contacts} c ON c.id=s.contact_id LEFT JOIN {$users} u ON u.ID=s.assigned_to";
-        $total = (int) $wpdb->get_var( self::prepare_sql( "SELECT COUNT(*) {$base_from} WHERE {$where_sql}", $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- SQL is assembled from fixed clauses and prepared by prepare_sql().
+        $base_from = $wpdb->prepare( 'FROM %i s LEFT JOIN %i f ON f.id=s.form_id LEFT JOIN %i c ON c.id=s.contact_id LEFT JOIN %i u ON u.ID=s.assigned_to', $submissions, $forms, $contacts, $users );
+        $total = (int) $wpdb->get_var( self::prepare_sql( "SELECT COUNT(*) {$base_from} WHERE {$where_sql}", $args ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Identifiers are prepared with %i; WHERE fragments are fixed and values are prepared by prepare_sql().
         $page = max( 1, absint( $page ) ); $per_page = min( 500, max( 1, absint( $per_page ) ) ); $offset = ( $page - 1 ) * $per_page;
-        $select_sql = "SELECT s.*, f.name AS form_name, c.display_name AS contact_name, u.display_name AS assignee_name, (SELECT GROUP_CONCAT(t.name ORDER BY t.name SEPARATOR ', ') FROM {$links} st INNER JOIN {$tags} t ON t.id=st.tag_id WHERE st.submission_id=s.id) AS tag_names {$base_from} WHERE {$where_sql} ORDER BY s.submitted_at DESC,s.id DESC LIMIT %d OFFSET %d";
-        $rows = $wpdb->get_results( self::prepare_sql( $select_sql, array_merge( $args, array( $per_page, $offset ) ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- SQL is assembled from fixed clauses and prepared by prepare_sql().
+        $tag_select = $wpdb->prepare( "(SELECT GROUP_CONCAT(t.name ORDER BY t.name SEPARATOR ', ') FROM %i st INNER JOIN %i t ON t.id=st.tag_id WHERE st.submission_id=s.id)", $links, $tags );
+        $select_sql = "SELECT s.*, f.name AS form_name, c.display_name AS contact_name, u.display_name AS assignee_name, {$tag_select} AS tag_names {$base_from} WHERE {$where_sql} ORDER BY s.submitted_at DESC,s.id DESC LIMIT %d OFFSET %d";
+        $rows = $wpdb->get_results( self::prepare_sql( $select_sql, array_merge( $args, array( $per_page, $offset ) ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Identifiers are prepared with %i; WHERE fragments are fixed and values are prepared by prepare_sql().
         return array( 'rows'=>$rows,'total'=>$total,'page'=>$page,'per_page'=>$per_page,'total_pages'=>max( 1, (int) ceil( $total / $per_page ) ) );
     }
 
@@ -86,14 +87,14 @@ final class SubmissionService {
             if ( ! $current ) { Schema::rollback(); return new \WP_Error( 'bfcamel_crm_bulk_missing', __( 'One of the selected submissions no longer exists.', 'bfcamel-crm' ) ); }
             if ( 'status' === $action ) {
                 $new = sanitize_key( $value );
-                if ( (string) $current->status !== $new && ( false === $wpdb->update( Schema::table('submissions'), array('status'=>$new), array('id'=>$id), array('%s'), array('%d') ) || ! Schema::log('submission',$id,'status_changed','Submission status changed.',array('from'=>$current->status,'to'=>$new),$user_id) ) ) { Schema::rollback(); return new \WP_Error('bfcamel_crm_bulk_failed',__( 'Could not update selected submissions.', 'bfcamel-crm' )); }
+                if ( (string) $current->status !== $new && ( false === $wpdb->update( Schema::table('submissions'), array('status'=>$new), array('id'=>$id), array('%s'), array('%d') ) || ! Schema::log('submission',$id,'status_changed','Submission status changed.',array('from'=>$current->status,'to'=>$new),$user_id) ) ) { Schema::rollback(); return new \WP_Error('bfcamel_crm_bulk_failed',__( 'Could not update selected submissions.', 'bfcamel-crm' )); } // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional workflow update requires current custom-table state.
             } elseif ( 'priority' === $action ) {
                 $new = sanitize_key( $value );
                 $old = $current->priority ?: WorkflowService::default_priority();
-                if ( $old !== $new && ( false === $wpdb->update( Schema::table('submissions'), array('priority'=>$new), array('id'=>$id), array('%s'), array('%d') ) || ! Schema::log('submission',$id,'priority_changed','Submission priority changed.',array('from'=>$old,'to'=>$new),$user_id) ) ) { Schema::rollback(); return new \WP_Error('bfcamel_crm_bulk_failed',__( 'Could not update selected submissions.', 'bfcamel-crm' )); }
+                if ( $old !== $new && ( false === $wpdb->update( Schema::table('submissions'), array('priority'=>$new), array('id'=>$id), array('%s'), array('%d') ) || ! Schema::log('submission',$id,'priority_changed','Submission priority changed.',array('from'=>$old,'to'=>$new),$user_id) ) ) { Schema::rollback(); return new \WP_Error('bfcamel_crm_bulk_failed',__( 'Could not update selected submissions.', 'bfcamel-crm' )); } // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional workflow update requires current custom-table state.
             } elseif ( 'assigned_to' === $action ) {
                 $new = absint( $value );
-                if ( absint( $current->assigned_to ) !== $new && ( false === $wpdb->update( Schema::table('submissions'), array('assigned_to'=>$new), array('id'=>$id), array('%d'), array('%d') ) || ! Schema::log('submission',$id,'assignee_changed','Submission assignee changed.',array('from'=>absint($current->assigned_to),'to'=>$new),$user_id) ) ) { Schema::rollback(); return new \WP_Error('bfcamel_crm_bulk_failed',__( 'Could not update selected submissions.', 'bfcamel-crm' )); }
+                if ( absint( $current->assigned_to ) !== $new && ( false === $wpdb->update( Schema::table('submissions'), array('assigned_to'=>$new), array('id'=>$id), array('%d'), array('%d') ) || ! Schema::log('submission',$id,'assignee_changed','Submission assignee changed.',array('from'=>absint($current->assigned_to),'to'=>$new),$user_id) ) ) { Schema::rollback(); return new \WP_Error('bfcamel_crm_bulk_failed',__( 'Could not update selected submissions.', 'bfcamel-crm' )); } // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional workflow update requires current custom-table state.
             } elseif ( in_array( $action, array( 'add_tags','remove_tags' ), true ) ) {
                 $old = TagService::names_for_submission( $id ); $incoming = array_values( array_filter( array_map( 'trim', preg_split( '/[,;\n\r]+/u', (string) $value ) ) ) );
                 if ( 'add_tags' === $action ) $new_names = array_values( array_unique( array_merge( $old, $incoming ) ) );
@@ -115,13 +116,13 @@ final class SubmissionService {
         global $wpdb; $table=Schema::table('submissions'); $default=WorkflowService::default_status(); $review=WorkflowService::is_valid('status','needs_review')?'needs_review':''; $top=WorkflowService::highest_priority();
         $completed = isset( self::statuses()['completed'] ) ? 'completed' : '';
         $unassigned = $completed
-            ? (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE assigned_to=0 AND status<>%s", $completed ) )
-            : (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE assigned_to=0" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            ? (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE assigned_to=0 AND status<>%s', $table, $completed ) ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dashboard counters intentionally use current submission data.
+            : (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE assigned_to=0', $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dashboard counters intentionally use current submission data.
         return array(
-            'total'=>(int)$wpdb->get_var("SELECT COUNT(*) FROM {$table}"),
-            'new'=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE status=%s",$default)),
-            'needs_review'=>$review?(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE status=%s",$review)):0,
-            'urgent'=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE priority=%s",$top)),
+            'total'=>(int)$wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM %i',$table)), // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dashboard counters intentionally use current submission data.
+            'new'=>(int)$wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM %i WHERE status=%s',$table,$default)), // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dashboard counters intentionally use current submission data.
+            'needs_review'=>$review?(int)$wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM %i WHERE status=%s',$table,$review)):0, // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dashboard counters intentionally use current submission data.
+            'urgent'=>(int)$wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM %i WHERE priority=%s',$table,$top)), // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dashboard counters intentionally use current submission data.
             'unassigned'=>$unassigned,
             'default_status'=>$default,
             'review_status'=>$review,
@@ -131,13 +132,15 @@ final class SubmissionService {
 
     public static function workload() {
         global $wpdb; $table=Schema::table('submissions'); $users=$wpdb->users; $completed=isset(self::statuses()['completed'])?'completed':'';
-        $where = $completed ? $wpdb->prepare('WHERE s.status<>%s',$completed) : '';
-        return $wpdb->get_results("SELECT s.assigned_to, COALESCE(u.display_name, '') AS assignee_name, COUNT(*) AS total FROM {$table} s LEFT JOIN {$users} u ON u.ID=s.assigned_to {$where} GROUP BY s.assigned_to,u.display_name ORDER BY total DESC,assignee_name ASC");
+        $sql = $completed
+            ? $wpdb->prepare("SELECT s.assigned_to, COALESCE(u.display_name, '') AS assignee_name, COUNT(*) AS total FROM %i s LEFT JOIN %i u ON u.ID=s.assigned_to WHERE s.status<>%s GROUP BY s.assigned_to,u.display_name ORDER BY total DESC,assignee_name ASC",$table,$users,$completed)
+            : $wpdb->prepare("SELECT s.assigned_to, COALESCE(u.display_name, '') AS assignee_name, COUNT(*) AS total FROM %i s LEFT JOIN %i u ON u.ID=s.assigned_to GROUP BY s.assigned_to,u.display_name ORDER BY total DESC,assignee_name ASC",$table,$users);
+        return $wpdb->get_results($sql); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Query identifiers and the optional status value were prepared immediately above; workload data must remain current.
     }
 
     public static function activity( $submission_id ) {
         global $wpdb; $activity=Schema::table('activity_log'); $users=$wpdb->users;
-        return $wpdb->get_results($wpdb->prepare("SELECT a.*,u.display_name AS actor_name FROM {$activity} a LEFT JOIN {$users} u ON u.ID=a.user_id WHERE a.entity_type='submission' AND a.entity_id=%d ORDER BY a.created_at DESC,a.id DESC",absint($submission_id)));
+        return $wpdb->get_results($wpdb->prepare("SELECT a.*,u.display_name AS actor_name FROM %i a LEFT JOIN %i u ON u.ID=a.user_id WHERE a.entity_type='submission' AND a.entity_id=%d ORDER BY a.created_at DESC,a.id DESC",$activity,$users,absint($submission_id))); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Audit history must reflect current custom-table state.
     }
 
     public static function status_label( $status ) { return WorkflowService::label( 'status', $status ); }

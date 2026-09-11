@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.2
+
+### WordPress Plugin Check compliance
+- Normalized and sanitized request data at a single controller boundary, with nonce checks retained in every state-changing handler.
+- Replaced interpolated table names with WordPress `%i` identifier placeholders and allowlisted every plugin table name.
+- Added precise, documented PHPCS exceptions for intentional direct access to plugin-owned CRM tables and schema operations.
+- Added object caching and explicit cache invalidation for forms, immutable form revisions, contacts and the tag catalog.
+- Rebuilt frontend return URLs from the trusted WordPress home URL instead of the request host header.
+- Removed manual translation loading in favor of WordPress just-in-time text-domain loading.
+- Scoped uninstall variables inside a prefixed function and kept database removal opt-in and allowlisted.
+- Made WordPress Plugin Check warnings fail the release gate.
+
+### Included interface fixes
+- Includes the 0.5.1 terminology, dashboard-button and status-badge refinements.
+
 ## 0.5.1
 
 ### Interface polish

@@ -4,6 +4,7 @@ namespace BfCamel\CRM\Admin;
 use BfCamel\CRM\CRM\TagService;
 use BfCamel\CRM\CRM\WorkflowService;
 use BfCamel\CRM\Forms\Repository;
+use BfCamel\CRM\Support\Request;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
@@ -26,7 +27,7 @@ final class WorkflowPage {
 
     public function page() {
         $this->guard();
-        $tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'workflow'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $tab = Request::get_key( 'tab', 'workflow' );
         $tabs = array(
             'workflow'   => __( 'Statuses & priorities', 'bfcamel-crm' ),
             'tags'       => __( 'Tags', 'bfcamel-crm' ),
@@ -38,7 +39,7 @@ final class WorkflowPage {
         <div class="wrap bfcamel-crm-admin">
             <div class="bfcamel-crm-page-title"><div><h1><?php esc_html_e( 'CRM configuration', 'bfcamel-crm' ); ?></h1><p class="description"><?php esc_html_e( 'Manage workflow, shared tags, automation and form styling.', 'bfcamel-crm' ); ?></p></div></div>
             <nav class="nav-tab-wrapper"><?php foreach ( $tabs as $key => $label ) : ?><a class="nav-tab <?php echo $tab === $key ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-workflow&tab=' . $key ) ); ?>"><?php echo esc_html( $label ); ?></a><?php endforeach; ?></nav>
-            <?php if ( isset( $_GET['saved'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Settings saved.', 'bfcamel-crm' ); ?></p></div><?php endif; ?>
+            <?php if ( Request::get_flag( 'saved' ) ) : ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Settings saved.', 'bfcamel-crm' ); ?></p></div><?php endif; ?>
             <?php if ( 'workflow' === $tab ) $this->workflow_tab(); elseif ( 'tags' === $tab ) $this->tags_tab(); elseif ( 'automation' === $tab ) $this->automation_tab(); else $this->css_tab(); ?>
         </div>
         <?php
@@ -127,7 +128,7 @@ final class WorkflowPage {
 
     public function save_workflow() {
         $this->guard(); check_admin_referer( 'bfcamel_crm_save_workflow' );
-        $posted = isset( $_POST['workflow'] ) && is_array( $_POST['workflow'] ) ? wp_unslash( $_POST['workflow'] ) : array();
+        $posted = Request::post_array( 'workflow' );
         foreach ( array( 'statuses','priorities' ) as $key ) {
             $default_index = isset( $posted[ $key . '_default' ] ) ? absint( $posted[ $key . '_default' ] ) : null;
             unset( $posted[ $key . '_default' ] );
@@ -139,26 +140,26 @@ final class WorkflowPage {
 
     public function save_rules() {
         $this->guard(); check_admin_referer( 'bfcamel_crm_save_rules' );
-        $posted = isset( $_POST['rules'] ) && is_array( $_POST['rules'] ) ? wp_unslash( $_POST['rules'] ) : array(); $rows = array();
+        $posted = Request::post_array( 'rules' ); $rows = array();
         foreach ( $posted as $row ) { $target = isset( $row['target'] ) ? explode( '|', (string) $row['target'], 2 ) : array(); $row['form_id'] = absint( $target[0] ?? 0 ); $row['field'] = sanitize_key( $target[1] ?? '' ); $rows[] = $row; }
         WorkflowService::save_rules( $rows ); $this->redirect( 'automation' );
     }
 
     public function save_tags() {
         $this->guard(); check_admin_referer( 'bfcamel_crm_save_tag_catalog' );
-        $rows = isset( $_POST['tags'] ) && is_array( $_POST['tags'] ) ? wp_unslash( $_POST['tags'] ) : array(); $result = TagService::save_catalog( $rows );
+        $rows = Request::post_array( 'tags' ); $result = TagService::save_catalog( $rows );
         if ( is_wp_error( $result ) ) wp_die( esc_html( $result->get_error_message() ) ); $this->redirect( 'tags' );
     }
 
     public function delete_tag() {
-        $this->guard(); $id = isset( $_POST['tag_id'] ) ? absint( $_POST['tag_id'] ) : 0; check_admin_referer( 'bfcamel_crm_delete_tag_' . $id ); $result=TagService::delete_catalog_tag( $id ); if(is_wp_error($result))wp_die(esc_html($result->get_error_message())); if(!$result)wp_die(esc_html__( 'Could not remove a tag.', 'bfcamel-crm' )); $this->redirect( 'tags' );
+        $this->guard(); $id = Request::post_id( 'tag_id' ); check_admin_referer( 'bfcamel_crm_delete_tag_' . $id ); $result=TagService::delete_catalog_tag( $id ); if(is_wp_error($result))wp_die(esc_html($result->get_error_message())); if(!$result)wp_die(esc_html__( 'Could not remove a tag.', 'bfcamel-crm' )); $this->redirect( 'tags' );
     }
 
     public function archive_form() {
-        $this->guard_forms(); $id = isset( $_POST['form_id'] ) ? absint( $_POST['form_id'] ) : 0; check_admin_referer( 'bfcamel_crm_form_status_' . $id ); if(!Repository::archive( $id, get_current_user_id() ))wp_die(esc_html__( 'The form could not be updated.', 'bfcamel-crm' )); wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-forms&archived=1' ) ); exit;
+        $this->guard_forms(); $id = Request::post_id( 'form_id' ); check_admin_referer( 'bfcamel_crm_form_status_' . $id ); if(!Repository::archive( $id, get_current_user_id() ))wp_die(esc_html__( 'The form could not be updated.', 'bfcamel-crm' )); wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-forms&archived=1' ) ); exit;
     }
     public function restore_form() {
-        $this->guard_forms(); $id = isset( $_POST['form_id'] ) ? absint( $_POST['form_id'] ) : 0; check_admin_referer( 'bfcamel_crm_form_status_' . $id ); if(!Repository::restore( $id, get_current_user_id() ))wp_die(esc_html__( 'The form could not be updated.', 'bfcamel-crm' )); wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-forms&restored=1' ) ); exit;
+        $this->guard_forms(); $id = Request::post_id( 'form_id' ); check_admin_referer( 'bfcamel_crm_form_status_' . $id ); if(!Repository::restore( $id, get_current_user_id() ))wp_die(esc_html__( 'The form could not be updated.', 'bfcamel-crm' )); wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-forms&restored=1' ) ); exit;
     }
 
     private function redirect( $tab ) { wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-workflow&tab=' . $tab . '&saved=1' ) ); exit; }

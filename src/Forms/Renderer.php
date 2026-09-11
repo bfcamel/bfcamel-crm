@@ -3,6 +3,7 @@ namespace BfCamel\CRM\Forms;
 
 use BfCamel\CRM\Consent\ConsentService;
 use BfCamel\CRM\Database\Schema;
+use BfCamel\CRM\Support\Request;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
@@ -32,8 +33,8 @@ final class Renderer {
         $classes = array( 'bfcamel-form', 'bfcamel-crm-form', 'bfcamel-form--'.$mode, 'bfcamel-crm-form--'.$settings['style_mode'], 'bfcamel-form-columns-'.( '1' === (string) $settings['columns'] ? '1' : '2' ), 'bfcamel-form-id-'.absint($form->id) );
         if ( ! empty( $settings['custom_class'] ) ) $classes[] = sanitize_html_class( $settings['custom_class'] );
         $style = sprintf('--bfcamel-primary:%1$s;--bfcamel-text:%2$s;--bfcamel-field-bg:%3$s;--bfcamel-border:%4$s;--bfcamel-button:%5$s;--bfcamel-button-text:%6$s;--bfcamel-radius:%7$dpx;',esc_attr($settings['primary_color']),esc_attr($settings['text_color']),esc_attr($settings['field_bg']),esc_attr($settings['border_color']),esc_attr($settings['button_color']),esc_attr($settings['button_text']),absint($settings['border_radius']));
-        $state = isset($_GET['bfcamel_crm_form'])?sanitize_key(wp_unslash($_GET['bfcamel_crm_form'])):''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $state_form = isset($_GET['bfcamel_crm_form_id'])?absint($_GET['bfcamel_crm_form_id']):0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $state = Request::get_key('bfcamel_crm_form');
+        $state_form = Request::get_id('bfcamel_crm_form_id');
         ob_start(); ?>
         <div class="bfcamel-form-shell bfcamel-crm-form-shell" data-bfcamel-form-id="<?php echo esc_attr($form->id); ?>">
             <?php if($state_form===absint($form->id)&&'success'===$state): ?><div class="bfcamel-form-response bfcamel-crm-response bfcamel-crm-response--success" role="status"><?php echo esc_html($settings['success_message']); ?></div><?php elseif($state_form===absint($form->id)&&'error'===$state): ?><div class="bfcamel-form-response bfcamel-crm-response bfcamel-crm-response--error" role="alert"><?php echo esc_html($settings['error_message']); ?></div><?php endif; ?>
@@ -75,5 +76,5 @@ final class Renderer {
         $docs=get_option('bfcamel_crm_legal_documents',array());$tokens=array('{personal_data_consent}'=>array('url'=>$docs['personal_data_consent']['url']??'','text'=>!empty($docs['personal_data_consent']['link_text'])?$docs['personal_data_consent']['link_text']:__( 'Personal Data Processing Consent', 'bfcamel-crm' )),'{privacy_policy}'=>array('url'=>$docs['privacy_policy']['url']??'','text'=>!empty($docs['privacy_policy']['link_text'])?$docs['privacy_policy']['link_text']:__( 'Privacy Policy', 'bfcamel-crm' )),'{marketing_consent}'=>array('url'=>$docs['marketing_consent']['url']??'','text'=>!empty($docs['marketing_consent']['link_text'])?$docs['marketing_consent']['link_text']:__( 'Marketing Consent', 'bfcamel-crm' )));$safe=esc_html($label);
         foreach($tokens as $token=>$doc){$replacement=esc_html($doc['text']);if(!empty($doc['url']))$replacement='<a href="'.esc_url($doc['url']).'" target="_blank" rel="noopener noreferrer">'.esc_html($doc['text']).'</a>';$safe=str_replace(esc_html($token),$replacement,$safe);}return wp_kses($safe,array('a'=>array('href'=>true,'target'=>true,'rel'=>true)));
     }
-    private function current_url(){ $scheme=is_ssl()?'https://':'http://';$host=isset($_SERVER['HTTP_HOST'])?sanitize_text_field(wp_unslash($_SERVER['HTTP_HOST'])):wp_parse_url(home_url(),PHP_URL_HOST);$uri=isset($_SERVER['REQUEST_URI'])?wp_unslash($_SERVER['REQUEST_URI']):'/';return esc_url_raw($scheme.$host.$uri); }
+    private function current_url(){ $parts=wp_parse_url(Request::request_uri());$path=is_array($parts)&&isset($parts['path'])?'/'.ltrim((string)$parts['path'],'/'):'/';$url=home_url($path);if(is_array($parts)&&isset($parts['query'])&&''!==(string)$parts['query'])$url.='?'.(string)$parts['query'];return esc_url_raw($url); }
 }

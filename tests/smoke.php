@@ -78,9 +78,9 @@ check( "'@SUM(A1)" === $xlsx_cell->invoke( null, '@SUM(A1)' ), 'XLSX injection p
 
 $root = dirname( __DIR__ );
 $plugin = file_get_contents( $root . '/bfcamel-crm.php' ); $readme = file_get_contents( $root . '/readme.txt' );
-check( false !== strpos( $plugin, 'Version: 0.5.1' ), 'Plugin header version is not 0.5.1.' );
-check( false !== strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION', '0.5.1' )" ), 'Plugin constant version is not 0.5.1.' );
-check( false !== strpos( $readme, 'Stable tag: 0.5.1' ), 'Stable tag is not 0.5.1.' );
+check( false !== strpos( $plugin, 'Version: 0.5.2' ), 'Plugin header version is not 0.5.2.' );
+check( false !== strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION', '0.5.2' )" ), 'Plugin constant version is not 0.5.2.' );
+check( false !== strpos( $readme, 'Stable tag: 0.5.2' ), 'Stable tag is not 0.5.2.' );
 check( false === strpos( $plugin, 'Update URI:' ), 'A third-party Update URI would block WordPress.org updates.' );
 check( strpos( $plugin, "if ( defined( 'BFCAMEL_CRM_FILE' ) )" ) < strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION'" ), 'Duplicate guard moved after constants.' );
 $schema = file_get_contents( $root . '/src/Database/Schema.php' );
@@ -97,7 +97,9 @@ check( false !== strpos( $submissions, "pagination(\$result,'top')" ), 'Top subm
 check( false === strpos( $submissions, "'status'=>'new'" ) && false === strpos( $submissions, "'priority'=>'urgent'" ), 'Submission quick views still use fixed workflow slugs.' );
 check( false !== strpos( $contacts, "pagination( \$result, \$filters, 'top' )" ), 'Top contact pagination is missing.' );
 check( is_file( $root . '/languages/bfcamel-crm-ru_RU.mo' ), 'Russian MO catalog is missing.' );
-check( is_file( $root . '/src/I18n.php' ), 'Bundled translations are not registered.' );
+check( false === strpos( file_get_contents( $root . '/src/Plugin.php' ), 'load_plugin_textdomain' ), 'Translations must use WordPress just-in-time loading.' );
+check( is_file( $root . '/src/Support/Request.php' ), 'The request-normalization boundary is missing.' );
+check( false !== strpos( $schema, "Unknown BfCamel CRM database table" ), 'Custom table identifiers are not allowlisted.' );
 check( ! is_file( $root . '/src/CRM/CRM/WorkflowService.php' ), 'Misplaced WorkflowService compatibility bridge is still present.' );
 check( ! is_file( $root . '/assets/admin-03.css' ) && ! is_file( $root . '/assets/admin-04.css' ) && ! is_file( $root . '/assets/admin-04.js' ), 'Legacy admin asset patches are still present.' );
 $renderer = file_get_contents( $root . '/src/Forms/Renderer.php' );
@@ -105,6 +107,7 @@ $frontend_css = file_get_contents( $root . '/assets/frontend.css' );
 check( false !== strpos( $renderer, 'bfcamel-form-columns-' ) && false !== strpos( $frontend_css, '.bfcamel-form-columns-1' ), 'The form column setting is not applied.' );
 $release_workflow = file_get_contents( $root . '/.github/workflows/build-release.yml' );
 check( false !== strpos( $release_workflow, 'php tests/smoke.php' ), 'Release packaging is not gated by smoke tests.' );
+check( false !== strpos( $release_workflow, 'ignore-warnings: false' ), 'Plugin Check warnings must block release publication.' );
 
 if ( class_exists( 'ZipArchive' ) ) {
     $xlsx_path = XlsxWriter::create( array( 'Имя' ), array( array( 'Тест' ) ) );
