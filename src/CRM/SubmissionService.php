@@ -135,7 +135,7 @@ final class SubmissionService {
         $sql = $completed
             ? $wpdb->prepare("SELECT s.assigned_to, COALESCE(u.display_name, '') AS assignee_name, COUNT(*) AS total FROM %i s LEFT JOIN %i u ON u.ID=s.assigned_to WHERE s.status<>%s GROUP BY s.assigned_to,u.display_name ORDER BY total DESC,assignee_name ASC",$table,$users,$completed)
             : $wpdb->prepare("SELECT s.assigned_to, COALESCE(u.display_name, '') AS assignee_name, COUNT(*) AS total FROM %i s LEFT JOIN %i u ON u.ID=s.assigned_to GROUP BY s.assigned_to,u.display_name ORDER BY total DESC,assignee_name ASC",$table,$users);
-        return $wpdb->get_results($sql); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Workload data must remain current for assignment decisions.
+        return $wpdb->get_results($sql); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Query identifiers and the optional status value were prepared immediately above; workload data must remain current.
     }
 
     public static function activity( $submission_id ) {
