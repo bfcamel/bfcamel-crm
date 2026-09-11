@@ -13,20 +13,20 @@ final class Request {
 
     public static function get_text( $key, $default = '' ) {
         // Read-only filters do not change state; state-changing handlers verify their own nonces.
-        $value = isset( $_GET[ $key ] ) ? $_GET[ $key ] : $default; // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only filter value is sanitized by text() on the next line.
+        $value = isset( $_GET[ $key ] ) ? wp_unslash( $_GET[ $key ] ) : $default; // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only filter value is unslashed here and sanitized by text() on the next line.
         return self::text( $value );
     }
 
     public static function get_key( $key, $default = '' ) {
         // Read-only filters do not change state; state-changing handlers verify their own nonces.
-        $value = isset( $_GET[ $key ] ) ? $_GET[ $key ] : $default; // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only filter value is unslashed and sanitized on the next line.
-        return is_scalar( $value ) ? sanitize_key( wp_unslash( (string) $value ) ) : sanitize_key( $default );
+        $value = isset( $_GET[ $key ] ) ? wp_unslash( $_GET[ $key ] ) : $default; // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only filter value is unslashed here and sanitized on the next line.
+        return is_scalar( $value ) ? sanitize_key( (string) $value ) : sanitize_key( $default );
     }
 
     public static function get_id( $key, $default = 0 ) {
         // Read-only filters do not change state; state-changing handlers verify their own nonces.
-        $value = isset( $_GET[ $key ] ) ? $_GET[ $key ] : $default; // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only filter value is unslashed and normalized on the next line.
-        return is_scalar( $value ) ? absint( wp_unslash( (string) $value ) ) : absint( $default );
+        $value = isset( $_GET[ $key ] ) ? wp_unslash( $_GET[ $key ] ) : $default; // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only filter value is unslashed here and normalized on the next line.
+        return is_scalar( $value ) ? absint( (string) $value ) : absint( $default );
     }
 
     public static function get_flag( $key ) {
@@ -35,31 +35,31 @@ final class Request {
     }
 
     public static function post_text( $key, $default = '' ) {
-        $value = isset( $_POST[ $key ] ) ? $_POST[ $key ] : $default; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Action controllers verify their nonce; this value is sanitized on the next line.
+        $value = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : $default; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The value is unslashed here and sanitized on the next line; handlers verify nonces before state changes.
         return self::text( $value );
     }
 
     public static function post_textarea( $key, $default = '' ) {
-        $value = isset( $_POST[ $key ] ) ? $_POST[ $key ] : $default; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Action controllers verify their nonce; this value is sanitized below.
+        $value = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : $default; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The value is unslashed here and sanitized below; handlers verify nonces before state changes.
         if ( ! is_scalar( $value ) ) {
             return sanitize_textarea_field( $default );
         }
-        return sanitize_textarea_field( wp_unslash( (string) $value ) );
+        return sanitize_textarea_field( (string) $value );
     }
 
     public static function post_key( $key, $default = '' ) {
-        $value = isset( $_POST[ $key ] ) ? $_POST[ $key ] : $default; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Action controllers verify their nonce; this value is sanitized on the next line.
-        return is_scalar( $value ) ? sanitize_key( wp_unslash( (string) $value ) ) : sanitize_key( $default );
+        $value = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : $default; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The value is unslashed here and sanitized on the next line; handlers verify nonces before state changes.
+        return is_scalar( $value ) ? sanitize_key( (string) $value ) : sanitize_key( $default );
     }
 
     public static function post_id( $key, $default = 0 ) {
-        $value = isset( $_POST[ $key ] ) ? $_POST[ $key ] : $default; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Action controllers verify their nonce; this value is normalized on the next line.
-        return is_scalar( $value ) ? absint( wp_unslash( (string) $value ) ) : absint( $default );
+        $value = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : $default; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The value is unslashed here and normalized on the next line; handlers verify nonces before state changes.
+        return is_scalar( $value ) ? absint( (string) $value ) : absint( $default );
     }
 
     public static function post_url( $key, $default = '' ) {
-        $value = isset( $_POST[ $key ] ) ? $_POST[ $key ] : $default; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Action controllers verify their nonce; this value is sanitized on the next line.
-        return is_scalar( $value ) ? esc_url_raw( wp_unslash( (string) $value ) ) : esc_url_raw( $default );
+        $value = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : $default; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The value is unslashed here and sanitized on the next line; handlers verify nonces before state changes.
+        return is_scalar( $value ) ? esc_url_raw( (string) $value ) : esc_url_raw( $default );
     }
 
     public static function post_array( $key ) {
@@ -127,6 +127,6 @@ final class Request {
     }
 
     private static function text( $value ) {
-        return is_scalar( $value ) ? sanitize_text_field( wp_unslash( (string) $value ) ) : '';
+        return is_scalar( $value ) ? sanitize_text_field( (string) $value ) : '';
     }
 }
