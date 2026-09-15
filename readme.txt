@@ -4,7 +4,7 @@ Tags: crm, forms, contacts, consent, submissions
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.5.2
+Stable tag: 0.5.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -87,9 +87,19 @@ Yes. Choose Theme / unstyled in the form editor and use the stable `bfcamel-form
 
 = Is multisite supported? =
 
-Version 0.5.2 supports activation on individual sites. Network-wide activation is not supported.
+Version 0.5.3 supports activation on individual sites. Network-wide activation is not supported.
 
 == Changelog ==
+
+= 0.5.3 =
+
+* Shows all known email addresses and phone numbers on a contact instead of only the primary identifier.
+* Adds standard CRM mappings for city and social-page fields without adding them to the starter form.
+* Stores a single city value and aggregates multiple social pages from linked submissions.
+* Shows city and custom contact data more clearly in the CRM interface.
+* Includes city, social pages and other custom fields in CSV/XLSX contact exports.
+* Adds permanent deletion actions for contacts and submissions with confirmation and permission checks.
+* Preserves submissions when deleting a contact and preserves the contact when deleting an individual submission.
 
 = 0.5.2 =
 
@@ -136,6 +146,10 @@ Version 0.5.2 supports activation on individual sites. Network-wide activation i
 * Added contact editing, internal notes, bulk actions, consent filters, assignments and selected exports.
 
 == Upgrade Notice ==
+
+= 0.5.3 =
+
+This CRM data update improves contact display and export, adds city/social mappings and introduces explicit permanent deletion controls without changing the database schema.
 
 = 0.5.2 =
 
