@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.5.3
+
+### Contact data
+- Display all known email addresses and phone numbers on the contact detail screen instead of showing only the primary identifier.
+- Added first-class CRM mappings for `city` and `social_page` without adding either field to the default starter form.
+- Treat `city` as a single-value contact field and aggregate multiple `social_page` values from linked submissions.
+- Show the city in the contacts list and render city, social pages and remaining custom fields more clearly on the contact page.
+
+### Export
+- Include city, social pages and all remaining custom contact fields in CSV and XLSX contact exports.
+- Keep all known contact email addresses and phone numbers in exported contact data.
+
+### Data management
+- Added permanent deletion actions for contacts and submissions with permission and nonce checks plus explicit confirmation.
+- Deleting a contact removes its identifiers, custom fields, tags, notes and contact history while preserving submissions and detaching them from the deleted contact.
+- Deleting a submission removes its tags, consent events, notes and activity records while leaving the linked contact intact.
+
 ## 0.5.2
 
 ### WordPress Plugin Check compliance

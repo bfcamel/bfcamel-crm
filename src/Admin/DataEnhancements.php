@@ -9,6 +9,9 @@ use BfCamel\CRM\Support\Request;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+// Direct queries in this class are limited to plugin-owned CRM tables and are required for transactional deletion and contact-history aggregation.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+
 final class DataEnhancements {
     private static $instance = null;
 
@@ -243,3 +246,5 @@ final class DataEnhancements {
         return (bool) $wpdb->insert( $table, array( 'contact_id' => absint( $contact_id ), 'field_key' => $key, 'field_value' => (string) $value, 'updated_at' => current_time( 'mysql' ) ), array( '%d', '%s', '%s', '%s' ) );
     }
 }
+
+// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
