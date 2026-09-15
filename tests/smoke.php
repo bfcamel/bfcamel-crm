@@ -48,7 +48,7 @@ $event = (object) array( 'event_type' => 'status_changed', 'meta_json' => json_e
 check( 'Status: New → Completed' === ActivityFormatter::message( $event ), 'Activity details are broken.' );
 $note = (object) array( 'event_type' => 'note_added', 'meta_json' => '{}', 'message' => '' );
 check( 'Internal note added.' === ActivityFormatter::message( $note ), 'Note activity label is missing.' );
-$contact_edit = (object) array( 'event_type' => 'contact_updated', 'meta_json' => json_encode( array( 'changes' => array( 'name' => array( 'from' => 'A', 'to' => 'B' ) ) ), 'message' => '' );
+$contact_edit = (object) array( 'event_type' => 'contact_updated', 'meta_json' => json_encode( array( 'changes' => array( 'name' => array( 'from' => 'A', 'to' => 'B' ) ) ) ), 'message' => '' );
 check( false !== strpos( ActivityFormatter::message( $contact_edit ), 'A → B' ), 'Contact edit audit details are missing.' );
 check( array( 'unknown', 'granted', 'denied', 'revoked' ) === array_keys( ConsentService::statuses() ), 'Consent statuses are incomplete.' );
 
