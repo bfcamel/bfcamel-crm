@@ -78,9 +78,9 @@ check( "'@SUM(A1)" === $xlsx_cell->invoke( null, '@SUM(A1)' ), 'XLSX injection p
 
 $root = dirname( __DIR__ );
 $plugin = file_get_contents( $root . '/bfcamel-crm.php' ); $readme = file_get_contents( $root . '/readme.txt' );
-check( false !== strpos( $plugin, 'Version: 0.5.3' ), 'Plugin header version is not 0.5.3.' );
-check( false !== strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION', '0.5.3' )" ), 'Plugin constant version is not 0.5.3.' );
-check( false !== strpos( $readme, 'Stable tag: 0.5.3' ), 'Stable tag is not 0.5.3.' );
+check( false !== strpos( $plugin, 'Version: 0.5.4' ), 'Plugin header version is not 0.5.4.' );
+check( false !== strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION', '0.5.4' )" ), 'Plugin constant version is not 0.5.4.' );
+check( false !== strpos( $readme, 'Stable tag: 0.5.4' ), 'Stable tag is not 0.5.4.' );
 check( false === strpos( $plugin, 'Update URI:' ), 'A third-party Update URI would block WordPress.org updates.' );
 check( strpos( $plugin, "if ( defined( 'BFCAMEL_CRM_FILE' ) )" ) < strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION'" ), 'Duplicate guard moved after constants.' );
 $schema = file_get_contents( $root . '/src/Database/Schema.php' );
@@ -88,6 +88,7 @@ check( false !== strpos( $schema, "const VERSION = '6'" ), 'Database schema vers
 check( false !== strpos( $schema, "self::table( 'notes' )" ), 'Internal notes table is missing.' );
 $bootstrap = file_get_contents( $root . '/src/Admin/Bootstrap.php' );
 foreach ( array( 'bfcamel_crm_update_contact', 'bfcamel_crm_bulk_contacts', 'bfcamel_crm_add_contact_note', 'bfcamel_crm_bulk_submissions', 'bfcamel_crm_add_submission_note' ) as $hook ) check( false !== strpos( $bootstrap, $hook ), 'Missing admin handler: ' . $hook );
+check( false !== strpos( $bootstrap, 'InterfaceEnhancements::instance()' ), 'Interface enhancements are not registered.' );
 $contacts = file_get_contents( $root . '/src/Admin/ContactsPage.php' );
 check( false !== strpos( $contacts, 'personal_data_consent' ) && false !== strpos( $contacts, 'marketing_consent' ), 'Consent filters are missing.' );
 check( false !== strpos( $contacts, 'Export selected CSV' ), 'Selected contact export is missing.' );
@@ -108,6 +109,10 @@ check( false !== strpos( $renderer, 'bfcamel-form-columns-' ) && false !== strpo
 $data_enhancements = file_get_contents( $root . '/src/Admin/DataEnhancements.php' );
 check( false !== strpos( $data_enhancements, 'social_page' ) && false !== strpos( $data_enhancements, "'city'" ), 'Contact city/social enhancements are missing.' );
 check( false !== strpos( $data_enhancements, 'bfcamel_crm_delete_contact' ) && false !== strpos( $data_enhancements, 'bfcamel_crm_delete_submission' ), 'Permanent deletion handlers are missing.' );
+$interface_enhancements = file_get_contents( $root . '/src/Admin/InterfaceEnhancements.php' );
+check( false !== strpos( $interface_enhancements, 'bfcamel_crm_delete_form' ), 'Permanent form deletion handler is missing.' );
+check( false !== strpos( $interface_enhancements, 'Контакт: город' ) && false !== strpos( $interface_enhancements, 'Контакт: страница в социальной сети' ), 'Russian city/social mapping labels are missing.' );
+check( is_file( $root . '/assets/admin-modern.css' ) && is_file( $root . '/assets/interface-enhancements.js' ), '0.5.4 CRM interface assets are missing.' );
 $release_workflow = file_get_contents( $root . '/.github/workflows/build-release.yml' );
 check( false !== strpos( $release_workflow, 'php tests/smoke.php' ), 'Release packaging is not gated by smoke tests.' );
 check( false !== strpos( $release_workflow, 'ignore-warnings: false' ), 'Plugin Check warnings must block release publication.' );

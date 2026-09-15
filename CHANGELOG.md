@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.4
+
+### Localization
+- Localized the visible `city` and `social_page` CRM mappings for Russian users while preserving the stable technical keys used by existing forms and stored data.
+- Localized the city and social-page labels used by contact details and the form builder.
+
+### Administration
+- Standardized CRM action buttons around the primary “Add contact” visual treatment while keeping destructive actions visibly distinct.
+- Refreshed panels, tables, filters, inputs, spacing and responsive behavior across the CRM administration screens.
+
+### Data management
+- Added explicit permanent deletion for forms from both the forms list and form editor.
+- Permanent form deletion removes the form revisions, its submissions and submission-linked tags, consent events, notes and activity records while preserving CRM contacts.
+- Automation rules that reference a permanently deleted form are removed automatically.
+
 ## 0.5.3
 
 ### Contact data
