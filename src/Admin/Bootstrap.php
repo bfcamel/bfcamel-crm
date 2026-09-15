@@ -12,7 +12,7 @@ final class Bootstrap {
     private function __construct() {}
 
     public function register() {
-        $admin = Admin::instance(); $submissions = SubmissionsPage::instance(); $contacts = ContactsPage::instance(); $workflow = WorkflowPage::instance();
+        $admin = Admin::instance(); $submissions = SubmissionsPage::instance(); $contacts = ContactsPage::instance(); $workflow = WorkflowPage::instance(); $enhancements = DataEnhancements::instance();
         add_action( 'admin_menu', array( $this, 'menu' ) );
         add_action( 'admin_enqueue_scripts', array( $admin, 'assets' ) );
         add_action( 'admin_notices', array( $workflow, 'legal_notice' ) );
@@ -34,6 +34,7 @@ final class Bootstrap {
         add_action( 'admin_post_bfcamel_crm_update_contact_tags', array( $contacts, 'update_tags' ) );
         add_action( 'admin_post_bfcamel_crm_update_contact_consents', array( $contacts, 'update_consents' ) );
         add_action( 'admin_post_bfcamel_crm_export', array( Exporter::class, 'handle' ) );
+        $enhancements->register();
     }
 
     public function menu() {
