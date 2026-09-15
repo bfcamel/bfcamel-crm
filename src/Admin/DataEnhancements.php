@@ -31,20 +31,29 @@ final class DataEnhancements {
         if ( false === strpos( (string) $hook, 'bfcamel-crm' ) ) return;
 
         $page = Request::get_key( 'page' );
+
+        if ( 'bfcamel-crm-forms' === $page ) {
+            $script = 'window.BfCamelCRMBuilder=window.BfCamelCRMBuilder||{};window.BfCamelCRMBuilder.labels=window.BfCamelCRMBuilder.labels||{};'
+                . 'window.BfCamelCRMBuilder.labels.contactCity=' . wp_json_encode( __( 'Contact: city', 'bfcamel-crm' ) ) . ';'
+                . 'window.BfCamelCRMBuilder.labels.contactSocialPage=' . wp_json_encode( __( 'Contact: social page', 'bfcamel-crm' ) ) . ';';
+            wp_add_inline_script( 'bfcamel-crm-admin', $script, 'before' );
+            return;
+        }
+
         if ( ! in_array( $page, array( 'bfcamel-crm-contacts', 'bfcamel-crm-submissions' ), true ) ) return;
 
         $config = array(
             'adminPost' => admin_url( 'admin-post.php' ),
             'labels'    => array(
-                'allEmails'      => __( 'All email addresses', 'bfcamel-crm' ),
-                'allPhones'      => __( 'All phone numbers', 'bfcamel-crm' ),
-                'city'           => __( 'City', 'bfcamel-crm' ),
-                'socialPages'    => __( 'Social pages', 'bfcamel-crm' ),
-                'customFields'   => __( 'Additional fields', 'bfcamel-crm' ),
-                'primary'        => __( 'Primary', 'bfcamel-crm' ),
-                'deleteContact'  => __( 'Delete contact permanently', 'bfcamel-crm' ),
-                'deleteSubmission'=> __( 'Delete submission permanently', 'bfcamel-crm' ),
-                'confirmContact' => __( 'Delete this contact permanently? This cannot be undone.', 'bfcamel-crm' ),
+                'allEmails'         => __( 'All email addresses', 'bfcamel-crm' ),
+                'allPhones'         => __( 'All phone numbers', 'bfcamel-crm' ),
+                'city'              => __( 'City', 'bfcamel-crm' ),
+                'socialPages'       => __( 'Social pages', 'bfcamel-crm' ),
+                'customFields'      => __( 'Additional fields', 'bfcamel-crm' ),
+                'primary'           => __( 'Primary', 'bfcamel-crm' ),
+                'deleteContact'     => __( 'Delete contact permanently', 'bfcamel-crm' ),
+                'deleteSubmission'  => __( 'Delete submission permanently', 'bfcamel-crm' ),
+                'confirmContact'    => __( 'Delete this contact permanently? This cannot be undone.', 'bfcamel-crm' ),
                 'confirmSubmission' => __( 'Delete this submission permanently? This cannot be undone.', 'bfcamel-crm' ),
             ),
         );
@@ -60,7 +69,7 @@ final class DataEnhancements {
                     'city'        => isset( $custom['city'] ) ? (string) $custom['city'] : '',
                     'socialPages' => self::split_multi_value( isset( $custom['social_page'] ) ? $custom['social_page'] : '' ),
                     'custom'      => array_diff_key( $custom, array( 'city' => true, 'social_page' => true ) ),
-                    'nonce'       => wp_create_nonce( 'bfcamel_crm_delete_contact_' . $id ),
+                    'nonce'       => current_user_can( 'bfcamel_crm_manage_contacts' ) ? wp_create_nonce( 'bfcamel_crm_delete_contact_' . $id ) : '',
                 );
             } else {
                 $page_num = max( 1, Request::get_id( 'paged', 1 ) );
@@ -76,7 +85,7 @@ final class DataEnhancements {
 
         if ( 'bfcamel-crm-submissions' === $page ) {
             $id = Request::get_id( 'id' );
-            if ( $id ) {
+            if ( $id && current_user_can( 'bfcamel_crm_edit_submissions' ) ) {
                 $config['submission'] = array(
                     'id'    => $id,
                     'nonce' => wp_create_nonce( 'bfcamel_crm_delete_submission_' . $id ),
