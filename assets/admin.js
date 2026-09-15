@@ -75,6 +75,8 @@
       ['contact.email', labels.contactEmail || 'Contact: email'],
       ['contact.phone', labels.contactPhone || 'Contact: phone'],
       ['contact.organization', labels.contactOrganization || 'Contact: organization'],
+      ['contact.city', labels.contactCity || 'Contact: city'],
+      ['contact.social_page', labels.contactSocialPage || 'Contact: social page'],
       ['contact.custom', labels.contactCustom || 'Contact: custom field']
     ];
 
@@ -143,6 +145,30 @@
 
     function sync() {
       hidden.value = JSON.stringify(schema);
+    }
+
+    function mappingValue(field) {
+      if (field.mapping === 'contact.custom' && field.custom_key === 'city') return 'contact.city';
+      if (field.mapping === 'contact.custom' && field.custom_key === 'social_page') return 'contact.social_page';
+      return field.mapping || 'submission_only';
+    }
+
+    function applyMapping(field, value) {
+      if (value === 'contact.city') {
+        field.mapping = 'contact.custom';
+        field.custom_key = 'city';
+        return;
+      }
+      if (value === 'contact.social_page') {
+        field.mapping = 'contact.custom';
+        field.custom_key = 'social_page';
+        return;
+      }
+      if (value === 'contact.custom' && (field.custom_key === 'city' || field.custom_key === 'social_page')) {
+        field.custom_key = '';
+      }
+      if (value !== 'contact.custom') field.custom_key = '';
+      field.mapping = value;
     }
 
     function render() {
@@ -248,14 +274,14 @@
           });
           grid.appendChild(inputRow(labels.cssClass || 'Field CSS class', cssClass));
 
-          var mapping = makeSelect(mappings, field.mapping || 'submission_only');
+          var mapping = makeSelect(mappings, mappingValue(field));
           mapping.addEventListener('change', function () {
-            field.mapping = mapping.value;
+            applyMapping(field, mapping.value);
             render();
           });
           grid.appendChild(inputRow(labels.mapping || 'CRM mapping', mapping));
 
-          if (field.mapping === 'contact.custom') {
+          if (field.mapping === 'contact.custom' && field.custom_key !== 'city' && field.custom_key !== 'social_page') {
             var custom = document.createElement('input');
             custom.type = 'text';
             custom.value = field.custom_key || '';
