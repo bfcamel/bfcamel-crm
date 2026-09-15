@@ -2,7 +2,22 @@
 
 **BfCamel CRM** is an open-source WordPress form builder and lightweight CRM developed by the People & Camels Charity Foundation.
 
-Version **0.5.2** is the current public release prepared for distribution through WordPress.org. It preserves the established plugin identity and the in-place update path from earlier BfCamel CRM versions.
+Version **0.5.4** is the current public release prepared for distribution through WordPress.org. It preserves the established plugin identity and the in-place update path from earlier BfCamel CRM versions.
+
+## 0.5.4 release highlights
+
+- Completes the visible Russian localization for the city and social-page CRM mappings without changing the stable `city` and `social_page` technical keys.
+- Standardizes CRM action buttons around the primary action style and refreshes panels, tables, inputs and responsive spacing.
+- Adds explicit permanent form deletion from the forms list and form editor.
+- Permanently deleting a form removes its revisions, submissions and submission-linked records while preserving CRM contacts.
+- Removes automation rules that reference a permanently deleted form.
+
+## 0.5.3 release highlights
+
+- Displays all known email addresses and phone numbers for contacts.
+- Adds standard city and social-page CRM mapping choices while keeping them out of the default starter form.
+- Includes city, social pages and custom contact fields in CSV/XLSX exports.
+- Adds explicit permanent deletion for contacts and submissions.
 
 ## 0.5.2 release highlights
 
@@ -58,7 +73,7 @@ Schema version 6 keeps the existing forms, contacts, submissions, tags, consent 
 
 ## Localization
 
-English remains the source language. Russian (`ru_RU`) is bundled as PO and MO catalogs. Release builds reject incomplete translations and compile a fresh MO catalog from the reviewed PO source inside every ZIP.
+English remains the source language. Russian (`ru_RU`) is bundled as PO and MO catalogs. Release builds reject incomplete translations and compile a fresh MO catalog from the reviewed PO source inside every ZIP. Version 0.5.4 also guarantees the visible Russian labels for the city and social-page mappings introduced after the previous catalog was generated.
 
 ## Core features
 
