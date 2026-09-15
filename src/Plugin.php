@@ -3,6 +3,7 @@ namespace BfCamel\CRM;
 
 use BfCamel\CRM\Access\RoleManager;
 use BfCamel\CRM\Admin\Bootstrap;
+use BfCamel\CRM\Admin\ContactEnhancements;
 use BfCamel\CRM\CRM\WorkflowService;
 use BfCamel\CRM\Database\Schema;
 use BfCamel\CRM\Forms\Renderer;
@@ -21,7 +22,7 @@ final class Plugin {
         if($this->booted)return;$this->booted=true;
         if(is_admin()||(defined('WP_CLI')&&WP_CLI))add_action('init',array($this,'upgrade'),1);
         RoleManager::register();Renderer::instance()->register();SubmissionHandler::instance()->register();Privacy::instance()->register();
-        if(is_admin()){add_action('admin_notices',array('BfCamel\\CRM\\Database\\Schema','admin_notice'));Bootstrap::instance()->register();}
+        if(is_admin()){add_action('admin_notices',array('BfCamel\\CRM\\Database\\Schema','admin_notice'));Bootstrap::instance()->register();ContactEnhancements::instance()->register();}
     }
 
     public function upgrade(){
