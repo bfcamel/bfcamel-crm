@@ -4,7 +4,7 @@ Tags: crm, forms, contacts, consent, submissions
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.5.3
+Stable tag: 0.5.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -87,9 +87,17 @@ Yes. Choose Theme / unstyled in the form editor and use the stable `bfcamel-form
 
 = Is multisite supported? =
 
-Version 0.5.3 supports activation on individual sites. Network-wide activation is not supported.
+Version 0.5.4 supports activation on individual sites. Network-wide activation is not supported.
 
 == Changelog ==
+
+= 0.5.4 =
+
+* Localizes the visible city and social-page CRM mappings for Russian users while keeping the technical `city` and `social_page` keys stable.
+* Standardizes CRM action buttons around the primary action style and refreshes panels, tables, inputs and responsive spacing.
+* Adds permanent form deletion from the forms list and editor with explicit confirmation and permission checks.
+* Permanent form deletion removes the form revisions, its submissions and submission-linked records while preserving contacts.
+* Removes automation rules that reference a permanently deleted form.
 
 = 0.5.3 =
 
@@ -146,6 +154,10 @@ Version 0.5.3 supports activation on individual sites. Network-wide activation i
 * Added contact editing, internal notes, bulk actions, consent filters, assignments and selected exports.
 
 == Upgrade Notice ==
+
+= 0.5.4 =
+
+This interface and data-management update completes Russian city/social labels, refreshes the CRM administration UI and adds explicit permanent form deletion without changing the database schema.
 
 = 0.5.3 =
 
