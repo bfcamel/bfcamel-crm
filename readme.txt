@@ -4,7 +4,7 @@ Tags: crm, forms, contacts, consent, submissions
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.5.5
+Stable tag: 0.5.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -31,7 +31,7 @@ Create forms without an external form service, publish immutable revisions, map 
 * CSV and XLSX exports with spreadsheet formula-injection protection.
 * WordPress Personal Data Exporter and Eraser integration.
 * Per-role CRM permissions.
-* English and Russian interface.
+* Translation-ready interface with Russian translations prepared for WordPress.org language packs.
 * No telemetry and no required external service.
 
 = Legal documents and consent =
@@ -88,9 +88,16 @@ Yes. Choose Theme / unstyled in the form editor and use the stable `bfcamel-form
 
 = Is multisite supported? =
 
-Version 0.5.5 supports activation on individual sites. Network-wide activation is not supported.
+Version 0.5.6 supports activation on individual sites. Network-wide activation is not supported.
 
 == Changelog ==
+
+= 0.5.6 =
+
+* Removed the legacy three-letter shortcode alias so all public declarations use the unique BfCamel prefix.
+* Limited database-upgrade error notices to BfCamel CRM screens and added recovery instructions.
+* Prepared installable ZIP packages for WordPress.org language packs by excluding bundled PO/MO files.
+* Added packaging guards for translation files while retaining the POT template.
 
 = 0.5.5 =
 
@@ -160,6 +167,10 @@ Version 0.5.5 supports activation on individual sites. Network-wide activation i
 * Added contact editing, internal notes, bulk actions, consent filters, assignments and selected exports.
 
 == Upgrade Notice ==
+
+= 0.5.6 =
+
+Completes the WordPress.org review fixes for public prefixes, scoped administrator notices and language-pack-ready release packages without changing stored CRM data.
 
 = 0.5.5 =
 

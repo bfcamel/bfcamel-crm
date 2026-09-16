@@ -39,6 +39,19 @@ if msgattrib --only-fuzzy --no-obsolete languages/bfcamel-crm-ru_RU.po | grep -q
   exit 1
 fi
 
+# Keep the reviewed Russian catalog healthy in the source repository while
+# letting WordPress.org distribute approved translations as language packs.
+TRANSLATION_CHECK_DIR="$(mktemp -d)"
+trap 'rm -rf "$TRANSLATION_CHECK_DIR"' EXIT
+TRANSLATION_CHECK_MO="$TRANSLATION_CHECK_DIR/bfcamel-crm-ru_RU.mo"
+TRANSLATION_CHECK_PO="$TRANSLATION_CHECK_DIR/bfcamel-crm-ru_RU.po"
+msgfmt --check --check-format languages/bfcamel-crm-ru_RU.po -o "$TRANSLATION_CHECK_MO"
+msgunfmt --no-wrap "$TRANSLATION_CHECK_MO" >"$TRANSLATION_CHECK_PO"
+if ! grep -F 'msgid "Forms"' -A1 "$TRANSLATION_CHECK_PO" | grep -Fq 'msgstr "Формы"'; then
+  echo "Russian localization integrity check failed: Forms -> Формы not found." >&2
+  exit 1
+fi
+
 BUILD_DIR="$ROOT_DIR/build"
 PACKAGE_DIR="$BUILD_DIR/bfcamel-crm"
 ZIP_PATH="$BUILD_DIR/bfcamel-crm-$VERSION.zip"
@@ -54,6 +67,8 @@ rsync -a ./ "$PACKAGE_DIR/" \
   --exclude='scripts/' \
   --exclude='tests/' \
   --exclude='build/' \
+  --exclude='languages/*.po' \
+  --exclude='languages/*.mo' \
   --exclude='*.zip' \
   --exclude='.DS_Store' \
   --exclude='.idea/' \
@@ -66,23 +81,6 @@ rsync -a ./ "$PACKAGE_DIR/" \
   --exclude='composer.lock' \
   --exclude='phpcs.xml.dist'
 
-PO_FILE="$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.po"
-MO_FILE="$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.mo"
-
-# The PO source is authoritative for release packages. Always compile a fresh
-# MO inside the package so an accidentally stale committed binary can never
-# block or corrupt an otherwise valid release.
-msgfmt --check --check-format "$PO_FILE" -o "$MO_FILE"
-
-# Fail the release if the freshly generated catalog cannot be decoded or if a
-# known Cyrillic translation is missing/corrupted.
-msgunfmt --no-wrap "$MO_FILE" >/tmp/bfcamel-crm-ru_RU.po
-if ! grep -F 'msgid "Forms"' -A1 /tmp/bfcamel-crm-ru_RU.po | grep -Fq 'msgstr "Формы"'; then
-  echo "Russian localization integrity check failed: Forms -> Формы not found." >&2
-  exit 1
-fi
-rm -f /tmp/bfcamel-crm-ru_RU.po
-
 (
   cd "$BUILD_DIR"
   zip -qr "$(basename "$ZIP_PATH")" bfcamel-crm
@@ -93,8 +91,13 @@ if ! unzip -Z1 "$ZIP_PATH" | grep -qx 'bfcamel-crm/bfcamel-crm.php'; then
   exit 1
 fi
 
-if ! unzip -Z1 "$ZIP_PATH" | grep -qx 'bfcamel-crm/languages/bfcamel-crm-ru_RU.mo'; then
-  echo "Release ZIP does not contain the compiled Russian MO catalog" >&2
+if unzip -Z1 "$ZIP_PATH" | grep -Eq '\.(po|mo)$'; then
+  echo "Release ZIP contains bundled translation files instead of using WordPress.org language packs." >&2
+  exit 1
+fi
+
+if ! unzip -Z1 "$ZIP_PATH" | grep -qx 'bfcamel-crm/languages/bfcamel-crm.pot'; then
+  echo "Release ZIP does not contain the translation template." >&2
   exit 1
 fi
 

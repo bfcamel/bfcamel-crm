@@ -10,7 +10,11 @@ use BfCamel\CRM\Export\XlsxWriter;
 define( 'ABSPATH', __DIR__ . '/' );
 $bfcamel_test_options = array();
 $bfcamel_test_translations = array();
+$bfcamel_test_screen = null;
 function __( $text ) { global $bfcamel_test_translations; return $bfcamel_test_translations[ $text ] ?? $text; }
+function current_user_can( $capability ) { return 'manage_options' === $capability; }
+function get_current_screen() { global $bfcamel_test_screen; return $bfcamel_test_screen; }
+function esc_html( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' ); }
 function absint( $value ) { return abs( (int) $value ); }
 function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) ); }
 function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
@@ -80,14 +84,24 @@ check( "'@SUM(A1)" === $xlsx_cell->invoke( null, '@SUM(A1)' ), 'XLSX injection p
 
 $root = dirname( __DIR__ );
 $plugin = file_get_contents( $root . '/bfcamel-crm.php' ); $readme = file_get_contents( $root . '/readme.txt' );
-check( false !== strpos( $plugin, 'Version: 0.5.5' ), 'Plugin header version is not 0.5.5.' );
-check( false !== strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION', '0.5.5' )" ), 'Plugin constant version is not 0.5.5.' );
-check( false !== strpos( $readme, 'Stable tag: 0.5.5' ), 'Stable tag is not 0.5.5.' );
+check( false !== strpos( $plugin, 'Version: 0.5.6' ), 'Plugin header version is not 0.5.6.' );
+check( false !== strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION', '0.5.6' )" ), 'Plugin constant version is not 0.5.6.' );
+check( false !== strpos( $readme, 'Stable tag: 0.5.6' ), 'Stable tag is not 0.5.6.' );
 check( false === strpos( $plugin, 'Update URI:' ), 'A third-party Update URI would block WordPress.org updates.' );
 check( strpos( $plugin, "if ( defined( 'BFCAMEL_CRM_FILE' ) )" ) < strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION'" ), 'Duplicate guard moved after constants.' );
 $schema = file_get_contents( $root . '/src/Database/Schema.php' );
 check( false !== strpos( $schema, "const VERSION = '6'" ), 'Database schema version is not 6.' );
 check( false !== strpos( $schema, "self::table( 'notes' )" ), 'Internal notes table is missing.' );
+check( false !== strpos( $schema, "strpos( (string) \$screen->id, 'bfcamel-crm' )" ), 'The database error notice is not limited to BfCamel CRM screens.' );
+check( false !== strpos( $schema, 'Check the database user permissions' ), 'The database error notice does not explain how to resolve the problem.' );
+$bfcamel_test_options[ Schema::ERROR_OPTION ] = array( 'Permission denied' );
+$bfcamel_test_screen = (object) array( 'id' => 'dashboard' );
+ob_start(); Schema::admin_notice(); $outside_crm_notice = ob_get_clean();
+check( '' === $outside_crm_notice, 'The database error notice leaks onto unrelated administration screens.' );
+$bfcamel_test_screen = (object) array( 'id' => 'toplevel_page_bfcamel-crm' );
+ob_start(); Schema::admin_notice(); $crm_notice = ob_get_clean();
+check( false !== strpos( $crm_notice, 'Check the database user permissions' ), 'The scoped database error notice is missing recovery instructions.' );
+unset( $bfcamel_test_options[ Schema::ERROR_OPTION ] );
 $bootstrap = file_get_contents( $root . '/src/Admin/Bootstrap.php' );
 foreach ( array( 'bfcamel_crm_update_contact', 'bfcamel_crm_bulk_contacts', 'bfcamel_crm_add_contact_note', 'bfcamel_crm_bulk_submissions', 'bfcamel_crm_add_submission_note', 'bfcamel_crm_delete_contact', 'bfcamel_crm_delete_submission', 'bfcamel_crm_delete_form' ) as $hook ) check( false !== strpos( $bootstrap, $hook ), 'Missing admin handler: ' . $hook );
 $contacts = file_get_contents( $root . '/src/Admin/ContactsPage.php' );
@@ -116,9 +130,14 @@ check( ! is_file( $root . '/assets/admin-03.css' ) && ! is_file( $root . '/asset
 $renderer = file_get_contents( $root . '/src/Forms/Renderer.php' );
 $frontend_css = file_get_contents( $root . '/assets/frontend.css' );
 check( false !== strpos( $renderer, 'bfcamel-form-columns-' ) && false !== strpos( $frontend_css, '.bfcamel-form-columns-1' ), 'The form column setting is not applied.' );
+check( false !== strpos( $renderer, "add_shortcode( 'bfcamel_form'" ), 'The prefixed BfCamel form shortcode is missing.' );
+check( false === strpos( $renderer, 'gfr_form' ), 'The legacy three-letter shortcode prefix is still registered.' );
 $release_workflow = file_get_contents( $root . '/.github/workflows/build-release.yml' );
 check( false !== strpos( $release_workflow, 'php tests/smoke.php' ), 'Release packaging is not gated by smoke tests.' );
 check( false !== strpos( $release_workflow, 'ignore-warnings: false' ), 'Plugin Check warnings must block release publication.' );
+$build_script = file_get_contents( $root . '/scripts/build-release.sh' );
+check( false !== strpos( $build_script, "--exclude='languages/*.po'" ) && false !== strpos( $build_script, "--exclude='languages/*.mo'" ), 'WordPress.org packages still include bundled translation catalogs.' );
+check( false !== strpos( $build_script, 'Release ZIP contains bundled translation files' ), 'The release build does not reject bundled translation catalogs.' );
 
 if ( class_exists( 'ZipArchive' ) ) {
     $xlsx_path = XlsxWriter::create( array( 'Имя' ), array( array( 'Тест' ) ) );

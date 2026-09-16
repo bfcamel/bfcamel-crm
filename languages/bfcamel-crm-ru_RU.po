@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: BfCamel CRM 0.5.5\n"
+"Project-Id-Version: BfCamel CRM 0.5.6\n"
 "Report-Msgid-Bugs-To: https://github.com/bfcamel/bfcamel-crm/issues\n"
-"POT-Creation-Date: 2026-09-15 10:23-0500\n"
-"PO-Revision-Date: 2026-09-15 10:20+0000\n"
+"POT-Creation-Date: 2026-09-16 10:00+0000\n"
+"PO-Revision-Date: 2026-09-16 10:00+0000\n"
 "Last-Translator: BfCamel CRM contributors\n"
 "Language-Team: Russian\n"
 "Language: ru_RU\n"
@@ -327,6 +327,14 @@ msgstr "Оформление форм с приоритетом CSS"
 #: src/Admin/Admin.php:366
 msgid "Checkboxes"
 msgstr "Флажки"
+
+#: src/Database/Schema.php:468
+msgid ""
+"Check the database user permissions, then reload this page. If the error "
+"remains, contact your hosting provider."
+msgstr ""
+"Проверьте права пользователя базы данных и перезагрузите эту страницу. Если "
+"ошибка сохраняется, обратитесь к хостинг-провайдеру."
 
 #: src/Admin/WorkflowPage.php:99
 msgid ""
