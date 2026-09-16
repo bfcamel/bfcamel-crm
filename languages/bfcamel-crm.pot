@@ -661,7 +661,8 @@ msgstr ""
 msgid "Custom field key"
 msgstr ""
 
-#: src/Export/Exporter.php:86
+#. translators: %s: custom contact field key.
+#: src/Export/Exporter.php:88
 #, php-format
 msgid "Custom field: %s"
 msgstr ""

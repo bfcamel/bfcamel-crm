@@ -83,7 +83,10 @@ final class Exporter {
         foreach ( $custom_keys as $key ) {
             if ( ContactService::CITY_FIELD === $key ) $headers[] = __( 'City', 'bfcamel-crm' );
             elseif ( ContactService::SOCIAL_PAGES_FIELD === $key ) $headers[] = __( 'Social pages', 'bfcamel-crm' );
-            else $headers[] = sprintf( __( 'Custom field: %s', 'bfcamel-crm' ), $key );
+            else {
+                /* translators: %s: custom contact field key. */
+                $headers[] = sprintf( __( 'Custom field: %s', 'bfcamel-crm' ), $key );
+            }
         }
         $headers = array_merge( $headers, array( __( 'Status', 'bfcamel-crm' ), __( 'Tags', 'bfcamel-crm' ), __( 'Personal data consent', 'bfcamel-crm' ), __( 'Marketing consent', 'bfcamel-crm' ), __( 'Created', 'bfcamel-crm' ), __( 'Updated', 'bfcamel-crm' ) ) );
 
