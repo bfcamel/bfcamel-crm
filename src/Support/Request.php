@@ -86,6 +86,8 @@ final class Request {
             'organization' => sanitize_text_field( isset( $posted['organization'] ) ? $posted['organization'] : '' ),
             'email'        => sanitize_email( isset( $posted['email'] ) ? $posted['email'] : '' ),
             'phone'        => sanitize_text_field( isset( $posted['phone'] ) ? $posted['phone'] : '' ),
+            'city'         => sanitize_text_field( isset( $posted['city'] ) ? $posted['city'] : '' ),
+            'social_pages' => sanitize_textarea_field( isset( $posted['social_pages'] ) ? $posted['social_pages'] : '' ),
         );
     }
 

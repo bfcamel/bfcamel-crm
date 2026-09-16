@@ -108,6 +108,48 @@ final class SubmissionService {
         return count( $ids );
     }
 
+    public static function delete_permanently( $submission_id ) {
+        global $wpdb;
+        $submission_id = absint( $submission_id );
+        if ( ! $submission_id || ! Schema::begin_transaction() ) {
+            return new \WP_Error( 'bfcamel_crm_submission_delete_transaction', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
+        }
+        if ( ! self::get( $submission_id, true ) ) {
+            Schema::rollback();
+            return new \WP_Error( 'bfcamel_crm_submission_missing', __( 'Submission not found.', 'bfcamel-crm' ) );
+        }
+
+        if ( false === $wpdb->delete( Schema::table( 'submission_tags' ), array( 'submission_id' => $submission_id ), array( '%d' ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Permanent deletion removes submission tags from the plugin-owned relation table.
+            return self::delete_error();
+        }
+        if ( false === $wpdb->delete( Schema::table( 'consent_events' ), array( 'submission_id' => $submission_id ), array( '%d' ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Consent evidence tied to a permanently deleted submission is removed transactionally.
+            return self::delete_error();
+        }
+        if ( false === $wpdb->delete( Schema::table( 'notes' ), array( 'entity_type' => 'submission', 'entity_id' => $submission_id ), array( '%s', '%d' ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Permanent deletion removes submission notes from the plugin-owned table.
+            return self::delete_error();
+        }
+        if ( false === $wpdb->delete( Schema::table( 'activity_log' ), array( 'entity_type' => 'submission', 'entity_id' => $submission_id ), array( '%s', '%d' ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Permanent deletion removes submission activity from the plugin-owned table.
+            return self::delete_error();
+        }
+        if ( false === $wpdb->delete( Schema::table( 'submissions' ), array( 'id' => $submission_id ), array( '%d' ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Final transactional deletion of the plugin-owned submission row.
+            return self::delete_error();
+        }
+        if ( ! Schema::commit() ) {
+            return self::delete_error();
+        }
+        return true;
+    }
+
+    private static function delete_error() {
+        global $wpdb;
+        $message = __( 'The submission could not be deleted.', 'bfcamel-crm' );
+        if ( $wpdb->last_error ) {
+            $message .= ' ' . sanitize_text_field( $wpdb->last_error );
+        }
+        Schema::rollback();
+        return new \WP_Error( 'bfcamel_crm_submission_delete_failed', $message );
+    }
+
     public static function all_for_export( $filters = array() ) {
         $rows=array(); $page=1; do { $result=self::query($filters,$page,500); $rows=array_merge($rows,(array)$result['rows']); $page++; } while($page <= $result['total_pages']); return $rows;
     }

@@ -2,7 +2,6 @@
 namespace BfCamel\CRM\Export;
 
 use BfCamel\CRM\Admin\ContactsPage;
-use BfCamel\CRM\Admin\DataEnhancements;
 use BfCamel\CRM\Consent\ConsentService;
 use BfCamel\CRM\CRM\ContactService;
 use BfCamel\CRM\CRM\SubmissionService;
@@ -60,34 +59,31 @@ final class Exporter {
     private static function contacts( $override_filters = null ) {
         $filters = is_array( $override_filters ) ? $override_filters : ContactsPage::filters();
         $contacts = ContactService::all_for_export( $filters );
-        $custom_by_contact = array();
-        $custom_keys = array();
+        $contact_ids = array();
+        foreach ( $contacts as $contact ) {
+            $contact_ids[] = absint( $contact->id );
+        }
+        $custom_by_contact = ContactService::get_custom_fields_for_contacts( $contact_ids );
+        $custom_keys = array( ContactService::CITY_FIELD, ContactService::SOCIAL_PAGES_FIELD );
 
         foreach ( $contacts as $contact ) {
-            $custom = DataEnhancements::contact_export_fields( $contact->id );
-            $custom_by_contact[ $contact->id ] = $custom;
+            $custom = $custom_by_contact[ $contact->id ] ?? array();
             foreach ( array_keys( $custom ) as $key ) {
                 $key = sanitize_key( $key );
                 if ( $key && ! in_array( $key, $custom_keys, true ) ) $custom_keys[] = $key;
             }
         }
 
-        $ordered = array();
-        foreach ( array( 'city', 'social_page' ) as $standard_key ) {
-            if ( in_array( $standard_key, $custom_keys, true ) ) $ordered[] = $standard_key;
-        }
-        $rest = array_values( array_diff( $custom_keys, $ordered ) );
+        $standard_keys = array( ContactService::CITY_FIELD, ContactService::SOCIAL_PAGES_FIELD );
+        $rest = array_values( array_diff( $custom_keys, $standard_keys ) );
         sort( $rest );
-        $custom_keys = array_merge( $ordered, $rest );
+        $custom_keys = array_merge( $standard_keys, $rest );
 
         $headers = array( 'ID', __( 'Name', 'bfcamel-crm' ), __( 'Email', 'bfcamel-crm' ), __( 'Phone', 'bfcamel-crm' ), __( 'Organization', 'bfcamel-crm' ) );
         foreach ( $custom_keys as $key ) {
-            if ( 'city' === $key ) $headers[] = __( 'City', 'bfcamel-crm' );
-            elseif ( 'social_page' === $key ) $headers[] = __( 'Social pages', 'bfcamel-crm' );
-            else {
-                /* translators: %s: custom contact field key. */
-                $headers[] = sprintf( __( 'Custom field: %s', 'bfcamel-crm' ), $key );
-            }
+            if ( ContactService::CITY_FIELD === $key ) $headers[] = __( 'City', 'bfcamel-crm' );
+            elseif ( ContactService::SOCIAL_PAGES_FIELD === $key ) $headers[] = __( 'Social pages', 'bfcamel-crm' );
+            else $headers[] = sprintf( __( 'Custom field: %s', 'bfcamel-crm' ), $key );
         }
         $headers = array_merge( $headers, array( __( 'Status', 'bfcamel-crm' ), __( 'Tags', 'bfcamel-crm' ), __( 'Personal data consent', 'bfcamel-crm' ), __( 'Marketing consent', 'bfcamel-crm' ), __( 'Created', 'bfcamel-crm' ), __( 'Updated', 'bfcamel-crm' ) ) );
 
@@ -100,7 +96,7 @@ final class Exporter {
             $custom = $custom_by_contact[ $contact->id ] ?? array();
             foreach ( $custom_keys as $key ) {
                 $value = isset( $custom[ $key ] ) ? (string) $custom[ $key ] : '';
-                if ( 'social_page' === $key ) $value = implode( '; ', preg_split( '/\r?\n+/', $value ) );
+                if ( ContactService::SOCIAL_PAGES_FIELD === $key ) $value = implode( '; ', ContactService::split_social_pages( $value ) );
                 $row[] = $value;
             }
             $row[] = $contact->status;

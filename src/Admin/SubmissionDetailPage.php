@@ -48,7 +48,17 @@ final class SubmissionDetailPage {
                     ?></h1>
                     <p class="description"><?php echo esc_html( $form ? $form->name : '#' . $row->form_id ); ?> · UUID <code><?php echo esc_html( $row->submission_uuid ); ?></code></p>
                 </div>
-                <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-submissions' ) ); ?>"><?php esc_html_e( 'Back', 'bfcamel-crm' ); ?></a>
+                <div class="bfcamel-crm-actions">
+                    <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-submissions' ) ); ?>"><?php esc_html_e( 'Back', 'bfcamel-crm' ); ?></a>
+                    <?php if ( $can_edit ) : ?>
+                        <form class="bfcamel-crm-inline-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                            <input type="hidden" name="action" value="bfcamel_crm_delete_submission">
+                            <input type="hidden" name="submission_id" value="<?php echo esc_attr( $id ); ?>">
+                            <?php wp_nonce_field( 'bfcamel_crm_delete_submission_' . $id ); ?>
+                            <button type="submit" class="button button-link-delete" data-bfcamel-confirm data-bfcamel-confirm-message="<?php echo esc_attr__( 'Delete this submission permanently? Its consent evidence and internal history will also be deleted. This cannot be undone.', 'bfcamel-crm' ); ?>"><?php esc_html_e( 'Delete submission', 'bfcamel-crm' ); ?></button>
+                        </form>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <?php if ( '1' === $updated ) : ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Submission updated.', 'bfcamel-crm' ); ?></p></div><?php endif; ?>

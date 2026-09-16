@@ -48,7 +48,7 @@ rm -rf "$BUILD_DIR"
 mkdir -p "$PACKAGE_DIR"
 
 rsync -a ./ "$PACKAGE_DIR/" \
-  --exclude='.git/' \
+  --exclude='.git' \
   --exclude='.gitignore' \
   --exclude='.github/' \
   --exclude='scripts/' \
@@ -95,6 +95,11 @@ fi
 
 if ! unzip -Z1 "$ZIP_PATH" | grep -qx 'bfcamel-crm/languages/bfcamel-crm-ru_RU.mo'; then
   echo "Release ZIP does not contain the compiled Russian MO catalog" >&2
+  exit 1
+fi
+
+if unzip -Z1 "$ZIP_PATH" | grep -Eq '^bfcamel-crm/\.git($|/)'; then
+  echo "Release ZIP contains Git metadata." >&2
   exit 1
 fi
 

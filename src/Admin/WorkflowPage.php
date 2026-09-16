@@ -161,6 +161,9 @@ final class WorkflowPage {
     public function restore_form() {
         $this->guard_forms(); $id = Request::post_id( 'form_id' ); check_admin_referer( 'bfcamel_crm_form_status_' . $id ); if(!Repository::restore( $id, get_current_user_id() ))wp_die(esc_html__( 'The form could not be updated.', 'bfcamel-crm' )); wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-forms&restored=1' ) ); exit;
     }
+    public function delete_form() {
+        $this->guard_forms(); $id = Request::post_id( 'form_id' ); check_admin_referer( 'bfcamel_crm_delete_form_' . $id ); $result = Repository::delete_permanently( $id ); if ( is_wp_error( $result ) ) wp_die( esc_html( $result->get_error_message() ), esc_html__( 'Could not delete form', 'bfcamel-crm' ), array( 'back_link' => true ) ); wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-forms&deleted=1' ) ); exit;
+    }
 
     private function redirect( $tab ) { wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-workflow&tab=' . $tab . '&saved=1' ) ); exit; }
     private function guard() { if ( ! current_user_can( 'bfcamel_crm_manage_settings' ) && ! current_user_can( 'manage_options' ) ) wp_die( esc_html__( 'You do not have permission to access this page.', 'bfcamel-crm' ) ); }

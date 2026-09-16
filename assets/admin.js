@@ -12,7 +12,8 @@
 
     document.querySelectorAll('[data-bfcamel-confirm]').forEach(function (control) {
       control.addEventListener('click', function (event) {
-        if (!window.confirm(adminStrings.confirm || 'Are you sure you want to continue?')) {
+        var message = control.getAttribute('data-bfcamel-confirm-message') || adminStrings.confirm || 'Are you sure you want to continue?';
+        if (!window.confirm(message)) {
           event.preventDefault();
         }
       });
@@ -123,11 +124,12 @@
       return node;
     }
 
-    function inputRow(labelText, input) {
+    function inputRow(labelText, input, helpText) {
       var label = el('label', 'bfcamel-crm-builder-control');
       var span = el('span', '', labelText || '');
       label.appendChild(span);
       label.appendChild(input);
+      if (helpText) label.appendChild(el('small', 'description', helpText));
       return label;
     }
 
@@ -245,7 +247,7 @@
           keyInput.value = field.name;
           sync();
         });
-        grid.appendChild(inputRow(labels.key || 'Field key', keyInput));
+        grid.appendChild(inputRow(labels.key || 'Field key', keyInput, labels.keyHelp || 'A stable technical identifier used in saved submissions. It does not change when CRM mapping changes.'));
 
         if (field.type !== 'html') {
           var placeholder = document.createElement('input');
@@ -279,7 +281,7 @@
             applyMapping(field, mapping.value);
             render();
           });
-          grid.appendChild(inputRow(labels.mapping || 'CRM mapping', mapping));
+          grid.appendChild(inputRow(labels.mapping || 'CRM mapping', mapping, labels.mappingHelp || 'Select where this value is saved in the contact. The field key remains unchanged.'));
 
           if (field.mapping === 'contact.custom' && field.custom_key !== 'city' && field.custom_key !== 'social_page') {
             var custom = document.createElement('input');

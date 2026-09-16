@@ -4,7 +4,7 @@ Tags: crm, forms, contacts, consent, submissions
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.5.4
+Stable tag: 0.5.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,6 +22,7 @@ Create forms without an external form service, publish immutable revisions, map 
 * Shortcodes by form ID or slug.
 * Immutable published form revisions.
 * Contact matching by normalized email and phone.
+* Dedicated city and social-page contact fields with stable form-to-CRM mapping.
 * Configurable submission statuses and priorities.
 * Responsible-user assignment and shared tags.
 * Internal contact and submission notes.
@@ -44,7 +45,7 @@ BfCamel CRM provides technical tools for recording form choices. It does not pro
 Depending on the form and plugin settings, BfCamel CRM may store:
 
 * submitted form values;
-* names, email addresses, phone numbers and organizations;
+* names, email addresses, phone numbers, organizations, cities and social-page links;
 * internal notes;
 * consent events and document snapshots;
 * source page URLs and browser information;
@@ -87,27 +88,32 @@ Yes. Choose Theme / unstyled in the form editor and use the stable `bfcamel-form
 
 = Is multisite supported? =
 
-Version 0.5.4 supports activation on individual sites. Network-wide activation is not supported.
+Version 0.5.5 supports activation on individual sites. Network-wide activation is not supported.
 
 == Changelog ==
 
+= 0.5.5 =
+
+* Added dedicated city and social-page mappings, manual editing, search, history and export support.
+* Preserved unique social profiles across repeat form submissions.
+* Rebuilt contact data screens in native server-rendered PHP and refreshed the CRM admin design.
+* Unified action-button styling and added clearer form-field mapping guidance.
+* Added confirmed permanent deletion for submissions and contacts.
+* Added protected permanent deletion for archived forms without submissions.
+* Completed Russian localization for all new interface strings.
+* Kept Git worktree metadata out of installable ZIP packages.
+
 = 0.5.4 =
 
-* Localizes the visible city and social-page CRM mappings for Russian users while keeping the technical `city` and `social_page` keys stable.
-* Standardizes CRM action buttons around the primary action style and refreshes panels, tables, inputs and responsive spacing.
-* Adds permanent form deletion from the forms list and editor with explicit confirmation and permission checks.
-* Permanent form deletion removes the form revisions, its submissions and submission-linked records while preserving contacts.
-* Removes automation rules that reference a permanently deleted form.
+* Added Russian labels for the city and social-page mappings while preserving their stable technical keys.
+* Added an initial administration-interface refresh and consistent action-button styling.
+* Added permanent form deletion with cleanup of linked submissions and workflow rules.
 
 = 0.5.3 =
 
-* Shows all known email addresses and phone numbers on a contact instead of only the primary identifier.
-* Adds standard CRM mappings for city and social-page fields without adding them to the starter form.
-* Stores a single city value and aggregates multiple social pages from linked submissions.
-* Shows city and custom contact data more clearly in the CRM interface.
-* Includes city, social pages and other custom fields in CSV/XLSX contact exports.
-* Adds permanent deletion actions for contacts and submissions with confirmation and permission checks.
-* Preserves submissions when deleting a contact and preserves the contact when deleting an individual submission.
+* Showed all known email addresses and phone numbers on contact detail screens.
+* Added city and social-page CRM mappings and displayed this data in contact lists and exports.
+* Added confirmed permanent deletion for contacts and submissions while preserving their related records as documented.
 
 = 0.5.2 =
 
@@ -155,13 +161,17 @@ Version 0.5.4 supports activation on individual sites. Network-wide activation i
 
 == Upgrade Notice ==
 
+= 0.5.5 =
+
+Moves city and social-page contact data into the native CRM model and adds protected deletion workflows without changing the database schema.
+
 = 0.5.4 =
 
-This interface and data-management update completes Russian city/social labels, refreshes the CRM administration UI and adds explicit permanent form deletion without changing the database schema.
+Adds Russian city/social labels, refreshed administration controls and permanent form deletion.
 
 = 0.5.3 =
 
-This CRM data update improves contact display and export, adds city/social mappings and introduces explicit permanent deletion controls without changing the database schema.
+Improves contact display and export, adds city/social mappings and introduces explicit contact and submission deletion controls.
 
 = 0.5.2 =
 

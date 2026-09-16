@@ -10,6 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class ContactService {
     const CACHE_GROUP = 'bfcamel_crm';
+    const CITY_FIELD = 'city';
+    const SOCIAL_PAGES_FIELD = 'social_page';
 
     public static function resolve_and_sync( $schema, $payload ) {
         $mapped = self::extract_mapped_values( $schema, $payload );
@@ -67,6 +69,10 @@ final class ContactService {
         if ( $phone && ! self::add_phone( $contact_id, $mapped['phone'] ) ) return array( 'contact_id' => 0, 'status' => 'error' );
 
         foreach ( $mapped['custom'] as $key => $value ) {
+            if ( self::SOCIAL_PAGES_FIELD === $key ) {
+                $existing_fields = self::get_custom_fields( $contact_id );
+                $value = self::merge_social_pages( $existing_fields[ self::SOCIAL_PAGES_FIELD ] ?? '', $value );
+            }
             if ( ! self::upsert_custom_field( $contact_id, $key, $value ) ) return array( 'contact_id' => 0, 'status' => 'error' );
         }
 
@@ -130,12 +136,14 @@ final class ContactService {
         $contacts = Schema::table( 'contacts' );
         $emails = Schema::table( 'contact_emails' );
         $phones = Schema::table( 'contact_phones' );
+        $fields = Schema::table( 'contact_fields' );
         $tags = Schema::table( 'tags' );
         $links = Schema::table( 'contact_tags' );
         $consents = Schema::table( 'consent_events' );
         $contacts_sql = $wpdb->prepare( '%i', $contacts );
         $emails_sql = $wpdb->prepare( '%i', $emails );
         $phones_sql = $wpdb->prepare( '%i', $phones );
+        $fields_sql = $wpdb->prepare( '%i', $fields );
         $tags_sql = $wpdb->prepare( '%i', $tags );
         $links_sql = $wpdb->prepare( '%i', $links );
         $consents_sql = $wpdb->prepare( '%i', $consents );
@@ -147,8 +155,9 @@ final class ContactService {
             $like = '%' . $wpdb->esc_like( $search ) . '%';
             $where[] = "(c.display_name LIKE %s OR c.organization LIKE %s
                 OR EXISTS (SELECT 1 FROM {$emails_sql} e1 WHERE e1.contact_id=c.id AND e1.value LIKE %s)
-                OR EXISTS (SELECT 1 FROM {$phones_sql} p1 WHERE p1.contact_id=c.id AND p1.value LIKE %s))";
-            $args = array_merge( $args, array( $like, $like, $like, $like ) );
+                OR EXISTS (SELECT 1 FROM {$phones_sql} p1 WHERE p1.contact_id=c.id AND p1.value LIKE %s)
+                OR EXISTS (SELECT 1 FROM {$fields_sql} cf1 WHERE cf1.contact_id=c.id AND cf1.field_value LIKE %s))";
+            $args = array_merge( $args, array( $like, $like, $like, $like, $like ) );
         }
 
         $tag_id = isset( $filters['tag_id'] ) ? absint( $filters['tag_id'] ) : 0;
@@ -184,6 +193,7 @@ final class ContactService {
         $select_sql = "SELECT c.*,
             (SELECT GROUP_CONCAT(e.value ORDER BY e.is_primary DESC,e.id ASC SEPARATOR ', ') FROM {$emails_sql} e WHERE e.contact_id=c.id) AS email_values,
             (SELECT GROUP_CONCAT(p.value ORDER BY p.is_primary DESC,p.id ASC SEPARATOR ', ') FROM {$phones_sql} p WHERE p.contact_id=c.id) AS phone_values,
+            (SELECT cf.field_value FROM {$fields_sql} cf WHERE cf.contact_id=c.id AND cf.field_key='city' LIMIT 1) AS city,
             (SELECT GROUP_CONCAT(t.name ORDER BY t.name SEPARATOR ', ') FROM {$links_sql} ct INNER JOIN {$tags_sql} t ON t.id=ct.tag_id WHERE ct.contact_id=c.id) AS tag_names,
             (SELECT ce.status FROM {$consents_sql} ce WHERE ce.contact_id=c.id AND ce.consent_type='personal_data' ORDER BY ce.event_at DESC,ce.id DESC LIMIT 1) AS personal_data_consent,
             (SELECT ce.status FROM {$consents_sql} ce WHERE ce.contact_id=c.id AND ce.consent_type='marketing' ORDER BY ce.event_at DESC,ce.id DESC LIMIT 1) AS marketing_consent
@@ -254,6 +264,28 @@ final class ContactService {
         return $result;
     }
 
+    public static function get_custom_fields_for_contacts( $contact_ids ) {
+        global $wpdb;
+        $contact_ids = array_values( array_unique( array_filter( array_map( 'absint', (array) $contact_ids ) ) ) );
+        if ( ! $contact_ids ) {
+            return array();
+        }
+
+        $placeholders = implode( ',', array_fill( 0, count( $contact_ids ), '%d' ) );
+        $args = array_merge( array( Schema::table( 'contact_fields' ) ), $contact_ids );
+        $sql = "SELECT contact_id,field_key,field_value FROM %i WHERE contact_id IN ({$placeholders}) ORDER BY contact_id ASC,field_key ASC";
+        $rows = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Export reads current plugin-owned fields; the identifier uses %i and the generated IN list contains placeholders only.
+        $result = array();
+        foreach ( (array) $rows as $row ) {
+            $contact_id = absint( $row['contact_id'] ?? 0 );
+            $field_key = sanitize_key( $row['field_key'] ?? '' );
+            if ( $contact_id && $field_key ) {
+                $result[ $contact_id ][ $field_key ] = (string) ( $row['field_value'] ?? '' );
+            }
+        }
+        return $result;
+    }
+
     public static function find_contact_ids_by_email_value( $email ) {
         return self::find_by_email( self::normalize_email( $email ) );
     }
@@ -264,6 +296,8 @@ final class ContactService {
         $email_value = sanitize_email( $data['email'] ?? '' );
         $phone_value = self::truncate_text( sanitize_text_field( $data['phone'] ?? '' ), 80 );
         $organization = self::truncate_text( sanitize_text_field( $data['organization'] ?? '' ), 190 );
+        $city = self::truncate_text( sanitize_text_field( $data['city'] ?? '' ), 190 );
+        $social_pages = self::normalize_social_pages( $data['social_pages'] ?? '' );
 
         if ( '' === $name ) {
             return new \WP_Error( 'bfcamel_crm_contact_name_required', __( 'Contact name is required.', 'bfcamel-crm' ) );
@@ -302,7 +336,10 @@ final class ContactService {
                 'email'        => $email_value,
                 'phone'        => $phone_value,
                 'organization' => $organization,
-                'custom'       => array(),
+                'custom'       => array(
+                    self::CITY_FIELD         => $city,
+                    self::SOCIAL_PAGES_FIELD => $social_pages,
+                ),
             )
         );
         if ( ! $contact_id ) {
@@ -313,6 +350,11 @@ final class ContactService {
         }
         if ( $phone_value && ! self::add_phone( $contact_id, $phone_value ) ) {
             return self::rollback_error( __( 'The contact phone could not be saved.', 'bfcamel-crm' ) );
+        }
+        foreach ( array( self::CITY_FIELD => $city, self::SOCIAL_PAGES_FIELD => $social_pages ) as $key => $value ) {
+            if ( '' !== $value && ! self::upsert_custom_field( $contact_id, $key, $value ) ) {
+                return self::rollback_error( __( 'The additional contact data could not be saved.', 'bfcamel-crm' ) );
+            }
         }
 
         $tag_result = TagService::sync_contact( $contact_id, $tags );
@@ -355,6 +397,8 @@ final class ContactService {
         $organization = self::truncate_text( sanitize_text_field( $data['organization'] ?? '' ), 190 );
         $email = sanitize_email( $data['email'] ?? '' );
         $phone = self::truncate_text( sanitize_text_field( $data['phone'] ?? '' ), 80 );
+        $city = self::truncate_text( sanitize_text_field( $data['city'] ?? '' ), 190 );
+        $social_pages = self::normalize_social_pages( $data['social_pages'] ?? '' );
         if ( '' === $name ) {
             return new \WP_Error( 'bfcamel_crm_contact_name_required', __( 'Contact name is required.', 'bfcamel-crm' ) );
         }
@@ -381,11 +425,16 @@ final class ContactService {
         $old_phones = self::get_phones( $contact_id );
         $old_email = $old_emails ? (string) $old_emails[0]->value : '';
         $old_phone = $old_phones ? (string) $old_phones[0]->value : '';
+        $old_custom = self::get_custom_fields( $contact_id );
+        $old_city = isset( $old_custom[ self::CITY_FIELD ] ) ? (string) $old_custom[ self::CITY_FIELD ] : '';
+        $old_social_pages = isset( $old_custom[ self::SOCIAL_PAGES_FIELD ] ) ? self::normalize_social_pages( $old_custom[ self::SOCIAL_PAGES_FIELD ] ) : '';
         $changes = array();
         if ( (string) $current->display_name !== $name ) $changes['name'] = array( 'from' => (string) $current->display_name, 'to' => $name );
         if ( (string) $current->organization !== $organization ) $changes['organization'] = array( 'from' => (string) $current->organization, 'to' => $organization );
         if ( $old_email !== $email ) $changes['email'] = array( 'from' => $old_email, 'to' => $email );
         if ( $old_phone !== $phone ) $changes['phone'] = array( 'from' => $old_phone, 'to' => $phone );
+        if ( $old_city !== $city ) $changes['city'] = array( 'from' => $old_city, 'to' => $city );
+        if ( $old_social_pages !== $social_pages ) $changes['social_pages'] = array( 'from' => $old_social_pages, 'to' => $social_pages );
 
         if ( false === $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional write to the plugin's custom contacts table.
             Schema::table( 'contacts' ),
@@ -397,6 +446,9 @@ final class ContactService {
         }
         if ( ! self::set_primary_identifier( 'email', $contact_id, $email ) || ! self::set_primary_identifier( 'phone', $contact_id, $phone ) ) {
             return new \WP_Error( 'bfcamel_crm_contact_identifier_failed', __( 'The contact email or phone could not be updated.', 'bfcamel-crm' ) );
+        }
+        if ( ! self::replace_custom_field( $contact_id, self::CITY_FIELD, $city ) || ! self::replace_custom_field( $contact_id, self::SOCIAL_PAGES_FIELD, $social_pages ) ) {
+            return new \WP_Error( 'bfcamel_crm_contact_fields_failed', __( 'The additional contact data could not be updated.', 'bfcamel-crm' ) );
         }
         if ( $changes && ! Schema::log( 'contact', $contact_id, 'contact_updated', 'Contact details updated.', array( 'changes' => $changes ), absint( $user_id ) ) ) {
             return new \WP_Error( 'bfcamel_crm_contact_history_failed', __( 'Could not record contact history.', 'bfcamel-crm' ) );
@@ -432,6 +484,69 @@ final class ContactService {
             return false !== $wpdb->update( $table, array( 'value' => $value, 'normalized' => $normalized, 'is_primary' => 1 ), array( 'id' => $id ), array( '%s', '%s', '%d' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional identifier update requires current custom-table state.
         }
         return (bool) $wpdb->insert( $table, array( 'contact_id' => $contact_id, 'value' => $value, 'normalized' => $normalized, 'is_primary' => 1 ), array( '%d', '%s', '%s', '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional insert into a plugin-owned identifier table.
+    }
+
+    public static function delete_permanently( $contact_id ) {
+        global $wpdb;
+        $contact_id = absint( $contact_id );
+        if ( ! $contact_id || ! Schema::begin_transaction() ) {
+            return new \WP_Error( 'bfcamel_crm_contact_delete_transaction', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
+        }
+        if ( ! self::get( $contact_id, true ) ) {
+            Schema::rollback();
+            return new \WP_Error( 'bfcamel_crm_contact_missing', __( 'Contact not found.', 'bfcamel-crm' ) );
+        }
+
+        $updated = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Permanent deletion detaches preserved submissions from the deleted plugin-owned contact.
+            Schema::table( 'submissions' ),
+            array( 'contact_id' => 0, 'contact_sync_status' => 'deleted' ),
+            array( 'contact_id' => $contact_id ),
+            array( '%d', '%s' ),
+            array( '%d' )
+        );
+        if ( false === $updated ) {
+            return self::rollback_error( __( 'The contact could not be deleted.', 'bfcamel-crm' ) );
+        }
+
+        $manual_consents = $wpdb->delete( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Manual consent records belong only to the contact that is being permanently deleted.
+            Schema::table( 'consent_events' ),
+            array( 'contact_id' => $contact_id, 'submission_id' => 0 ),
+            array( '%d', '%d' )
+        );
+        if ( false === $manual_consents ) {
+            return self::rollback_error( __( 'The contact could not be deleted.', 'bfcamel-crm' ) );
+        }
+        $detached_consents = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Consent evidence tied to retained submissions remains available without the deleted contact relation.
+            Schema::table( 'consent_events' ),
+            array( 'contact_id' => 0 ),
+            array( 'contact_id' => $contact_id ),
+            array( '%d' ),
+            array( '%d' )
+        );
+        if ( false === $detached_consents ) {
+            return self::rollback_error( __( 'The contact could not be deleted.', 'bfcamel-crm' ) );
+        }
+
+        foreach ( array( 'contact_emails', 'contact_phones', 'contact_fields', 'contact_tags' ) as $table ) {
+            if ( false === $wpdb->delete( Schema::table( $table ), array( 'contact_id' => $contact_id ), array( '%d' ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional cleanup is limited to allowlisted plugin-owned contact tables.
+                return self::rollback_error( __( 'The contact could not be deleted.', 'bfcamel-crm' ) );
+            }
+        }
+        if ( false === $wpdb->delete( Schema::table( 'notes' ), array( 'entity_type' => 'contact', 'entity_id' => $contact_id ), array( '%s', '%d' ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Permanent deletion removes contact notes from the plugin-owned table.
+            return self::rollback_error( __( 'The contact could not be deleted.', 'bfcamel-crm' ) );
+        }
+        if ( false === $wpdb->delete( Schema::table( 'activity_log' ), array( 'entity_type' => 'contact', 'entity_id' => $contact_id ), array( '%s', '%d' ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Permanent deletion removes contact activity from the plugin-owned table.
+            return self::rollback_error( __( 'The contact could not be deleted.', 'bfcamel-crm' ) );
+        }
+        if ( false === $wpdb->delete( Schema::table( 'contacts' ), array( 'id' => $contact_id ), array( '%d' ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Final transactional deletion of the plugin-owned contact row.
+            return self::rollback_error( __( 'The contact could not be deleted.', 'bfcamel-crm' ) );
+        }
+        if ( ! Schema::commit() ) {
+            return self::rollback_error( __( 'The contact could not be deleted.', 'bfcamel-crm' ) );
+        }
+
+        self::clear_contact_cache( $contact_id );
+        return true;
     }
 
     public static function anonymize( $contact_id ) {
@@ -487,7 +602,8 @@ final class ContactService {
                 continue;
             }
 
-            $value = self::scalar( $payload[ $name ] );
+            $raw_value = $payload[ $name ];
+            $value = self::scalar( $raw_value );
             switch ( $mapping ) {
                 case 'contact.name':
                     $result['name'] = $value;
@@ -503,6 +619,14 @@ final class ContactService {
                     break;
                 case 'contact.custom':
                     $custom_key = sanitize_key( $field['custom_key'] ?? $name );
+                    if ( self::SOCIAL_PAGES_FIELD === $custom_key ) {
+                        $value = self::normalize_social_pages( $raw_value );
+                        if ( isset( $result['custom'][ $custom_key ] ) ) {
+                            $value = self::merge_social_pages( $result['custom'][ $custom_key ], $value );
+                        }
+                    } elseif ( self::CITY_FIELD === $custom_key ) {
+                        $value = self::truncate_text( sanitize_text_field( $value ), 190 );
+                    }
                     if ( $custom_key && '' !== $value ) {
                         $result['custom'][ $custom_key ] = $value;
                     }
@@ -621,15 +745,39 @@ final class ContactService {
     }
 
     private static function upsert_custom_field( $contact_id, $key, $value ) {
+        return self::write_custom_field( $contact_id, $key, $value, false );
+    }
+
+    private static function replace_custom_field( $contact_id, $key, $value ) {
+        return self::write_custom_field( $contact_id, $key, $value, true );
+    }
+
+    private static function write_custom_field( $contact_id, $key, $value, $delete_empty ) {
         global $wpdb;
         $table = Schema::table( 'contact_fields' );
         $key   = sanitize_key( $key );
         $value = self::scalar( $value );
-        if ( ! $key || '' === $value ) {
+        $contact_id = absint( $contact_id );
+        if ( ! $contact_id || ! $key ) {
+            return false;
+        }
+        if ( '' === $value ) {
+            if ( ! $delete_empty ) {
+                return true;
+            }
+            return false !== $wpdb->delete( $table, array( 'contact_id' => $contact_id, 'field_key' => $key ), array( '%d', '%s' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- An explicitly cleared contact field must be removed from the plugin-owned table.
+        }
+
+        if ( self::CITY_FIELD === $key ) {
+            $value = self::truncate_text( sanitize_text_field( $value ), 190 );
+        } elseif ( self::SOCIAL_PAGES_FIELD === $key ) {
+            $value = self::normalize_social_pages( $value );
+        }
+        if ( '' === $value ) {
             return true;
         }
 
-        $exists = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE contact_id=%d AND field_key=%s LIMIT 1', $table, absint( $contact_id ), $key ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom-field upsert requires current custom-table state.
+        $exists = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE contact_id=%d AND field_key=%s LIMIT 1', $table, $contact_id, $key ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom-field upsert requires current custom-table state.
         if ( $exists ) {
             return false !== $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom-field upsert updates current plugin-owned data.
                 $table,
@@ -642,7 +790,7 @@ final class ContactService {
             return (bool) $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom-field upsert inserts plugin-owned data.
                 $table,
                 array(
-                    'contact_id'  => absint( $contact_id ),
+                    'contact_id'  => $contact_id,
                     'field_key'   => $key,
                     'field_value' => $value,
                     'updated_at'  => current_time( 'mysql' ),
@@ -678,6 +826,45 @@ final class ContactService {
     public static function normalize_phone( $phone ) {
         $digits = preg_replace( '/\D+/', '', (string) $phone );
         return is_string( $digits ) && strlen( $digits ) >= 7 && strlen( $digits ) <= 40 ? $digits : '';
+    }
+
+    public static function normalize_social_pages( $value ) {
+        $values = array();
+        if ( is_array( $value ) ) {
+            array_walk_recursive(
+                $value,
+                static function ( $item ) use ( &$values ) {
+                    if ( is_scalar( $item ) ) {
+                        $values[] = (string) $item;
+                    }
+                }
+            );
+        } elseif ( is_scalar( $value ) ) {
+            $values[] = (string) $value;
+        }
+
+        $pages = array();
+        foreach ( $values as $item ) {
+            foreach ( (array) preg_split( '/\r\n|\r|\n/', $item ) as $page ) {
+                $page = self::truncate_text( trim( sanitize_text_field( $page ) ), 2048 );
+                if ( '' !== $page && ! in_array( $page, $pages, true ) ) {
+                    $pages[] = $page;
+                }
+                if ( 50 <= count( $pages ) ) {
+                    break 2;
+                }
+            }
+        }
+        return implode( "\n", $pages );
+    }
+
+    public static function split_social_pages( $value ) {
+        $normalized = self::normalize_social_pages( $value );
+        return '' === $normalized ? array() : explode( "\n", $normalized );
+    }
+
+    private static function merge_social_pages( $existing, $incoming ) {
+        return self::normalize_social_pages( array_merge( self::split_social_pages( $existing ), self::split_social_pages( $incoming ) ) );
     }
 
     private static function scalar( $value ) {

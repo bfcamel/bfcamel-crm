@@ -39,7 +39,7 @@ final class ContactsPage {
 
             <form method="get" class="bfcamel-crm-filters">
                 <input type="hidden" name="page" value="bfcamel-crm-contacts">
-                <div class="bfcamel-crm-filter-search"><label class="screen-reader-text" for="bfcamel-crm-contact-search"><?php esc_html_e( 'Search contacts', 'bfcamel-crm' ); ?></label><input id="bfcamel-crm-contact-search" type="search" name="s" value="<?php echo esc_attr( $filters['search'] ); ?>" placeholder="<?php echo esc_attr__( 'Search by name, organization, email or phone', 'bfcamel-crm' ); ?>"></div>
+                <div class="bfcamel-crm-filter-search"><label class="screen-reader-text" for="bfcamel-crm-contact-search"><?php esc_html_e( 'Search contacts', 'bfcamel-crm' ); ?></label><input id="bfcamel-crm-contact-search" type="search" name="s" value="<?php echo esc_attr( $filters['search'] ); ?>" placeholder="<?php echo esc_attr__( 'Search by name, organization, email, phone, city or social page', 'bfcamel-crm' ); ?>"></div>
                 <select name="tag_id" aria-label="<?php echo esc_attr__( 'Tag', 'bfcamel-crm' ); ?>"><option value="0"><?php esc_html_e( 'All tags', 'bfcamel-crm' ); ?></option><?php foreach ( $tags as $tag ) : ?><option value="<?php echo esc_attr( $tag->id ); ?>" <?php selected( $filters['tag_id'], $tag->id ); ?>><?php echo esc_html( $tag->name ); ?></option><?php endforeach; ?></select>
                 <select name="personal_data_consent" aria-label="<?php echo esc_attr__( 'Personal data consent', 'bfcamel-crm' ); ?>"><option value=""><?php esc_html_e( 'Personal data: all', 'bfcamel-crm' ); ?></option><?php foreach ( $statuses as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $filters['personal_data_consent'], $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select>
                 <select name="marketing_consent" aria-label="<?php echo esc_attr__( 'Marketing consent', 'bfcamel-crm' ); ?>"><option value=""><?php esc_html_e( 'Marketing: all', 'bfcamel-crm' ); ?></option><?php foreach ( $statuses as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $filters['marketing_consent'], $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select>
@@ -47,6 +47,7 @@ final class ContactsPage {
                 <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-contacts' ) ); ?>"><?php esc_html_e( 'Reset', 'bfcamel-crm' ); ?></a>
             </form>
             <?php if ( Request::get_flag( 'bulk_updated' ) ) : ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Selected contacts updated.', 'bfcamel-crm' ); ?></p></div><?php endif; ?>
+            <?php if ( Request::get_flag( 'deleted' ) ) : ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Contact deleted permanently.', 'bfcamel-crm' ); ?></p></div><?php endif; ?>
             <p class="bfcamel-crm-results-count"><?php
                 /* translators: %d: number of matching contacts. */
                 echo esc_html( sprintf( __( 'Found: %d', 'bfcamel-crm' ), $result['total'] ) );
@@ -92,6 +93,18 @@ final class ContactsPage {
         $result = NoteService::add( 'contact', $id, Request::post_textarea( 'note' ), get_current_user_id() );
         if ( is_wp_error( $result ) ) wp_die( esc_html( $result->get_error_message() ), esc_html__( 'Could not save note', 'bfcamel-crm' ), array( 'back_link' => true ) );
         wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-contacts&id=' . $id . '&note_added=1' ) ); exit;
+    }
+
+    public function delete_contact() {
+        $this->guard();
+        $id = Request::post_id( 'contact_id' );
+        check_admin_referer( 'bfcamel_crm_delete_contact_' . $id );
+        $result = ContactService::delete_permanently( $id );
+        if ( is_wp_error( $result ) ) {
+            wp_die( esc_html( $result->get_error_message() ), esc_html__( 'Could not delete contact', 'bfcamel-crm' ), array( 'back_link' => true ) );
+        }
+        wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-contacts&deleted=1' ) );
+        exit;
     }
 
     public function bulk_contacts() {
@@ -152,29 +165,238 @@ final class ContactsPage {
     }
 
     private function create_form() {
-        $all_tags = TagService::all(); $can = current_user_can( 'bfcamel_crm_manage_consents' ); ?>
-        <div class="wrap bfcamel-crm-admin"><div class="bfcamel-crm-page-title"><div><h1><?php esc_html_e( 'Add contact', 'bfcamel-crm' ); ?></h1><p class="description"><?php esc_html_e( 'Create a CRM contact without a form submission.', 'bfcamel-crm' ); ?></p></div><a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-contacts' ) ); ?>"><?php esc_html_e( 'Back', 'bfcamel-crm' ); ?></a></div>
-        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="bfcamel_crm_create_contact"><?php wp_nonce_field( 'bfcamel_crm_create_contact' ); ?><div class="bfcamel-crm-panel bfcamel-crm-form-card"><div class="bfcamel-crm-two-col"><p><label><strong><?php esc_html_e( 'Name', 'bfcamel-crm' ); ?></strong><input class="regular-text" name="contact[name]" required></label></p><p><label><strong><?php esc_html_e( 'Organization', 'bfcamel-crm' ); ?></strong><input class="regular-text" name="contact[organization]"></label></p><p><label><strong><?php esc_html_e( 'Email', 'bfcamel-crm' ); ?></strong><input class="regular-text" type="email" name="contact[email]"></label></p><p><label><strong><?php esc_html_e( 'Phone', 'bfcamel-crm' ); ?></strong><input class="regular-text" type="tel" name="contact[phone]"></label></p></div><p><label><strong><?php esc_html_e( 'Tags', 'bfcamel-crm' ); ?></strong><input class="large-text" name="tags" list="bfcamel-crm-contact-tags-list"></label></p><datalist id="bfcamel-crm-contact-tags-list"><?php foreach($all_tags as $tag): ?><option value="<?php echo esc_attr($tag->name); ?>"><?php endforeach; ?></datalist>
-        <?php if($can): ?><h3><?php esc_html_e( 'Consent status', 'bfcamel-crm' ); ?></h3><div class="bfcamel-crm-two-col"><?php foreach(ConsentService::types() as $type=>$label): ?><p><label><strong><?php echo esc_html($label); ?></strong><select name="consents[<?php echo esc_attr($type); ?>]"><?php foreach(ConsentService::statuses() as $status=>$sl): ?><option value="<?php echo esc_attr($status); ?>"><?php echo esc_html($sl); ?></option><?php endforeach; ?></select></label></p><?php endforeach; ?></div><?php endif; ?><?php submit_button( __( 'Create contact', 'bfcamel-crm' ) ); ?></div></form></div><?php
+        $all_tags = TagService::all();
+        $can_manage_consents = current_user_can( 'bfcamel_crm_manage_consents' );
+        ?>
+        <div class="wrap bfcamel-crm-admin">
+            <div class="bfcamel-crm-page-title">
+                <div>
+                    <h1><?php esc_html_e( 'Add contact', 'bfcamel-crm' ); ?></h1>
+                    <p class="description"><?php esc_html_e( 'Create a CRM contact without a form submission.', 'bfcamel-crm' ); ?></p>
+                </div>
+                <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-contacts' ) ); ?>"><?php esc_html_e( 'Back', 'bfcamel-crm' ); ?></a>
+            </div>
+
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                <input type="hidden" name="action" value="bfcamel_crm_create_contact">
+                <?php wp_nonce_field( 'bfcamel_crm_create_contact' ); ?>
+                <div class="bfcamel-crm-panel bfcamel-crm-form-card">
+                    <h2><?php esc_html_e( 'Contact details', 'bfcamel-crm' ); ?></h2>
+                    <div class="bfcamel-crm-two-col">
+                        <p><label><strong><?php esc_html_e( 'Name', 'bfcamel-crm' ); ?></strong><input class="regular-text" name="contact[name]" required></label></p>
+                        <p><label><strong><?php esc_html_e( 'Organization', 'bfcamel-crm' ); ?></strong><input class="regular-text" name="contact[organization]"></label></p>
+                        <p><label><strong><?php esc_html_e( 'Email', 'bfcamel-crm' ); ?></strong><input class="regular-text" type="email" name="contact[email]"></label></p>
+                        <p><label><strong><?php esc_html_e( 'Phone', 'bfcamel-crm' ); ?></strong><input class="regular-text" type="tel" name="contact[phone]"></label></p>
+                        <p><label><strong><?php esc_html_e( 'City', 'bfcamel-crm' ); ?></strong><input class="regular-text" name="contact[city]"></label></p>
+                    </div>
+                    <p>
+                        <label>
+                            <strong><?php esc_html_e( 'Social pages', 'bfcamel-crm' ); ?></strong>
+                            <textarea class="large-text" name="contact[social_pages]" rows="4"></textarea>
+                            <span class="description"><?php esc_html_e( 'Enter one social profile or link per line.', 'bfcamel-crm' ); ?></span>
+                        </label>
+                    </p>
+                    <p><label><strong><?php esc_html_e( 'Tags', 'bfcamel-crm' ); ?></strong><input class="large-text" name="tags" list="bfcamel-crm-contact-tags-list"></label></p>
+                    <datalist id="bfcamel-crm-contact-tags-list"><?php foreach ( $all_tags as $tag ) : ?><option value="<?php echo esc_attr( $tag->name ); ?>"><?php endforeach; ?></datalist>
+
+                    <?php if ( $can_manage_consents ) : ?>
+                        <h3><?php esc_html_e( 'Consent status', 'bfcamel-crm' ); ?></h3>
+                        <div class="bfcamel-crm-two-col">
+                            <?php foreach ( ConsentService::types() as $type => $label ) : ?>
+                                <p><label><strong><?php echo esc_html( $label ); ?></strong><select name="consents[<?php echo esc_attr( $type ); ?>]"><?php foreach ( ConsentService::statuses() as $status => $status_label ) : ?><option value="<?php echo esc_attr( $status ); ?>"><?php echo esc_html( $status_label ); ?></option><?php endforeach; ?></select></label></p>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                    <?php submit_button( __( 'Create contact', 'bfcamel-crm' ) ); ?>
+                </div>
+            </form>
+        </div>
+        <?php
     }
 
     private function detail( $id ) {
-        $contact=ContactService::get($id); if(!$contact) wp_die(esc_html__('Contact not found.','bfcamel-crm'));
-        $emails=ContactService::get_emails($id); $phones=ContactService::get_phones($id); $custom=ContactService::get_custom_fields($id); $tags=TagService::names_for_contact($id); $all_tags=TagService::all(); $consents=ConsentService::events_for_contact($id); $current=ConsentService::current_statuses($id,$consents); $activity=ContactService::activity($id); $notes=NoteService::for_entity('contact',$id);
-        global $wpdb; $subs=current_user_can('bfcamel_crm_view_submissions')?$wpdb->get_results($wpdb->prepare('SELECT * FROM %i WHERE contact_id=%d ORDER BY submitted_at DESC,id DESC LIMIT 50',Schema::table('submissions'),$id)):array(); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- CRM detail pages require fresh rows from the plugin's custom submissions table.
-        $primary_email=$emails?(string)$emails[0]->value:''; $primary_phone=$phones?(string)$phones[0]->value:''; ?>
-        <div class="wrap bfcamel-crm-admin"><div class="bfcamel-crm-page-title"><div><h1><?php echo esc_html($contact->display_name); ?></h1><p class="description"><?php echo esc_html($contact->organization); ?></p></div><a class="button" href="<?php echo esc_url(admin_url('admin.php?page=bfcamel-crm-contacts')); ?>"><?php esc_html_e('Back','bfcamel-crm'); ?></a></div>
-        <?php foreach(array('created'=>__('Contact created.','bfcamel-crm'),'details_updated'=>__('Contact details updated.','bfcamel-crm'),'updated'=>__('Contact tags updated.','bfcamel-crm'),'consents_updated'=>__('Consent status updated.','bfcamel-crm'),'note_added'=>__('Internal note added.','bfcamel-crm')) as $flag=>$message): if(Request::get_flag($flag)): ?><div class="notice notice-success is-dismissible"><p><?php echo esc_html($message); ?></p></div><?php endif; endforeach; ?>
-        <div class="bfcamel-crm-editor-grid"><main>
-        <div class="bfcamel-crm-panel"><h2><?php esc_html_e('Contact details','bfcamel-crm'); ?></h2><form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"><input type="hidden" name="action" value="bfcamel_crm_update_contact"><input type="hidden" name="contact_id" value="<?php echo esc_attr($id); ?>"><?php wp_nonce_field('bfcamel_crm_update_contact_'.$id); ?><div class="bfcamel-crm-two-col"><p><label><strong><?php esc_html_e('Name','bfcamel-crm'); ?></strong><input class="regular-text" name="contact[name]" required value="<?php echo esc_attr($contact->display_name); ?>"></label></p><p><label><strong><?php esc_html_e('Organization','bfcamel-crm'); ?></strong><input class="regular-text" name="contact[organization]" value="<?php echo esc_attr($contact->organization); ?>"></label></p><p><label><strong><?php esc_html_e('Primary email','bfcamel-crm'); ?></strong><input class="regular-text" type="email" name="contact[email]" value="<?php echo esc_attr($primary_email); ?>"></label></p><p><label><strong><?php esc_html_e('Primary phone','bfcamel-crm'); ?></strong><input class="regular-text" type="tel" name="contact[phone]" value="<?php echo esc_attr($primary_phone); ?>"></label></p></div><?php submit_button(__('Save contact','bfcamel-crm'),'primary','submit',false); ?></form><?php if($custom): ?><hr><dl class="bfcamel-crm-dl"><?php foreach($custom as $k=>$v): ?><dt><?php echo esc_html($k); ?></dt><dd><?php echo esc_html($v); ?></dd><?php endforeach; ?></dl><?php endif; ?></div>
-        <div class="bfcamel-crm-panel"><h2><?php esc_html_e('Internal notes','bfcamel-crm'); ?></h2><form class="bfcamel-crm-note-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"><input type="hidden" name="action" value="bfcamel_crm_add_contact_note"><input type="hidden" name="contact_id" value="<?php echo esc_attr($id); ?>"><?php wp_nonce_field('bfcamel_crm_add_contact_note_'.$id); ?><textarea name="note" rows="4" required placeholder="<?php echo esc_attr__('Add an internal note…','bfcamel-crm'); ?>"></textarea><button class="button button-primary"><?php esc_html_e('Add note','bfcamel-crm'); ?></button></form><?php $this->notes($notes); ?></div>
-        <?php if(current_user_can('bfcamel_crm_view_submissions')): ?><div class="bfcamel-crm-panel"><h2><?php esc_html_e('Submissions','bfcamel-crm'); ?></h2><table class="widefat striped"><thead><tr><th>ID</th><th><?php esc_html_e('Status','bfcamel-crm'); ?></th><th><?php esc_html_e('Received','bfcamel-crm'); ?></th></tr></thead><tbody><?php if(!$subs): ?><tr><td colspan="3">—</td></tr><?php endif; foreach($subs as $sub): ?><tr><td><a href="<?php echo esc_url(admin_url('admin.php?page=bfcamel-crm-submissions&id='.absint($sub->id))); ?>">#<?php echo esc_html($sub->id); ?></a></td><td><?php echo esc_html(SubmissionService::status_label($sub->status)); ?></td><td><?php echo esc_html(mysql2date(get_option('date_format').' '.get_option('time_format'),$sub->submitted_at)); ?></td></tr><?php endforeach; ?></tbody></table></div><?php endif; ?>
-        <div class="bfcamel-crm-panel"><h2><?php esc_html_e('Contact history','bfcamel-crm'); ?></h2><?php if(!$activity): ?><p class="description"><?php esc_html_e('No history entries yet.','bfcamel-crm'); ?></p><?php else: ?><ul class="bfcamel-crm-activity"><?php foreach($activity as $event): ?><li><div class="bfcamel-crm-activity__dot"></div><div><strong><?php echo esc_html(ActivityFormatter::message($event)); ?></strong><div class="bfcamel-crm-activity__meta"><?php echo esc_html($event->actor_name?:__('System','bfcamel-crm')); ?> · <?php echo esc_html(mysql2date(get_option('date_format').' '.get_option('time_format'),$event->created_at)); ?></div></div></li><?php endforeach; ?></ul><?php endif; ?></div>
-        </main><aside><div class="bfcamel-crm-panel bfcamel-crm-sticky"><h2><?php esc_html_e('Contact tags','bfcamel-crm'); ?></h2><form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"><input type="hidden" name="action" value="bfcamel_crm_update_contact_tags"><input type="hidden" name="contact_id" value="<?php echo esc_attr($id); ?>"><?php wp_nonce_field('bfcamel_crm_update_contact_tags_'.$id); ?><p><input type="text" name="tags" value="<?php echo esc_attr(implode(', ',$tags)); ?>" list="bfcamel-crm-contact-tags-list"></p><datalist id="bfcamel-crm-contact-tags-list"><?php foreach($all_tags as $tag): ?><option value="<?php echo esc_attr($tag->name); ?>"><?php endforeach; ?></datalist><?php submit_button(__('Update tags','bfcamel-crm'),'primary','submit',false); ?></form></div><?php $this->consent_panel($id,$current,current_user_can('bfcamel_crm_manage_consents')); $this->consent_history($consents); ?></aside></div></div><?php
+        $contact = ContactService::get( $id );
+        if ( ! $contact ) {
+            wp_die( esc_html__( 'Contact not found.', 'bfcamel-crm' ) );
+        }
+
+        $emails = ContactService::get_emails( $id );
+        $phones = ContactService::get_phones( $id );
+        $custom = ContactService::get_custom_fields( $id );
+        $city = isset( $custom[ ContactService::CITY_FIELD ] ) ? (string) $custom[ ContactService::CITY_FIELD ] : '';
+        $social_pages = isset( $custom[ ContactService::SOCIAL_PAGES_FIELD ] ) ? ContactService::split_social_pages( $custom[ ContactService::SOCIAL_PAGES_FIELD ] ) : array();
+        $additional_fields = array_diff_key(
+            $custom,
+            array(
+                ContactService::CITY_FIELD         => true,
+                ContactService::SOCIAL_PAGES_FIELD => true,
+            )
+        );
+        $tags = TagService::names_for_contact( $id );
+        $all_tags = TagService::all();
+        $consents = ConsentService::events_for_contact( $id );
+        $current = ConsentService::current_statuses( $id, $consents );
+        $activity = ContactService::activity( $id );
+        $notes = NoteService::for_entity( 'contact', $id );
+
+        global $wpdb;
+        $submissions = current_user_can( 'bfcamel_crm_view_submissions' )
+            ? $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE contact_id=%d ORDER BY submitted_at DESC,id DESC LIMIT 50', Schema::table( 'submissions' ), $id ) ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- CRM detail pages require fresh rows from the plugin's custom submissions table.
+            : array();
+        $primary_email = $emails ? (string) $emails[0]->value : '';
+        $primary_phone = $phones ? (string) $phones[0]->value : '';
+        $subtitle = implode( ' · ', array_filter( array( (string) $contact->organization, $city ) ) );
+        ?>
+        <div class="wrap bfcamel-crm-admin">
+            <div class="bfcamel-crm-page-title">
+                <div>
+                    <h1><?php echo esc_html( $contact->display_name ); ?></h1>
+                    <?php if ( $subtitle ) : ?><p class="description"><?php echo esc_html( $subtitle ); ?></p><?php endif; ?>
+                </div>
+                <div class="bfcamel-crm-actions">
+                    <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-contacts' ) ); ?>"><?php esc_html_e( 'Back', 'bfcamel-crm' ); ?></a>
+                    <form class="bfcamel-crm-inline-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                        <input type="hidden" name="action" value="bfcamel_crm_delete_contact">
+                        <input type="hidden" name="contact_id" value="<?php echo esc_attr( $id ); ?>">
+                        <?php wp_nonce_field( 'bfcamel_crm_delete_contact_' . $id ); ?>
+                        <button type="submit" class="button button-link-delete" data-bfcamel-confirm data-bfcamel-confirm-message="<?php echo esc_attr__( 'Delete this contact permanently? Related submissions will be kept but detached from the contact. This cannot be undone.', 'bfcamel-crm' ); ?>"><?php esc_html_e( 'Delete contact', 'bfcamel-crm' ); ?></button>
+                    </form>
+                </div>
+            </div>
+
+            <?php foreach ( array( 'created' => __( 'Contact created.', 'bfcamel-crm' ), 'details_updated' => __( 'Contact details updated.', 'bfcamel-crm' ), 'updated' => __( 'Contact tags updated.', 'bfcamel-crm' ), 'consents_updated' => __( 'Consent status updated.', 'bfcamel-crm' ), 'note_added' => __( 'Internal note added.', 'bfcamel-crm' ) ) as $flag => $message ) : ?>
+                <?php if ( Request::get_flag( $flag ) ) : ?><div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ); ?></p></div><?php endif; ?>
+            <?php endforeach; ?>
+
+            <div class="bfcamel-crm-editor-grid">
+                <main>
+                    <div class="bfcamel-crm-panel bfcamel-crm-form-card">
+                        <h2><?php esc_html_e( 'Contact details', 'bfcamel-crm' ); ?></h2>
+                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                            <input type="hidden" name="action" value="bfcamel_crm_update_contact">
+                            <input type="hidden" name="contact_id" value="<?php echo esc_attr( $id ); ?>">
+                            <?php wp_nonce_field( 'bfcamel_crm_update_contact_' . $id ); ?>
+                            <div class="bfcamel-crm-two-col">
+                                <p><label><strong><?php esc_html_e( 'Name', 'bfcamel-crm' ); ?></strong><input class="regular-text" name="contact[name]" required value="<?php echo esc_attr( $contact->display_name ); ?>"></label></p>
+                                <p><label><strong><?php esc_html_e( 'Organization', 'bfcamel-crm' ); ?></strong><input class="regular-text" name="contact[organization]" value="<?php echo esc_attr( $contact->organization ); ?>"></label></p>
+                                <p><label><strong><?php esc_html_e( 'Primary email', 'bfcamel-crm' ); ?></strong><input class="regular-text" type="email" name="contact[email]" value="<?php echo esc_attr( $primary_email ); ?>"></label></p>
+                                <p><label><strong><?php esc_html_e( 'Primary phone', 'bfcamel-crm' ); ?></strong><input class="regular-text" type="tel" name="contact[phone]" value="<?php echo esc_attr( $primary_phone ); ?>"></label></p>
+                                <p><label><strong><?php esc_html_e( 'City', 'bfcamel-crm' ); ?></strong><input class="regular-text" name="contact[city]" value="<?php echo esc_attr( $city ); ?>"></label></p>
+                            </div>
+                            <p>
+                                <label>
+                                    <strong><?php esc_html_e( 'Social pages', 'bfcamel-crm' ); ?></strong>
+                                    <textarea class="large-text" name="contact[social_pages]" rows="4"><?php echo esc_textarea( implode( "\n", $social_pages ) ); ?></textarea>
+                                    <span class="description"><?php esc_html_e( 'Enter one social profile or link per line.', 'bfcamel-crm' ); ?></span>
+                                </label>
+                            </p>
+                            <?php submit_button( __( 'Save contact', 'bfcamel-crm' ), 'primary', 'submit', false ); ?>
+                        </form>
+                    </div>
+
+                    <div class="bfcamel-crm-panel">
+                        <h2><?php esc_html_e( 'Stored contact data', 'bfcamel-crm' ); ?></h2>
+                        <div class="bfcamel-crm-contact-data-grid">
+                            <section class="bfcamel-crm-data-card">
+                                <h3><?php esc_html_e( 'All email addresses', 'bfcamel-crm' ); ?></h3>
+                                <?php $this->identifier_list( $emails, 'email' ); ?>
+                            </section>
+                            <section class="bfcamel-crm-data-card">
+                                <h3><?php esc_html_e( 'All phone numbers', 'bfcamel-crm' ); ?></h3>
+                                <?php $this->identifier_list( $phones, 'phone' ); ?>
+                            </section>
+                            <section class="bfcamel-crm-data-card">
+                                <h3><?php esc_html_e( 'Social pages', 'bfcamel-crm' ); ?></h3>
+                                <?php $this->social_page_list( $social_pages ); ?>
+                            </section>
+                        </div>
+                        <?php if ( $additional_fields ) : ?>
+                            <h3><?php esc_html_e( 'Additional fields', 'bfcamel-crm' ); ?></h3>
+                            <dl class="bfcamel-crm-dl">
+                                <?php foreach ( $additional_fields as $key => $value ) : ?><dt><?php echo esc_html( $key ); ?></dt><dd><?php echo nl2br( esc_html( $value ) ); ?></dd><?php endforeach; ?>
+                            </dl>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="bfcamel-crm-panel">
+                        <h2><?php esc_html_e( 'Internal notes', 'bfcamel-crm' ); ?></h2>
+                        <form class="bfcamel-crm-note-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                            <input type="hidden" name="action" value="bfcamel_crm_add_contact_note">
+                            <input type="hidden" name="contact_id" value="<?php echo esc_attr( $id ); ?>">
+                            <?php wp_nonce_field( 'bfcamel_crm_add_contact_note_' . $id ); ?>
+                            <textarea name="note" rows="4" required placeholder="<?php echo esc_attr__( 'Add an internal note…', 'bfcamel-crm' ); ?>"></textarea>
+                            <button class="button button-primary"><?php esc_html_e( 'Add note', 'bfcamel-crm' ); ?></button>
+                        </form>
+                        <?php $this->notes( $notes ); ?>
+                    </div>
+
+                    <?php if ( current_user_can( 'bfcamel_crm_view_submissions' ) ) : ?>
+                        <div class="bfcamel-crm-panel">
+                            <h2><?php esc_html_e( 'Submissions', 'bfcamel-crm' ); ?></h2>
+                            <div class="bfcamel-crm-table-scroll">
+                                <table class="widefat striped bfcamel-crm-table">
+                                    <thead><tr><th>ID</th><th><?php esc_html_e( 'Status', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Received', 'bfcamel-crm' ); ?></th></tr></thead>
+                                    <tbody>
+                                        <?php if ( ! $submissions ) : ?><tr><td colspan="3">—</td></tr><?php endif; ?>
+                                        <?php foreach ( $submissions as $submission ) : ?><tr><td><a href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-submissions&id=' . absint( $submission->id ) ) ); ?>">#<?php echo esc_html( $submission->id ); ?></a></td><td><?php echo esc_html( SubmissionService::status_label( $submission->status ) ); ?></td><td><?php echo esc_html( mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $submission->submitted_at ) ); ?></td></tr><?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="bfcamel-crm-panel">
+                        <h2><?php esc_html_e( 'Contact history', 'bfcamel-crm' ); ?></h2>
+                        <?php if ( ! $activity ) : ?>
+                            <p class="description"><?php esc_html_e( 'No history entries yet.', 'bfcamel-crm' ); ?></p>
+                        <?php else : ?>
+                            <ul class="bfcamel-crm-activity">
+                                <?php foreach ( $activity as $event ) : ?><li><div class="bfcamel-crm-activity__dot"></div><div><strong><?php echo esc_html( ActivityFormatter::message( $event ) ); ?></strong><div class="bfcamel-crm-activity__meta"><?php echo esc_html( $event->actor_name ?: __( 'System', 'bfcamel-crm' ) ); ?> · <?php echo esc_html( mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $event->created_at ) ); ?></div></div></li><?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
+                    </div>
+                </main>
+
+                <aside>
+                    <div class="bfcamel-crm-panel bfcamel-crm-sticky">
+                        <h2><?php esc_html_e( 'Contact tags', 'bfcamel-crm' ); ?></h2>
+                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                            <input type="hidden" name="action" value="bfcamel_crm_update_contact_tags">
+                            <input type="hidden" name="contact_id" value="<?php echo esc_attr( $id ); ?>">
+                            <?php wp_nonce_field( 'bfcamel_crm_update_contact_tags_' . $id ); ?>
+                            <p><input type="text" name="tags" value="<?php echo esc_attr( implode( ', ', $tags ) ); ?>" list="bfcamel-crm-contact-tags-list"></p>
+                            <datalist id="bfcamel-crm-contact-tags-list"><?php foreach ( $all_tags as $tag ) : ?><option value="<?php echo esc_attr( $tag->name ); ?>"><?php endforeach; ?></datalist>
+                            <?php submit_button( __( 'Update tags', 'bfcamel-crm' ), 'primary', 'submit', false ); ?>
+                        </form>
+                    </div>
+                    <?php $this->consent_panel( $id, $current, current_user_can( 'bfcamel_crm_manage_consents' ) ); ?>
+                    <?php $this->consent_history( $consents ); ?>
+                </aside>
+            </div>
+        </div>
+        <?php
     }
 
     private function table( $rows ) { $statuses=ConsentService::statuses(); ?>
-        <div class="bfcamel-crm-table-scroll"><table class="widefat striped bfcamel-crm-table bfcamel-crm-contacts-table"><thead><tr><td class="check-column"><input class="bfcamel-crm-select-all" type="checkbox"></td><th><?php esc_html_e('Name','bfcamel-crm'); ?></th><th><?php esc_html_e('Email','bfcamel-crm'); ?></th><th><?php esc_html_e('Phone','bfcamel-crm'); ?></th><th><?php esc_html_e('Organization','bfcamel-crm'); ?></th><th><?php esc_html_e('Personal data consent','bfcamel-crm'); ?></th><th><?php esc_html_e('Marketing consent','bfcamel-crm'); ?></th><th><?php esc_html_e('Tags','bfcamel-crm'); ?></th><th><?php esc_html_e('Updated','bfcamel-crm'); ?></th></tr></thead><tbody><?php if(!$rows): ?><tr><td colspan="9"><?php esc_html_e('No contacts yet.','bfcamel-crm'); ?></td></tr><?php endif; foreach((array)$rows as $row): $pd=sanitize_key($row->personal_data_consent?:'unknown'); $mk=sanitize_key($row->marketing_consent?:'unknown'); ?><tr><th class="check-column"><input type="checkbox" name="contact_ids[]" value="<?php echo esc_attr($row->id); ?>"></th><td><strong><a href="<?php echo esc_url(admin_url('admin.php?page=bfcamel-crm-contacts&id='.absint($row->id))); ?>"><?php echo esc_html($row->display_name); ?></a></strong></td><td><?php echo esc_html($row->email_values?:'—'); ?></td><td><?php echo esc_html($row->phone_values?:'—'); ?></td><td><?php echo esc_html($row->organization?:'—'); ?></td><td><?php $this->consent_badge($pd,$statuses); ?></td><td><?php $this->consent_badge($mk,$statuses); ?></td><td><?php echo esc_html($row->tag_names?:'—'); ?></td><td><?php echo esc_html(mysql2date(get_option('date_format'),$row->updated_at)); ?></td></tr><?php endforeach; ?></tbody></table></div><?php
+        <div class="bfcamel-crm-table-scroll"><table class="widefat striped bfcamel-crm-table bfcamel-crm-contacts-table"><thead><tr><td class="check-column"><input class="bfcamel-crm-select-all" type="checkbox"></td><th><?php esc_html_e('Name','bfcamel-crm'); ?></th><th><?php esc_html_e('Email','bfcamel-crm'); ?></th><th><?php esc_html_e('Phone','bfcamel-crm'); ?></th><th><?php esc_html_e('Organization','bfcamel-crm'); ?></th><th><?php esc_html_e('City','bfcamel-crm'); ?></th><th><?php esc_html_e('Personal data consent','bfcamel-crm'); ?></th><th><?php esc_html_e('Marketing consent','bfcamel-crm'); ?></th><th><?php esc_html_e('Tags','bfcamel-crm'); ?></th><th><?php esc_html_e('Updated','bfcamel-crm'); ?></th></tr></thead><tbody><?php if(!$rows): ?><tr><td colspan="10"><?php esc_html_e('No contacts yet.','bfcamel-crm'); ?></td></tr><?php endif; foreach((array)$rows as $row): $pd=sanitize_key($row->personal_data_consent?:'unknown'); $mk=sanitize_key($row->marketing_consent?:'unknown'); ?><tr><th class="check-column"><input type="checkbox" name="contact_ids[]" value="<?php echo esc_attr($row->id); ?>"></th><td><strong><a href="<?php echo esc_url(admin_url('admin.php?page=bfcamel-crm-contacts&id='.absint($row->id))); ?>"><?php echo esc_html($row->display_name); ?></a></strong></td><td><?php echo esc_html($row->email_values?:'—'); ?></td><td><?php echo esc_html($row->phone_values?:'—'); ?></td><td><?php echo esc_html($row->organization?:'—'); ?></td><td><?php echo esc_html($row->city?:'—'); ?></td><td><?php $this->consent_badge($pd,$statuses); ?></td><td><?php $this->consent_badge($mk,$statuses); ?></td><td><?php echo esc_html($row->tag_names?:'—'); ?></td><td><?php echo esc_html(mysql2date(get_option('date_format'),$row->updated_at)); ?></td></tr><?php endforeach; ?></tbody></table></div><?php
+    }
+    private function identifier_list( $rows, $type ) { ?>
+        <ul class="bfcamel-crm-data-list">
+            <?php if ( ! $rows ) : ?><li>—</li><?php endif; ?>
+            <?php foreach ( (array) $rows as $row ) :
+                $value = (string) $row->value;
+                $href = 'email' === $type ? 'mailto:' . $value : 'tel:' . preg_replace( '/[^0-9+]/', '', $value );
+                ?><li><a href="<?php echo esc_url( $href ); ?>"><?php echo esc_html( $value ); ?></a><?php if ( ! empty( $row->is_primary ) ) : ?> <span class="bfcamel-crm-badge"><?php esc_html_e( 'Primary', 'bfcamel-crm' ); ?></span><?php endif; ?></li>
+            <?php endforeach; ?>
+        </ul>
+        <?php
+    }
+    private function social_page_list( $pages ) { ?>
+        <ul class="bfcamel-crm-data-list">
+            <?php if ( ! $pages ) : ?><li>—</li><?php endif; ?>
+            <?php foreach ( (array) $pages as $page ) : ?><li><?php if ( preg_match( '#^https?://#i', $page ) ) : ?><a href="<?php echo esc_url( $page ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $page ); ?></a><?php else : ?><?php echo esc_html( $page ); ?><?php endif; ?></li><?php endforeach; ?>
+        </ul>
+        <?php
     }
     private function consent_badge($status,$labels){ $label=$labels[$status]??$status; echo '<span class="bfcamel-crm-consent bfcamel-crm-consent--'.esc_attr(sanitize_html_class($status)).'">'.esc_html($label).'</span>'; }
     private function notes($notes){ if(!$notes){ echo '<p class="description">'.esc_html__('No internal notes yet.','bfcamel-crm').'</p>'; return; } echo '<ul class="bfcamel-crm-notes">'; foreach($notes as $note){ echo '<li><div class="bfcamel-crm-note__body">'.nl2br(esc_html($note->note_text)).'</div><div class="bfcamel-crm-note__meta">'.esc_html($note->actor_name?:__('System','bfcamel-crm')).' · '.esc_html(mysql2date(get_option('date_format').' '.get_option('time_format'),$note->created_at)).'</div></li>'; } echo '</ul>'; }

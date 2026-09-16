@@ -73,10 +73,12 @@ final class Admin {
                         'moveDown'            => __( 'Move down', 'bfcamel-crm' ),
                         'label'               => __( 'Label / text', 'bfcamel-crm' ),
                         'key'                 => __( 'Field key', 'bfcamel-crm' ),
+                        'keyHelp'             => __( 'A stable technical identifier used in saved submissions. It does not change when CRM mapping changes.', 'bfcamel-crm' ),
                         'placeholder'         => __( 'Placeholder / hidden value', 'bfcamel-crm' ),
                         'required'            => __( 'Required', 'bfcamel-crm' ),
                         'width'               => __( 'Width', 'bfcamel-crm' ),
                         'mapping'             => __( 'CRM mapping', 'bfcamel-crm' ),
+                        'mappingHelp'         => __( 'Select where this value is saved in the contact. The field key remains unchanged.', 'bfcamel-crm' ),
                         'customKey'           => __( 'Custom field key', 'bfcamel-crm' ),
                         'cssClass'            => __( 'Field CSS class', 'bfcamel-crm' ),
                         'options'             => __( 'Options, one per line', 'bfcamel-crm' ),
@@ -85,6 +87,8 @@ final class Admin {
                         'contactEmail'        => __( 'Contact: email', 'bfcamel-crm' ),
                         'contactPhone'        => __( 'Contact: phone', 'bfcamel-crm' ),
                         'contactOrganization' => __( 'Contact: organization', 'bfcamel-crm' ),
+                        'contactCity'         => __( 'Contact: city', 'bfcamel-crm' ),
+                        'contactSocialPage'   => __( 'Contact: social page', 'bfcamel-crm' ),
                         'contactCustom'       => __( 'Contact: custom field', 'bfcamel-crm' ),
                         'personalDataDefault' => __( 'I consent to {personal_data_consent} and confirm that I have read the {privacy_policy}.', 'bfcamel-crm' ),
                         'marketingDefault'    => __( 'I consent to receive informational and marketing messages under the {marketing_consent}.', 'bfcamel-crm' ),
@@ -113,6 +117,10 @@ final class Admin {
                 <a class="page-title-action" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-forms&action=new' ) ); ?>"><?php esc_html_e( 'Add form', 'bfcamel-crm' ); ?></a>
             </div>
 
+            <?php foreach ( array( 'archived' => __( 'Form archived.', 'bfcamel-crm' ), 'restored' => __( 'Form restored.', 'bfcamel-crm' ), 'deleted' => __( 'Form deleted permanently.', 'bfcamel-crm' ) ) as $flag => $message ) : ?>
+                <?php if ( Request::get_flag( $flag ) ) : ?><div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ); ?></p></div><?php endif; ?>
+            <?php endforeach; ?>
+
             <div class="bfcamel-crm-panel">
                 <table class="widefat striped bfcamel-crm-table">
                     <thead><tr><th><?php esc_html_e( 'Name', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Slug', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Shortcode', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Status', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Updated', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Actions', 'bfcamel-crm' ); ?></th></tr></thead>
@@ -127,7 +135,25 @@ final class Admin {
                                 <td><code>[bfcamel_form id="<?php echo esc_html( $form->id ); ?>"]</code></td>
                                 <td><span class="bfcamel-crm-badge"><?php echo esc_html( 'archived' === $form->status ? __( 'Archived', 'bfcamel-crm' ) : __( 'Published', 'bfcamel-crm' ) ); ?></span></td>
                                 <td><?php echo esc_html( mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $form->updated_at ) ); ?></td>
-                                <td><form class="bfcamel-crm-inline-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="<?php echo esc_attr( 'archived' === $form->status ? 'bfcamel_crm_restore_form' : 'bfcamel_crm_archive_form' ); ?>"><input type="hidden" name="form_id" value="<?php echo esc_attr( $form->id ); ?>"><?php wp_nonce_field( 'bfcamel_crm_form_status_' . absint( $form->id ) ); ?><button type="submit" class="button <?php echo 'archived' === $form->status ? '' : 'button-link-delete'; ?>" data-bfcamel-confirm><?php echo esc_html( 'archived' === $form->status ? __( 'Restore', 'bfcamel-crm' ) : __( 'Archive', 'bfcamel-crm' ) ); ?></button></form></td>
+                                <td>
+                                    <div class="bfcamel-crm-actions bfcamel-crm-actions--compact">
+                                        <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-forms&action=edit&id=' . absint( $form->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'bfcamel-crm' ); ?></a>
+                                        <form class="bfcamel-crm-inline-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                            <input type="hidden" name="action" value="<?php echo esc_attr( 'archived' === $form->status ? 'bfcamel_crm_restore_form' : 'bfcamel_crm_archive_form' ); ?>">
+                                            <input type="hidden" name="form_id" value="<?php echo esc_attr( $form->id ); ?>">
+                                            <?php wp_nonce_field( 'bfcamel_crm_form_status_' . absint( $form->id ) ); ?>
+                                            <button type="submit" class="button" <?php if ( 'archived' !== $form->status ) : ?>data-bfcamel-confirm data-bfcamel-confirm-message="<?php echo esc_attr__( 'Archive this form? It will stop accepting new submissions.', 'bfcamel-crm' ); ?>"<?php endif; ?>><?php echo esc_html( 'archived' === $form->status ? __( 'Restore', 'bfcamel-crm' ) : __( 'Archive', 'bfcamel-crm' ) ); ?></button>
+                                        </form>
+                                        <?php if ( 'archived' === $form->status ) : ?>
+                                            <form class="bfcamel-crm-inline-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                                <input type="hidden" name="action" value="bfcamel_crm_delete_form">
+                                                <input type="hidden" name="form_id" value="<?php echo esc_attr( $form->id ); ?>">
+                                                <?php wp_nonce_field( 'bfcamel_crm_delete_form_' . absint( $form->id ) ); ?>
+                                                <button type="submit" class="button button-link-delete" data-bfcamel-confirm data-bfcamel-confirm-message="<?php echo esc_attr__( 'Delete this archived form permanently? The form can only be deleted when it has no submissions. This cannot be undone.', 'bfcamel-crm' ); ?>"><?php esc_html_e( 'Delete form', 'bfcamel-crm' ); ?></button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>

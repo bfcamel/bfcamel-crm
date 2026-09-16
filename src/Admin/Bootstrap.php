@@ -12,7 +12,7 @@ final class Bootstrap {
     private function __construct() {}
 
     public function register() {
-        $admin = Admin::instance(); $submissions = SubmissionsPage::instance(); $contacts = ContactsPage::instance(); $workflow = WorkflowPage::instance(); $enhancements = DataEnhancements::instance(); $interface = InterfaceEnhancements::instance();
+        $admin = Admin::instance(); $submissions = SubmissionsPage::instance(); $contacts = ContactsPage::instance(); $workflow = WorkflowPage::instance();
         add_action( 'admin_menu', array( $this, 'menu' ) );
         add_action( 'admin_enqueue_scripts', array( $admin, 'assets' ) );
         add_action( 'admin_notices', array( $workflow, 'legal_notice' ) );
@@ -24,6 +24,7 @@ final class Bootstrap {
         add_action( 'admin_post_bfcamel_crm_delete_tag', array( $workflow, 'delete_tag' ) );
         add_action( 'admin_post_bfcamel_crm_archive_form', array( $workflow, 'archive_form' ) );
         add_action( 'admin_post_bfcamel_crm_restore_form', array( $workflow, 'restore_form' ) );
+        add_action( 'admin_post_bfcamel_crm_delete_form', array( $workflow, 'delete_form' ) );
         add_action( 'admin_post_bfcamel_crm_update_submission', array( $submissions, 'update_submission' ) );
         add_action( 'admin_post_bfcamel_crm_bulk_submissions', array( $submissions, 'bulk_submissions' ) );
         add_action( 'admin_post_bfcamel_crm_add_submission_note', array( $submissions, 'add_note' ) );
@@ -33,9 +34,9 @@ final class Bootstrap {
         add_action( 'admin_post_bfcamel_crm_add_contact_note', array( $contacts, 'add_note' ) );
         add_action( 'admin_post_bfcamel_crm_update_contact_tags', array( $contacts, 'update_tags' ) );
         add_action( 'admin_post_bfcamel_crm_update_contact_consents', array( $contacts, 'update_consents' ) );
+        add_action( 'admin_post_bfcamel_crm_delete_contact', array( $contacts, 'delete_contact' ) );
+        add_action( 'admin_post_bfcamel_crm_delete_submission', array( $submissions, 'delete_submission' ) );
         add_action( 'admin_post_bfcamel_crm_export', array( Exporter::class, 'handle' ) );
-        $enhancements->register();
-        $interface->register();
     }
 
     public function menu() {

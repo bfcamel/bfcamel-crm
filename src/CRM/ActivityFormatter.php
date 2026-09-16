@@ -95,6 +95,8 @@ final class ActivityFormatter {
             'organization' => __( 'Organization', 'bfcamel-crm' ),
             'email'        => __( 'Email', 'bfcamel-crm' ),
             'phone'        => __( 'Phone', 'bfcamel-crm' ),
+            'city'         => __( 'City', 'bfcamel-crm' ),
+            'social_pages' => __( 'Social pages', 'bfcamel-crm' ),
         );
         $parts = array();
         foreach ( (array) $changes as $key => $change ) {
@@ -131,6 +133,7 @@ final class ActivityFormatter {
             'conflict' => __( 'Conflict — needs review', 'bfcamel-crm' ),
             'error'    => __( 'Error', 'bfcamel-crm' ),
             'pending'  => __( 'Pending', 'bfcamel-crm' ),
+            'deleted'  => __( 'Contact deleted', 'bfcamel-crm' ),
         );
         $status = sanitize_key( $status );
         return $labels[ $status ] ?? $status;

@@ -1,36 +1,49 @@
 # Changelog
 
+## 0.5.5
+
+### Contact data and reliability
+- Added first-class `city` and `social_page` CRM mappings while keeping form field keys stable across mapping changes.
+- Added city and social-page fields to manual contact creation and editing, contact search, contact history and CSV/XLSX exports.
+- Preserved every unique social profile collected across repeat submissions instead of overwriting the previous value.
+- Rebuilt the contact detail layout in server-rendered PHP with all email addresses, phone numbers, social pages and additional fields clearly separated.
+- Removed the JavaScript-only data patch used by 0.5.4 so these features remain available when scripts are delayed or disabled.
+
+### Administration
+- Refreshed the CRM interface with unified brand-styled controls, clearer panels, improved tables, responsive contact-data cards and accessible focus states.
+- Added nonce-protected permanent deletion for contacts and submissions with explicit confirmation and transactional cleanup.
+- Added permanent deletion for archived forms that have no submissions; forms with submission history remain protected.
+- Added an explanation in the form builder that the field key is a stable submission identifier and does not change with CRM mapping.
+
+### Localization and performance
+- Batched custom-field loading for exports and made the city and social-page columns consistently available.
+- Completed Russian translations for the new contact fields, deletion workflow and interface text.
+- Excluded Git worktree metadata from installable ZIP packages as well as regular checkout metadata.
+
 ## 0.5.4
 
 ### Localization
-- Localized the visible `city` and `social_page` CRM mappings for Russian users while preserving the stable technical keys used by existing forms and stored data.
-- Localized the city and social-page labels used by contact details and the form builder.
+- Added Russian display labels for the `city` and `social_page` CRM mappings without changing their stable technical keys.
 
 ### Administration
-- Standardized CRM action buttons around the primary “Add contact” visual treatment while keeping destructive actions visibly distinct.
-- Refreshed panels, tables, filters, inputs, spacing and responsive behavior across the CRM administration screens.
-
-### Data management
-- Added explicit permanent deletion for forms from both the forms list and form editor.
-- Permanent form deletion removes the form revisions, its submissions and submission-linked tags, consent events, notes and activity records while preserving CRM contacts.
-- Automation rules that reference a permanently deleted form are removed automatically.
+- Added an initial visual refresh and standardized CRM action-button styling.
+- Added permanent form deletion with cleanup of linked submissions and workflow rules.
 
 ## 0.5.3
 
 ### Contact data
-- Display all known email addresses and phone numbers on the contact detail screen instead of showing only the primary identifier.
-- Added first-class CRM mappings for `city` and `social_page` without adding either field to the default starter form.
-- Treat `city` as a single-value contact field and aggregate multiple `social_page` values from linked submissions.
-- Show the city in the contacts list and render city, social pages and remaining custom fields more clearly on the contact page.
+- Displayed all known email addresses and phone numbers on the contact detail screen instead of showing only the primary identifier.
+- Added CRM mappings for `city` and `social_page` without adding either field to the default starter form.
+- Treated `city` as a single-value contact field and aggregated multiple `social_page` values from linked submissions.
+- Showed the city in the contacts list and rendered city, social pages and remaining custom fields more clearly on the contact page.
 
 ### Export
-- Include city, social pages and all remaining custom contact fields in CSV and XLSX contact exports.
-- Keep all known contact email addresses and phone numbers in exported contact data.
+- Included city, social pages and all remaining custom contact fields in CSV and XLSX contact exports.
+- Kept all known contact email addresses and phone numbers in exported contact data.
 
 ### Data management
 - Added permanent deletion actions for contacts and submissions with permission and nonce checks plus explicit confirmation.
-- Deleting a contact removes its identifiers, custom fields, tags, notes and contact history while preserving submissions and detaching them from the deleted contact.
-- Deleting a submission removes its tags, consent events, notes and activity records while leaving the linked contact intact.
+- Preserved submissions when deleting a contact and preserved the linked contact when deleting an individual submission.
 
 ## 0.5.2
 

@@ -56,6 +56,80 @@ final class Repository {
 
     public static function archive( $id, $user_id = 0 ) { return self::set_status($id,'archived',$user_id); }
     public static function restore( $id, $user_id = 0 ) { return self::set_status($id,'publish',$user_id); }
+
+    public static function delete_permanently( $id ) {
+        global $wpdb;
+        $id = absint( $id );
+        $form = $id ? self::get( $id ) : null;
+        if ( ! $form ) {
+            return new \WP_Error( 'bfcamel_crm_form_missing', __( 'Form not found.', 'bfcamel-crm' ) );
+        }
+        if ( 'archived' !== (string) $form->status ) {
+            return new \WP_Error( 'bfcamel_crm_form_not_archived', __( 'Archive the form before deleting it permanently.', 'bfcamel-crm' ) );
+        }
+        if ( ! Schema::begin_transaction() ) {
+            return new \WP_Error( 'bfcamel_crm_form_delete_transaction', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
+        }
+
+        $forms = Schema::table( 'forms' );
+        $locked = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id=%d LIMIT 1 FOR UPDATE', $forms, $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Permanent deletion locks the plugin-owned form row.
+        if ( ! $locked ) {
+            Schema::rollback();
+            return new \WP_Error( 'bfcamel_crm_form_missing', __( 'Form not found.', 'bfcamel-crm' ) );
+        }
+        if ( 'archived' !== (string) $locked->status ) {
+            Schema::rollback();
+            return new \WP_Error( 'bfcamel_crm_form_not_archived', __( 'Archive the form before deleting it permanently.', 'bfcamel-crm' ) );
+        }
+
+        $submission_count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE form_id=%d', Schema::table( 'submissions' ), $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- A form with submissions must retain its immutable revisions.
+        if ( $submission_count ) {
+            Schema::rollback();
+            return new \WP_Error(
+                'bfcamel_crm_form_has_submissions',
+                sprintf(
+                    /* translators: %d: number of submissions that belong to the form. */
+                    __( 'This form has %d submissions. Delete those submissions before deleting the form.', 'bfcamel-crm' ),
+                    $submission_count
+                )
+            );
+        }
+
+        $revision_ids = array_map(
+            'absint',
+            (array) $wpdb->get_col( $wpdb->prepare( 'SELECT id FROM %i WHERE form_id=%d', Schema::table( 'form_revisions' ), $id ) ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Revision cache keys are collected before deleting plugin-owned rows.
+        );
+        if ( false === $wpdb->delete( Schema::table( 'form_revisions' ), array( 'form_id' => $id ), array( '%d' ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Permanent deletion removes revisions only after confirming no submission references them.
+            return self::rollback_error( 'bfcamel_crm_form_delete_failed', __( 'The form could not be deleted.', 'bfcamel-crm' ) );
+        }
+        if ( false === $wpdb->delete( Schema::table( 'activity_log' ), array( 'entity_type' => 'form', 'entity_id' => $id ), array( '%s', '%d' ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Permanent deletion removes the deleted form's activity log.
+            return self::rollback_error( 'bfcamel_crm_form_delete_failed', __( 'The form could not be deleted.', 'bfcamel-crm' ) );
+        }
+        if ( false === $wpdb->delete( $forms, array( 'id' => $id ), array( '%d' ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Final deletion of the locked plugin-owned form row.
+            return self::rollback_error( 'bfcamel_crm_form_delete_failed', __( 'The form could not be deleted.', 'bfcamel-crm' ) );
+        }
+
+        if ( ! Schema::commit() ) {
+            return self::rollback_error( 'bfcamel_crm_form_delete_failed', __( 'The form could not be deleted.', 'bfcamel-crm' ) );
+        }
+
+        $remaining_rules = array_values(
+            array_filter(
+                WorkflowService::rules(),
+                static function ( $rule ) use ( $id ) {
+                    return absint( $rule['form_id'] ?? 0 ) !== $id;
+                }
+            )
+        );
+        WorkflowService::save_rules( $remaining_rules );
+
+        self::clear_form_cache( $id, $form->slug );
+        foreach ( $revision_ids as $revision_id ) {
+            wp_cache_delete( 'form-revision:' . $revision_id, self::CACHE_GROUP );
+        }
+        return true;
+    }
+
     private static function set_status( $id, $status, $user_id ) {
         global $wpdb; $id=absint($id); $status='publish'===$status?'publish':'archived'; $form=self::get($id); if(!$id||!$form||!Schema::begin_transaction())return false;
         $forms = Schema::table( 'forms' );
