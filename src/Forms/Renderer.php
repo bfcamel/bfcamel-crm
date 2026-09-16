@@ -15,7 +15,6 @@ final class Renderer {
     public function register() {
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_shortcode( 'bfcamel_form', array( $this, 'shortcode' ) );
-        add_shortcode( 'gfr_form', array( $this, 'shortcode' ) );
     }
 
     public function enqueue_assets() { wp_register_style( 'bfcamel-crm-frontend', BFCAMEL_CRM_URL . 'assets/frontend.css', array(), BFCAMEL_CRM_VERSION ); }

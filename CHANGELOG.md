@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.6
+
+### WordPress.org review compliance
+- Removed the legacy three-letter compatibility shortcode so every public shortcode uses the unique `bfcamel` prefix required by the directory review guidance.
+- Limited database-upgrade failure notices to BfCamel CRM screens and added clear recovery instructions for administrators.
+- Kept the reviewed Russian source catalog in the repository while excluding PO and MO files from installable packages so WordPress.org can deliver translations as language packs.
+- Added release guards that reject bundled PO/MO files and preserve the translation template in the published ZIP.
+
 ## 0.5.5
 
 ### Contact data and reliability

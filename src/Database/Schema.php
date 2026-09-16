@@ -459,7 +459,14 @@ final class Schema {
         if ( ! get_option( self::ERROR_OPTION, array() ) || ! current_user_can( 'manage_options' ) ) {
             return;
         }
-        echo '<div class="notice notice-error"><p>' . esc_html( self::readiness_message() ) . '</p></div>';
+
+        $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+        if ( ! $screen || false === strpos( (string) $screen->id, 'bfcamel-crm' ) ) {
+            return;
+        }
+
+        $recovery = __( 'Check the database user permissions, then reload this page. If the error remains, contact your hosting provider.', 'bfcamel-crm' );
+        echo '<div class="notice notice-error"><p>' . esc_html( self::readiness_message() . ' ' . $recovery ) . '</p></div>';
     }
 
     public static function begin_transaction() {

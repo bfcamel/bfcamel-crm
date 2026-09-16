@@ -2,7 +2,14 @@
 
 **BfCamel CRM** is an open-source WordPress form builder and lightweight CRM developed by the People & Camels Charity Foundation.
 
-Version **0.5.5** is the current public release prepared for distribution through WordPress.org. It preserves the established plugin identity and the in-place update path from earlier BfCamel CRM versions.
+Version **0.5.6** is the current public release prepared for distribution through WordPress.org. It preserves the established plugin identity and the in-place update path from earlier BfCamel CRM versions.
+
+## 0.5.6 release highlights
+
+- Removed the temporary three-letter compatibility shortcode so the public shortcode namespace fully follows WordPress.org prefix requirements.
+- Scoped database-upgrade notices to BfCamel CRM screens and added actionable recovery guidance.
+- Switched installable packages to WordPress.org language packs while retaining and validating the complete Russian source catalog in the repository.
+- Added packaging checks that reject bundled PO/MO files before a release can be published.
 
 ## 0.5.5 release highlights
 
@@ -68,7 +75,7 @@ Schema version 6 keeps the existing forms, contacts, submissions, tags, consent 
 
 ## Localization
 
-English remains the source language. Russian (`ru_RU`) is bundled as PO and MO catalogs. Release builds reject incomplete translations and compile a fresh MO catalog from the reviewed PO source inside every ZIP.
+English remains the source language. The complete Russian (`ru_RU`) catalog is maintained and validated in the source repository. Installable packages omit PO and MO files so approved translations can be delivered through standard WordPress.org language packs; the POT template remains in the package.
 
 ## Core features
 
@@ -80,8 +87,7 @@ English remains the source language. Russian (`ru_RU`) is bundled as PO and MO c
 - CSV/XLSX exports with formula-injection protection.
 - WordPress Privacy Exporter and Eraser integration.
 - Honeypot and basic per-form rate limiting.
-- Preferred shortcode: `[bfcamel_form id="1"]` or `[bfcamel_form slug="contact-form"]`.
-- `[gfr_form ...]` remains as a compatibility alias for the temporary 0.1.2 rebrand.
+- Shortcode: `[bfcamel_form id="1"]` or `[bfcamel_form slug="contact-form"]`.
 
 ## Requirements
 
