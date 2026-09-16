@@ -4,6 +4,7 @@ use BfCamel\CRM\Consent\ConsentService;
 use BfCamel\CRM\CRM\ActivityFormatter;
 use BfCamel\CRM\CRM\TagService;
 use BfCamel\CRM\CRM\WorkflowService;
+use BfCamel\CRM\Database\Schema;
 use BfCamel\CRM\Export\Exporter;
 use BfCamel\CRM\Export\XlsxWriter;
 
