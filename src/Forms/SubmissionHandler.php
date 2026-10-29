@@ -32,7 +32,7 @@ final class SubmissionHandler {
         if('error'===$sync_status)$this->rollback_and_redirect($return_url,$form_id);
         $status=$workflow['status'];if('conflict'===$sync_status){$status=WorkflowService::is_valid('status','needs_review')?'needs_review':WorkflowService::default_status();}
         if(false===$wpdb->update(Schema::table('submissions'),array('contact_id'=>$contact_id,'contact_sync_status'=>$sync_status,'status'=>$status),array('id'=>$submission_id),array('%d','%s','%s'),array('%d')))$this->rollback_and_redirect($return_url,$form_id); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional synchronization requires current custom-table state.
-        if(!ConsentService::capture_from_submission($submission_id,$contact_id,$form_id,$revision_id,$schema,$payload,$source))$this->rollback_and_redirect($return_url,$form_id);
+        if(!ConsentService::capture_from_submission($submission_id,'created'===$sync_status?$contact_id:0,$form_id,$revision_id,$schema,$payload,$source))$this->rollback_and_redirect($return_url,$form_id);
         if(!Schema::log('submission',$submission_id,'created','Form submission received.',array('form_id'=>$form_id,'revision_id'=>$revision_id,'submission_uuid'=>$uuid,'contact_id'=>$contact_id,'contact_sync_status'=>$sync_status,'status'=>$status,'priority'=>$workflow['priority'])))$this->rollback_and_redirect($return_url,$form_id);
         if(!Schema::commit())$this->rollback_and_redirect($return_url,$form_id);
         do_action('bfcamel_crm_submission_created',$submission_id,$contact_id,$form_id,$revision_id);$this->redirect($return_url,$form_id,'success');
@@ -66,7 +66,22 @@ final class SubmissionHandler {
     private function sanitize_value($type,$raw,$options){switch($type){case'email':return sanitize_email(is_scalar($raw)?$raw:'');case'tel':case'text':case'hidden':case'date':return sanitize_text_field(is_scalar($raw)?$raw:'');case'number':if(''===$raw||null===$raw)return'';return is_numeric($raw)?(string)$raw:new \WP_Error('bfcamel_crm_number',__( 'Invalid number.', 'bfcamel-crm' ));case'textarea':return sanitize_textarea_field(is_scalar($raw)?$raw:'');case'select':case'radio':$value=sanitize_text_field(is_scalar($raw)?$raw:'');if(''===$value)return'';return in_array($value,$options,true)?$value:new \WP_Error('bfcamel_crm_option',__( 'Invalid option.', 'bfcamel-crm' ));case'checkbox':$values=array();foreach((array)$raw as $item){$item=sanitize_text_field($item);if(in_array($item,$options,true))$values[]=$item;}return array_values(array_unique($values));case'consent_personal_data':case'consent_marketing':return !empty($raw);default:return sanitize_text_field(is_scalar($raw)?$raw:'');}}
     private function is_empty($value){if(is_array($value))return 0===count($value);if(is_bool($value))return false===$value;return''===trim((string)$value);}
     private function source_context($source_url){$settings=get_option('bfcamel_crm_settings',array());$store_ip=!empty($settings['store_ip']);$store_url=!isset($settings['store_source_url'])||!empty($settings['store_source_url']);$store_agent=!isset($settings['store_user_agent'])||!empty($settings['store_user_agent']);$ip='';if($store_ip){$candidate=Request::server_textarea('REMOTE_ADDR',100);if(filter_var($candidate,FILTER_VALIDATE_IP))$ip=$candidate;}return array('source_url'=>$store_url?esc_url_raw($source_url):'','source_ip'=>$ip,'user_agent'=>$store_agent?Request::server_textarea('HTTP_USER_AGENT',1000):'');}
-    private function is_rate_limited($form_id){$ip=Request::server_textarea('REMOTE_ADDR',100);$agent=Request::server_textarea('HTTP_USER_AGENT',1000);$fingerprint=$ip.'|'.$agent;if('|'===$fingerprint)$fingerprint=wp_get_session_token();$key='bfcamel_crm_rl_'.hash_hmac('sha256',absint($form_id).'|'.$fingerprint,wp_salt('nonce'));if(get_transient($key))return true;set_transient($key,1,5);return false;}
+    private function is_rate_limited( $form_id ) {
+        global $wpdb;
+        $ip = Request::server_textarea( 'REMOTE_ADDR', 100 );
+        $fingerprint = filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : wp_get_session_token();
+        $hash = hash_hmac( 'sha256', DB_NAME . '|' . $wpdb->prefix . '|' . absint( $form_id ) . '|' . $fingerprint, wp_salt( 'nonce' ) );
+        $key = 'bfcamel_crm_rl_' . $hash;
+        $lock = 'bfcamel_crm_rl_' . substr( $hash, 0, 48 );
+        if ( 1 !== (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $lock ) ) ) return true; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serialize limiter checks across workers, including persistent-cache deployments.
+        try {
+            if ( get_transient( $key ) ) return true;
+            return ! set_transient( $key, 1, 5 );
+        } finally {
+            $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Connection-scoped rate-limit lock is released before submission transactions begin.
+        }
+    }
     private function rollback_and_redirect($url,$form_id){Schema::rollback();$this->redirect($url,$form_id,'error');}
     private function redirect($url,$form_id,$state){$url=remove_query_arg(array('bfcamel_crm_form','bfcamel_crm_form_id'),$url);$url=add_query_arg(array('bfcamel_crm_form'=>sanitize_key($state),'bfcamel_crm_form_id'=>absint($form_id)),$url);wp_safe_redirect($url);exit;}
 }
+

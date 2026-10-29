@@ -32,7 +32,7 @@ final class Plugin {
         if ( $network_wide && is_multisite() ) {
             wp_die( esc_html__( 'BfCamel CRM does not support network-wide activation. Activate it separately on each site.', 'bfcamel-crm' ) );
         }
-        $installed=Schema::install();if(is_wp_error($installed))wp_die(esc_html($installed->get_error_message()));self::seed_defaults();WorkflowService::seed_defaults();RoleManager::ensure_roles();
+        $installed=Schema::install();if(is_wp_error($installed))wp_die(esc_html($installed->get_error_message()));self::seed_defaults();WorkflowService::seed_defaults();RoleManager::ensure_roles(true);
     }
     public static function deactivate(){}
     public static function capabilities(){return RoleManager::all_capabilities();}
@@ -42,3 +42,4 @@ final class Plugin {
         if(false===get_option('bfcamel_crm_settings',false))add_option('bfcamel_crm_settings',array('store_ip'=>false,'store_source_url'=>true,'store_user_agent'=>true,'delete_data_on_uninstall'=>false,'legal_risk_acknowledged_at'=>'','legal_risk_acknowledged_by'=>0),'',false);
     }
 }
+

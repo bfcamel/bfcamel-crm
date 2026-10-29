@@ -17,26 +17,17 @@ final class ContactService {
         $mapped = self::extract_mapped_values( $schema, $payload );
         $email  = self::normalize_email( $mapped['email'] );
         $phone  = self::normalize_phone( $mapped['phone'] );
-        $locks  = self::identifier_locks( $email, $phone );
-        $locked = array();
-
-        foreach ( $locks as $lock ) {
-            if ( ! self::acquire_lock( $lock ) ) {
-                foreach ( array_reverse( $locked ) as $acquired ) {
-                    self::release_lock( $acquired );
-                }
-                return array( 'contact_id' => 0, 'status' => 'error' );
-            }
-            $locked[] = $lock;
+        if ( ! self::lock_identifiers( $email, $phone ) ) {
+            return array( 'contact_id' => 0, 'status' => 'error' );
         }
+        return self::resolve_and_sync_locked( $mapped, $email, $phone );
+    }
 
-        try {
-            return self::resolve_and_sync_locked( $mapped, $email, $phone );
-        } finally {
-            foreach ( array_reverse( $locked ) as $lock ) {
-                self::release_lock( $lock );
-            }
+    private static function lock_identifiers( $email, $phone ) {
+        foreach ( self::identifier_locks( $email, $phone ) as $lock ) {
+            if ( ! Schema::hold_transaction_lock( $lock ) ) return false;
         }
+        return true;
     }
 
     private static function resolve_and_sync_locked( $mapped, $email, $phone ) {
@@ -44,7 +35,7 @@ final class ContactService {
         $phone_ids = $phone ? self::find_by_phone( $phone ) : array();
         $all_ids   = array_values( array_unique( array_merge( $email_ids, $phone_ids ) ) );
 
-        if ( count( $email_ids ) > 1 || count( $phone_ids ) > 1 || count( $all_ids ) > 1 ) {
+        if ( count( $email_ids ) > 1 || count( $phone_ids ) > 1 || count( $all_ids ) > 1 || ( $all_ids && ( ( $email && ! $email_ids ) || ( $phone && ! $phone_ids ) ) ) ) {
             return array(
                 'contact_id' => 0,
                 'status'     => 'conflict',
@@ -61,8 +52,8 @@ final class ContactService {
             }
             $status = 'created';
         } else {
-            if ( ! self::update_contact( $contact_id, $mapped ) ) return array( 'contact_id' => 0, 'status' => 'error' );
-            $status = 'linked';
+            // A public declaration can link a submission, never modify a known identity.
+            return array( 'contact_id' => $contact_id, 'status' => 'linked' );
         }
 
         if ( $email && ! self::add_email( $contact_id, $mapped['email'] ) ) return array( 'contact_id' => 0, 'status' => 'error' );
@@ -88,6 +79,7 @@ final class ContactService {
     }
 
     private static function identifier_locks( $email, $phone ) {
+        global $wpdb;
         $identifiers = array();
         if ( $email ) {
             $identifiers[] = 'email|' . $email;
@@ -96,23 +88,13 @@ final class ContactService {
             $identifiers[] = 'phone|' . $phone;
         }
         $locks = array_map(
-            static function ( $identifier ) {
-                return 'bfcamel_crm_' . substr( hash( 'sha256', $identifier ), 0, 48 );
+            static function ( $identifier ) use ( $wpdb ) {
+                return 'bfcamel_crm_' . substr( hash( 'sha256', DB_NAME . '|' . $wpdb->prefix . '|' . $identifier ), 0, 48 );
             },
             $identifiers
         );
         sort( $locks, SORT_STRING );
         return array_values( array_unique( $locks ) );
-    }
-
-    private static function acquire_lock( $name ) {
-        global $wpdb;
-        return 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 10)', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Advisory locks must always query the current database connection.
-    }
-
-    private static function release_lock( $name ) {
-        global $wpdb;
-        $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Advisory locks must be released on the current database connection.
     }
 
     public static function get( $contact_id, $for_update = false ) {
@@ -309,6 +291,14 @@ final class ContactService {
             return new \WP_Error( 'bfcamel_crm_contact_phone_invalid', __( 'Enter a valid phone number.', 'bfcamel-crm' ) );
         }
 
+        if ( ! Schema::begin_transaction() ) {
+            return new \WP_Error( 'bfcamel_crm_contact_transaction', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
+        }
+
+        if ( ! self::lock_identifiers( self::normalize_email( $email_value ), self::normalize_phone( $phone_value ) ) ) {
+            return self::rollback_error( __( 'The contact could not be created.', 'bfcamel-crm' ) );
+        }
+
         $duplicates = array_unique(
             array_merge(
                 $email_value ? self::find_by_email( self::normalize_email( $email_value ) ) : array(),
@@ -316,6 +306,7 @@ final class ContactService {
             )
         );
         if ( $duplicates ) {
+            Schema::rollback();
             return new \WP_Error(
                 'bfcamel_crm_contact_duplicate',
                 sprintf(
@@ -324,10 +315,6 @@ final class ContactService {
                     implode( ', #', array_map( 'absint', $duplicates ) )
                 )
             );
-        }
-
-        if ( ! Schema::begin_transaction() ) {
-            return new \WP_Error( 'bfcamel_crm_contact_transaction', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
         }
 
         $contact_id = self::create_contact(
@@ -407,6 +394,10 @@ final class ContactService {
         }
         if ( '' !== $phone && ! self::normalize_phone( $phone ) ) {
             return new \WP_Error( 'bfcamel_crm_contact_phone_invalid', __( 'Enter a valid phone number.', 'bfcamel-crm' ) );
+        }
+
+        if ( ! self::lock_identifiers( self::normalize_email( $email ), self::normalize_phone( $phone ) ) ) {
+            return new \WP_Error( 'bfcamel_crm_contact_lock', __( 'The contact could not be updated.', 'bfcamel-crm' ) );
         }
 
         foreach ( array( 'email' => $email, 'phone' => $phone ) as $kind => $value ) {
@@ -920,3 +911,4 @@ final class ContactService {
         wp_cache_delete( 'contact:id:' . absint( $contact_id ), self::CACHE_GROUP );
     }
 }
+

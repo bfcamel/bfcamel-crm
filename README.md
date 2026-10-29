@@ -97,3 +97,15 @@ English remains the source language. The complete Russian (`ru_RU`) catalog is m
 ## License
 
 GPL-2.0-or-later.
+
+
+
+## Pending security fixes (unreleased)
+
+The pending changes preserve schema version 6 and do not rewrite or delete existing CRM records on update. Public requests that add an unknown email or phone to a known contact are saved for review. Exact identifier matches still link submissions, but public requests cannot edit existing contact fields or change their consent status; their consent evidence remains attached to the submission.
+
+Form answers now use a separate request namespace. Already-rendered pre-update forms remain accepted until their existing nonce expires. Privacy tools discover detached and conflicting submissions from the immutable revision schema and scan fixed-size batches; explicit erasure anonymizes matching records without deleting submission rows.
+
+Pushes and pull requests run validation without building an update ZIP. Packaging requires a manual workflow run with `build_release` enabled; publication additionally requires `publish_release` on `main`.
+
+For the upgrade regression suite, use an isolated MySQL-backed WordPress installation: activate commit `d97473338d9d01275df08e08baa415342fc9584c`, run `wp eval-file tests/integration-seed.php` from this branch, replace only the plugin sources, then run `wp eval-file tests/integration.php`. Set `BFCAMEL_TEST_WP_LOAD` to that installation's absolute `wp-load.php` path. These fixture scripts must never be run against a production database. CI performs this sequence on WordPress 6.2 and latest.

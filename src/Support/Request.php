@@ -71,6 +71,10 @@ final class Request {
 
     public static function post_payload() {
         // The public submission handler verifies its form nonce before calling this method.
+        if ( '2' === self::post_text( 'bfcamel_crm_payload_version' ) ) {
+            return self::post_array( 'fields' );
+        }
+        // Accept already-rendered pre-update forms until their nonce expires.
         return map_deep( wp_unslash( $_POST ), 'sanitize_textarea_field' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Every submitted scalar value is unslashed and sanitized at the request boundary.
     }
 
@@ -132,3 +136,4 @@ final class Request {
         return is_scalar( $value ) ? sanitize_text_field( (string) $value ) : '';
     }
 }
+

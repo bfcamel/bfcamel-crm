@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Preserve existing CRM tables and immutable form revisions without a schema migration or data rewrite.
+- Keep public submissions for review when they introduce an unverified identifier for an existing contact. Exact matches link read-only; new public consent evidence does not overwrite an existing contact's consent status.
+- Hold contact identifier locks through commit or rollback, including manual contact creation and editing.
+- Include detached, conflicting and submission-only email payloads in paged privacy export and erasure, with submission-linked evidence cleanup.
+- Restore retained role permissions on reinstallation and isolate form answers from reserved request parameters while accepting already-rendered legacy forms.
+- Serialize per-IP rate-limit checks independently of User-Agent.
+- Add real WordPress/MySQL upgrade, preservation, public-submission and concurrency regression tests.
+- Build ZIP archives and publish releases only through explicit manual workflow inputs; ordinary merges run validation only.
+
 ## 0.5.6
 
 ### WordPress.org review compliance
@@ -138,3 +149,4 @@
 
 ### Notes
 - This release continues the migration from the initial form storage implementation into a configurable CRM engine.
+

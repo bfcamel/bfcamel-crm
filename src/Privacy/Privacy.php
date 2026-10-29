@@ -50,8 +50,9 @@ final class Privacy {
             return array( 'data' => array(), 'done' => true );
         }
 
-        $contact_ids = ContactService::find_contact_ids_by_email_value( sanitize_email( $email_address ) );
-        if ( ! $contact_ids ) {
+        $email_address = ContactService::normalize_email( $email_address );
+        $contact_ids = $email_address ? ContactService::find_contact_ids_by_email_value( $email_address ) : array();
+        if ( ! $email_address ) {
             return array( 'data' => array(), 'done' => true );
         }
 
@@ -66,7 +67,8 @@ final class Privacy {
             }
         }
 
-        $submissions = $this->paged_rows( 'submissions', $contact_ids, $page );
+        $submissions = $this->paged_submissions( $email_address, $contact_ids, $page );
+        if ( is_wp_error( $submissions ) ) return $submissions;
         foreach ( $submissions['rows'] as $submission ) {
             $payload = json_decode( (string) $submission->payload_json, true );
             $payload = is_array( $payload ) ? $payload : array();
@@ -81,6 +83,15 @@ final class Privacy {
             }
             foreach ( NoteService::for_entity( 'submission', $submission->id ) as $note ) {
                 $items[] = array( 'name' => __( 'Internal note', 'bfcamel-crm' ), 'value' => $note->note_text );
+            }
+            // Public evidence can belong to the submission without asserting a contact identity.
+            foreach ( $this->submission_consents( $submission->id ) as $event ) {
+                if ( ! in_array( absint( $event->contact_id ), $contact_ids, true ) ) {
+                    $items[] = array( 'name' => __( 'Consent evidence', 'bfcamel-crm' ), 'value' => $this->export_value( $event ) );
+                }
+            }
+            if ( ! in_array( absint( $submission->contact_id ), $contact_ids, true ) ) {
+                $items[] = array( 'name' => __( 'Event details', 'bfcamel-crm' ), 'value' => $this->export_value( $this->submission_activity( $submission->id ) ) );
             }
             $data[] = array(
                 'group_id'    => 'bfcamel-crm-submissions',
@@ -133,13 +144,15 @@ final class Privacy {
             return $this->erase_error( __( 'BfCamel CRM data could not be erased because the database update is incomplete.', 'bfcamel-crm' ) );
         }
 
-        $contact_ids = ContactService::find_contact_ids_by_email_value( sanitize_email( $email_address ) );
-        if ( ! $contact_ids ) {
+        $email_address = ContactService::normalize_email( $email_address );
+        $contact_ids = $email_address ? ContactService::find_contact_ids_by_email_value( $email_address ) : array();
+        if ( ! $email_address ) {
             return array( 'items_removed' => false, 'items_retained' => false, 'messages' => array(), 'done' => true );
         }
 
         $page        = max( 1, absint( $page ) );
-        $submissions = $this->paged_rows( 'submissions', $contact_ids, $page );
+        $submissions = $this->paged_submissions( $email_address, $contact_ids, $page );
+        if ( is_wp_error( $submissions ) ) return $this->erase_error( $submissions->get_error_message() );
 
         if ( ! Schema::begin_transaction() ) {
             return $this->erase_error( __( 'BfCamel CRM could not start a privacy erasure transaction.', 'bfcamel-crm' ) );
@@ -223,7 +236,54 @@ final class Privacy {
         );
     }
 
+    /** Scan fixed-size batches, including detached, conflict and submission-only email fields. */
+    private function paged_submissions( $email_address, $contact_ids, $page ) {
+        global $wpdb;
+        $offset = ( max( 1, absint( $page ) ) - 1 ) * self::PAGE_SIZE;
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            'SELECT s.*,r.schema_json FROM %i s LEFT JOIN %i r ON r.id=s.revision_id ORDER BY s.id ASC LIMIT %d OFFSET %d',
+            Schema::table( 'submissions' ), Schema::table( 'form_revisions' ), self::PAGE_SIZE + 1, $offset
+        ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded scan of legacy payloads requires fresh rows, without a destructive backfill.
+        if ( null === $rows || $wpdb->last_error ) return new \WP_Error( 'bfcamel_crm_privacy_scan', __( 'BfCamel CRM could not anonymize all submission data.', 'bfcamel-crm' ) );
+        $has_more = count( $rows ) > self::PAGE_SIZE;
+        $matched = array();
+        foreach ( array_slice( $rows, 0, self::PAGE_SIZE ) as $row ) {
+            if ( in_array( absint( $row->contact_id ), $contact_ids, true ) || $this->submission_has_email( $row, $email_address ) ) $matched[] = $row;
+        }
+        return array( 'rows' => $matched, 'has_more' => $has_more );
+    }
+
+    private function submission_has_email( $submission, $email_address ) {
+        $schema = json_decode( (string) $submission->schema_json, true );
+        $payload = json_decode( (string) $submission->payload_json, true );
+        if ( ! is_array( $payload ) ) return false;
+        if ( ! is_array( $schema ) ) {
+            // Deleted/missing historical revisions must not make exact email values invisible.
+            foreach ( $payload as $value ) {
+                if ( is_string( $value ) && $email_address === ContactService::normalize_email( $value ) ) return true;
+            }
+            return false;
+        }
+        foreach ( $schema as $field ) {
+            if ( ! is_array( $field ) || ( 'email' !== ( $field['type'] ?? '' ) && 'contact.email' !== ( $field['mapping'] ?? '' ) ) ) continue;
+            $value = $payload[ sanitize_key( $field['name'] ?? '' ) ] ?? '';
+            if ( is_string( $value ) && $email_address === ContactService::normalize_email( $value ) ) return true;
+        }
+        return false;
+    }
+
+    private function submission_consents( $submission_id ) {
+        global $wpdb;
+        return $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE submission_id=%d ORDER BY id ASC', Schema::table( 'consent_events' ), absint( $submission_id ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Includes consent evidence detached from a contact.
+    }
+
+    private function submission_activity( $submission_id ) {
+        global $wpdb;
+        return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE entity_type='submission' AND entity_id=%d ORDER BY id ASC", Schema::table( 'activity_log' ), absint( $submission_id ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Includes detached submission history.
+    }
+
     private function paged_rows( $table_name, $contact_ids, $page ) {
+        if ( ! $contact_ids ) return array( 'rows' => array(), 'has_more' => false );
         global $wpdb;
         $table        = Schema::table( $table_name );
         $placeholders = implode( ',', array_fill( 0, count( $contact_ids ), '%d' ) );
@@ -236,6 +296,7 @@ final class Privacy {
     }
 
     private function paged_activity( $contact_ids, $page ) {
+        if ( ! $contact_ids ) return array( 'rows' => array(), 'has_more' => false );
         global $wpdb;
         $activity     = Schema::table( 'activity_log' );
         $submissions  = Schema::table( 'submissions' );
@@ -262,7 +323,13 @@ final class Privacy {
         if ( false === $updated || false === NoteService::delete_for_entity( 'submission', $submission->id ) ) {
             return false;
         }
-        return $this->scrub_activity( 'submission', array( absint( $submission->id ) ) );
+        $scrubbed = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Submission evidence also needs erasure when contact_id is zero.
+            Schema::table( 'consent_events' ),
+            array( 'source_url' => '', 'source_ip' => '', 'user_agent' => '', 'recorded_by' => 0 ),
+            array( 'submission_id' => absint( $submission->id ) ),
+            array( '%s', '%s', '%s', '%d' ), array( '%d' )
+        );
+        return false !== $scrubbed && $this->scrub_activity( 'submission', array( absint( $submission->id ) ) );
     }
 
     private function scrub_contact_relations( $contact_id ) {
@@ -310,3 +377,4 @@ final class Privacy {
         return array( 'items_removed' => false, 'items_retained' => true, 'messages' => array( $message ), 'done' => true );
     }
 }
+
