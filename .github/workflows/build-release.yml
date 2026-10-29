@@ -77,6 +77,7 @@ jobs:
         run: |
           wp core download --path="$WP_PATH" --version="$TEST_WORDPRESS_VERSION"
           wp config create --path="$WP_PATH" --dbname=bfcamel_crm_test --dbuser=root --dbpass=integration-only --dbhost=127.0.0.1:3306
+          wp config set DISABLE_WP_CRON true --raw --path="$WP_PATH"
           wp core install --path="$WP_PATH" --url=http://example.test --title=CRM-test --admin_user=admin --admin_password=integration-only --admin_email=admin@example.test --skip-email
           git worktree add --detach "$RUNNER_TEMP/bfcamel-crm-base" d97473338d9d01275df08e08baa415342fc9584c
           mkdir -p "$WP_PATH/wp-content/plugins/bfcamel-crm"
@@ -87,6 +88,28 @@ jobs:
         run: |
           rsync -a --exclude='.git' ./ "$WP_PATH/wp-content/plugins/bfcamel-crm/"
           wp eval-file "$GITHUB_WORKSPACE/tests/integration.php" --path="$WP_PATH"
+          wp eval-file "$GITHUB_WORKSPACE/tests/notifications.php" --path="$WP_PATH"
+
+      - name: Browser interface and permission tests
+        if: matrix.wordpress == 'latest'
+        run: |
+          npm install --prefix "$RUNNER_TEMP/crm-browser" --no-audit --no-fund playwright@1.56.1
+          "$RUNNER_TEMP/crm-browser/node_modules/.bin/playwright" install --with-deps chromium
+          wp option update home http://127.0.0.1:8899 --path="$WP_PATH"
+          wp option update siteurl http://127.0.0.1:8899 --path="$WP_PATH"
+          wp user update admin --locale=ru_RU --path="$WP_PATH"
+          php -S 127.0.0.1:8899 -t "$WP_PATH" > "$RUNNER_TEMP/crm-ui-server.log" 2>&1 &
+          export CRM_PLAYWRIGHT_MODULE="$RUNNER_TEMP/crm-browser/node_modules/playwright"
+          export CRM_SCREENSHOTS="$RUNNER_TEMP/crm-ui-screenshots"
+          export CRM_UI_ID="$(wp option get bfcamel_crm_ui_test_id --path="$WP_PATH")"
+          node tests/browser.cjs
+      - name: Upload interface previews
+        if: always() && matrix.wordpress == 'latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: crm-interface-previews
+          path: ${{ runner.temp }}/crm-ui-screenshots/*.png
+          if-no-files-found: ignore
 
   package:
     if: github.event_name == 'workflow_dispatch' && inputs.build_release

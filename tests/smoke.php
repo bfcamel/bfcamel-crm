@@ -91,7 +91,7 @@ check( false !== strpos( $readme, 'Stable tag: 0.5.6' ), 'Stable tag is not 0.5.
 check( false === strpos( $plugin, 'Update URI:' ), 'A third-party Update URI would block WordPress.org updates.' );
 check( strpos( $plugin, "if ( defined( 'BFCAMEL_CRM_FILE' ) )" ) < strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION'" ), 'Duplicate guard moved after constants.' );
 $schema = file_get_contents( $root . '/src/Database/Schema.php' );
-check( false !== strpos( $schema, "const VERSION = '6'" ), 'Database schema version is not 6.' );
+check( false !== strpos( $schema, "const VERSION = '7'" ), 'Database schema version is not 7.' );
 check( false !== strpos( $schema, "self::table( 'notes' )" ), 'Internal notes table is missing.' );
 check( false !== strpos( $schema, "strpos( (string) \$screen->id, 'bfcamel-crm' )" ), 'The database error notice is not limited to BfCamel CRM screens.' );
 check( false !== strpos( $schema, 'Check the database user permissions' ), 'The database error notice does not explain how to resolve the problem.' );
@@ -109,8 +109,8 @@ $contacts = file_get_contents( $root . '/src/Admin/ContactsPage.php' );
 check( false !== strpos( $contacts, 'personal_data_consent' ) && false !== strpos( $contacts, 'marketing_consent' ), 'Consent filters are missing.' );
 check( false !== strpos( $contacts, 'Export selected CSV' ), 'Selected contact export is missing.' );
 check( false !== strpos( $contacts, 'contact[city]' ) && false !== strpos( $contacts, 'contact[social_pages]' ), 'Manual city or social-page editing is missing.' );
-check( false !== strpos( $contacts, "esc_html_e('City','bfcamel-crm')" ), 'The native city table column is missing.' );
-$submissions = file_get_contents( $root . '/src/Admin/SubmissionsPage.php' );
+check( false !== strpos( $contacts, "ContactService::CITY_FIELD" ), 'Native contact city data is missing.' );
+$submissions = file_get_contents( $root . '/src/Admin/SubmissionsPage.php' ) . file_get_contents( $root . '/src/Admin/InboxView.php' );
 check( false !== strpos( $submissions, 'My submissions' ), 'My submissions view is missing.' );
 check( false !== strpos( $submissions, "pagination(\$result,'top')" ), 'Top submission pagination is missing.' );
 check( false === strpos( $submissions, "'status'=>'new'" ) && false === strpos( $submissions, "'priority'=>'urgent'" ), 'Submission quick views still use fixed workflow slugs.' );
@@ -146,3 +146,4 @@ if ( class_exists( 'ZipArchive' ) ) {
     @unlink( $xlsx_path );
 }
 echo "Smoke tests passed.\n";
+

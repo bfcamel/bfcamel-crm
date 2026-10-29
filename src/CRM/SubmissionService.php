@@ -2,6 +2,8 @@
 namespace BfCamel\CRM\CRM;
 
 use BfCamel\CRM\Database\Schema;
+use BfCamel\CRM\Notifications\Notifications;
+use BfCamel\CRM\Forms\Repository;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
@@ -57,12 +59,27 @@ final class SubmissionService {
         if ( $date_from ) { $where[] = 's.submitted_at >= %s'; $args[] = $date_from . ' 00:00:00'; }
         $date_to = isset( $filters['date_to'] ) ? self::date_value( $filters['date_to'] ) : '';
         if ( $date_to ) { $where[] = 's.submitted_at <= %s'; $args[] = $date_to . ' 23:59:59'; }
+        $view = sanitize_key( $filters['view'] ?? '' );
+        if ( 'attention' === $view ) {
+            $where[] = Notifications::open_sql();
+            $where[] = '(s.assigned_to=0 OR s.status=%s OR s.contact_sync_status=%s)';
+            $args[] = WorkflowService::default_status(); $args[] = 'conflict';
+        } elseif ( 'mine' === $view ) {
+            $where[] = 's.assigned_to=%d'; $args[] = get_current_user_id();
+            $where[] = Notifications::open_sql();
+        }
+        $order = 's.submitted_at DESC,s.id DESC';
+        if ( 'attention' === $view ) {
+            $cases = array();
+            foreach ( WorkflowService::definitions( 'priority', true ) as $item ) $cases[] = $wpdb->prepare( 'WHEN %s THEN %d', $item['slug'], (int) $item['weight'] );
+            if ( $cases ) $order = 'CASE s.priority ' . implode( ' ', $cases ) . ' ELSE 0 END DESC,' . $order;
+        }
         $where_sql = implode( ' AND ', $where );
         $base_from = $wpdb->prepare( 'FROM %i s LEFT JOIN %i f ON f.id=s.form_id LEFT JOIN %i c ON c.id=s.contact_id LEFT JOIN %i u ON u.ID=s.assigned_to', $submissions, $forms, $contacts, $users );
         $total = (int) $wpdb->get_var( self::prepare_sql( "SELECT COUNT(*) {$base_from} WHERE {$where_sql}", $args ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Identifiers are prepared with %i; WHERE fragments are fixed and values are prepared by prepare_sql().
         $page = max( 1, absint( $page ) ); $per_page = min( 500, max( 1, absint( $per_page ) ) ); $offset = ( $page - 1 ) * $per_page;
         $tag_select = $wpdb->prepare( "(SELECT GROUP_CONCAT(t.name ORDER BY t.name SEPARATOR ', ') FROM %i st INNER JOIN %i t ON t.id=st.tag_id WHERE st.submission_id=s.id)", $links, $tags );
-        $select_sql = "SELECT s.*, f.name AS form_name, c.display_name AS contact_name, u.display_name AS assignee_name, {$tag_select} AS tag_names {$base_from} WHERE {$where_sql} ORDER BY s.submitted_at DESC,s.id DESC LIMIT %d OFFSET %d";
+        $select_sql = "SELECT s.*, f.name AS form_name, c.display_name AS contact_name, u.display_name AS assignee_name, {$tag_select} AS tag_names {$base_from} WHERE {$where_sql} ORDER BY {$order} LIMIT %d OFFSET %d";
         $rows = $wpdb->get_results( self::prepare_sql( $select_sql, array_merge( $args, array( $per_page, $offset ) ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Identifiers are prepared with %i; WHERE fragments are fixed and values are prepared by prepare_sql().
         return array( 'rows'=>$rows,'total'=>$total,'page'=>$page,'per_page'=>$per_page,'total_pages'=>max( 1, (int) ceil( $total / $per_page ) ) );
     }
@@ -82,8 +99,10 @@ final class SubmissionService {
         if ( in_array( $action, array( 'add_tags','remove_tags' ), true ) && '' === trim( (string) $value ) ) return new \WP_Error( 'bfcamel_crm_bulk_tags', __( 'Select tags', 'bfcamel-crm' ) );
         if ( ! in_array( $action, array( 'status','priority','assigned_to','add_tags','remove_tags' ), true ) ) return new \WP_Error( 'bfcamel_crm_bulk_action', __( 'Choose a bulk action.', 'bfcamel-crm' ) );
         if ( ! Schema::begin_transaction() ) return new \WP_Error( 'bfcamel_crm_bulk_transaction', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
+        $old_priorities = array();
         foreach ( $ids as $id ) {
             $current = self::get( $id, true );
+            if ( $current ) $old_priorities[ $id ] = $current->priority;
             if ( ! $current ) { Schema::rollback(); return new \WP_Error( 'bfcamel_crm_bulk_missing', __( 'One of the selected submissions no longer exists.', 'bfcamel-crm' ) ); }
             if ( 'status' === $action ) {
                 $new = sanitize_key( $value );
@@ -105,6 +124,7 @@ final class SubmissionService {
             }
         }
         if ( ! Schema::commit() ) { Schema::rollback(); return new \WP_Error('bfcamel_crm_bulk_commit',__( 'Could not update selected submissions.', 'bfcamel-crm' )); }
+        if ( 'priority' === $action ) foreach ( $ids as $id ) do_action( 'bfcamel_crm_submission_updated', $id, $old_priorities[ $id ] ?? '' );
         return count( $ids );
     }
 
@@ -118,6 +138,12 @@ final class SubmissionService {
             Schema::rollback();
             return new \WP_Error( 'bfcamel_crm_submission_missing', __( 'Submission not found.', 'bfcamel-crm' ) );
         }
+
+        $event_ids = $wpdb->get_col( $wpdb->prepare( 'SELECT id FROM %i WHERE submission_id=%d', Schema::table( 'notifications' ), $submission_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Collect dependent notification IDs inside the explicit delete transaction.
+        foreach ( (array) $event_ids as $event_id ) {
+            if ( false === $wpdb->delete( Schema::table( 'notification_receipts' ), array( 'event_id' => absint( $event_id ) ), array( '%d' ) ) ) return self::delete_error(); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Delete metadata only for the explicitly deleted submission.
+        }
+        if ( false === $wpdb->delete( Schema::table( 'notifications' ), array( 'submission_id' => $submission_id ), array( '%d' ) ) ) return self::delete_error(); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prevent delivery after explicit deletion.
 
         if ( false === $wpdb->delete( Schema::table( 'submission_tags' ), array( 'submission_id' => $submission_id ), array( '%d' ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Permanent deletion removes submission tags from the plugin-owned relation table.
             return self::delete_error();
@@ -148,6 +174,55 @@ final class SubmissionService {
         }
         Schema::rollback();
         return new \WP_Error( 'bfcamel_crm_submission_delete_failed', $message );
+    }
+
+    public static function summary( $row ) {
+        $title = ( $row->form_name ?? '' ) ?: __( 'Submission', 'bfcamel-crm' );
+        $person = $row->contact_name ?? ''; $preview = '';
+        $payload = json_decode( (string) $row->payload_json, true );
+        $schema = Repository::decode_schema( Repository::get_revision( $row->revision_id ) );
+        foreach ( $schema as $field ) {
+            $value = $payload[ $field['name'] ?? '' ] ?? '';
+            if ( ! is_scalar( $value ) || '' === trim( (string) $value ) ) continue;
+            if ( ! $person && 'contact.name' === ( $field['mapping'] ?? '' ) ) $person = (string) $value;
+            if ( in_array( $field['name'] ?? '', array( 'subject', 'topic', 'title' ), true ) && 'text' === ( $field['type'] ?? '' ) ) $title = (string) $value;
+            if ( ! $preview && 'textarea' === ( $field['type'] ?? '' ) ) $preview = (string) $value;
+        }
+        return array( 'title' => wp_html_excerpt( wp_strip_all_tags( $title ), 100, '…' ), 'person' => $person, 'preview' => wp_html_excerpt( wp_strip_all_tags( $preview ), 150, '…' ) );
+    }
+
+    public static function claim( $submission_id, $user_id ) {
+        global $wpdb;
+        if ( ! user_can( $user_id, 'bfcamel_crm_edit_submissions' ) || ! user_can( $user_id, 'bfcamel_crm_view_submissions' ) || ! Schema::is_current() ) return new \WP_Error( 'bfcamel_crm_claim_permission', __( 'You do not have permission to access this page.', 'bfcamel-crm' ) );
+        if ( ! Schema::begin_transaction() ) return new \WP_Error( 'bfcamel_crm_claim_transaction', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
+        $row = self::get( $submission_id, true );
+        if ( ! $row || Notifications::is_closed( $row ) || ( $row->assigned_to && (int) $row->assigned_to !== (int) $user_id ) ) {
+            Schema::rollback();
+            return new \WP_Error( 'bfcamel_crm_already_claimed', __( 'This submission is closed or already has another owner.', 'bfcamel-crm' ) );
+        }
+        if ( (int) $row->assigned_to === (int) $user_id ) { Schema::rollback(); return true; }
+        $data = array( 'assigned_to' => $user_id ); $formats = array( '%d' );
+        $status = Notifications::settings()['working_status'] ?? 'in_progress';
+        if ( isset( self::statuses()[ $status ] ) && ! in_array( $status, Notifications::closed_statuses(), true ) ) { $data['status'] = $status; $formats[] = '%s'; }
+        $ok = false !== $wpdb->update( Schema::table( 'submissions' ), $data, array( 'id' => $submission_id ), $formats, array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Row lock makes taking ownership atomic across staff members.
+        $ok = $ok && Schema::log( 'submission', $submission_id, 'assignee_changed', 'Submission assignee changed.', array( 'from' => 0, 'to' => $user_id ), $user_id );
+        if ( isset( $data['status'] ) && $row->status !== $data['status'] ) $ok = $ok && Schema::log( 'submission', $submission_id, 'status_changed', 'Submission status changed.', array( 'from' => $row->status, 'to' => $data['status'] ), $user_id );
+        if ( ! $ok || ! Schema::commit() ) { Schema::rollback(); return new \WP_Error( 'bfcamel_crm_claim_failed', __( 'Could not update selected submissions.', 'bfcamel-crm' ) ); }
+        return true;
+    }
+
+    public static function complete( $submission_id, $user_id ) {
+        global $wpdb;
+        $closed = Notifications::closed_statuses();
+        if ( ! $closed || ! user_can( $user_id, 'bfcamel_crm_edit_submissions' ) || ! user_can( $user_id, 'bfcamel_crm_view_submissions' ) || ! Schema::is_current() ) return new \WP_Error( 'bfcamel_crm_complete_permission', __( 'You do not have permission to access this page.', 'bfcamel-crm' ) );
+        if ( ! Schema::begin_transaction() ) return new \WP_Error( 'bfcamel_crm_complete_transaction', __( 'Could not start a database transaction.', 'bfcamel-crm' ) );
+        $row = self::get( $submission_id, true );
+        if ( ! $row || (int) $row->assigned_to !== (int) $user_id ) { Schema::rollback(); return new \WP_Error( 'bfcamel_crm_complete_owner', __( 'Only the current owner can complete this submission.', 'bfcamel-crm' ) ); }
+        if ( Notifications::is_closed( $row ) ) { Schema::rollback(); return true; }
+        $ok = false !== $wpdb->update( Schema::table( 'submissions' ), array( 'status' => $closed[0] ), array( 'id' => $submission_id ), array( '%s' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Complete under the same ownership row lock.
+        $ok = $ok && Schema::log( 'submission', $submission_id, 'status_changed', 'Submission status changed.', array( 'from' => $row->status, 'to' => $closed[0] ), $user_id );
+        if ( ! $ok || ! Schema::commit() ) { Schema::rollback(); return new \WP_Error( 'bfcamel_crm_complete_failed', __( 'Could not update selected submissions.', 'bfcamel-crm' ) ); }
+        return true;
     }
 
     public static function all_for_export( $filters = array() ) {
@@ -190,3 +265,4 @@ final class SubmissionService {
     private static function date_value( $value ) { $value=sanitize_text_field((string)$value); return preg_match('/^\d{4}-\d{2}-\d{2}$/',$value)?$value:''; }
     private static function prepare_sql( $sql, $args ) { global $wpdb; return $args ? $wpdb->prepare($sql,$args) : $sql; } // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Callers provide only fixed SQL fragments and a complete placeholder argument list.
 }
+

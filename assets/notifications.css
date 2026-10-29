@@ -1,0 +1,35 @@
+.bfcamel-urgent-notice[hidden],.bfcamel-notification-center[hidden],.bfcamel-notification-toast[hidden],.bfcamel-crm-admin [hidden]{display:none!important}
+#wpadminbar .bfcamel-notification-count{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:#46666e;line-height:20px;text-align:center;font-size:12px}
+#wpadminbar .bfcamel-notification-count.has-unread{background:#397d83;color:#fff}#wpadminbar .bfcamel-notification-count.is-urgent{background:#b42318;color:#fff}
+.bfcamel-urgent-notice{border-left-color:#b42318}
+.bfcamel-notification-center{position:absolute;z-index:100100;right:20px;top:44px;width:min(430px,calc(100% - 32px));padding:18px;background:#fff;color:#133641;border:1px solid #dce5e5;border-radius:10px;box-shadow:0 12px 35px rgba(19,54,65,.18)}
+.bfcamel-notification-heading{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.bfcamel-notification-heading h2{margin:0;font-size:18px}
+.bfcamel-notification-item{display:block;padding:12px 4px;border-bottom:1px solid #e4ebeb;color:#18434e;text-decoration:none}
+.bfcamel-notification-item strong{display:block}.bfcamel-notification-item.is-read{opacity:.75}
+.bfcamel-notification-item--urgent{border-left:3px solid #b42318;padding-left:10px}.bfcamel-notification-item--high{border-left:3px solid #a96716;padding-left:10px}
+.bfcamel-notification-center details{margin-top:15px}.bfcamel-notification-center summary{cursor:pointer}
+.bfcamel-notification-toast{position:fixed;z-index:100101;bottom:24px;right:24px;width:min(400px,calc(100% - 32px));padding:16px;background:#fff;color:#133641;border:1px solid #dce5e5;border-left:4px solid #39858a;border-radius:8px;box-shadow:0 8px 28px rgba(19,54,65,.16)}
+.bfcamel-notification-toast.is-urgent{border-left-color:#b42318}.bfcamel-notification-toast a{display:block;margin-top:8px}.bfcamel-notification-toast button{float:right}
+.bfcamel-crm-admin .bfcamel-crm-more{position:relative;align-self:start}
+.bfcamel-crm-admin .bfcamel-crm-more>summary,.bfcamel-crm-admin details.bfcamel-crm-panel>summary{cursor:pointer;padding:9px 0;font-weight:600}
+.bfcamel-crm-admin .bfcamel-crm-more>div{position:absolute;right:0;z-index:20;min-width:180px;background:#fff;border:1px solid #dce5e5;border-radius:8px;padding:12px;box-shadow:0 6px 18px rgba(19,54,65,.1)}
+.bfcamel-crm-admin .bfcamel-crm-more>div a{display:block;padding:8px;text-decoration:none}
+.bfcamel-crm-admin .bfcamel-crm-more form{padding:8px 0}
+.bfcamel-crm-admin .bfcamel-crm-inbox-search{margin:16px 0}.bfcamel-crm-admin .bfcamel-crm-search-row{display:flex;gap:8px;max-width:760px}.bfcamel-crm-admin .bfcamel-crm-search-row input{flex:1;min-width:0}
+.bfcamel-crm-admin .bfcamel-crm-extra-filters{margin:10px 0}.bfcamel-crm-admin .bfcamel-crm-extra-filters summary{cursor:pointer;color:#496268;padding:7px 0}.bfcamel-crm-admin .bfcamel-crm-extra-filters .bfcamel-crm-filters{margin-top:10px;align-items:end}.bfcamel-crm-admin .bfcamel-crm-extra-filters label{display:grid;gap:5px}
+.bfcamel-crm-admin .bfcamel-crm-request-title{display:inline-block;padding:3px 0;font-size:16px;font-weight:650;text-decoration:none;overflow-wrap:anywhere}
+.bfcamel-crm-admin [data-bfcamel-row-url]{cursor:pointer}.bfcamel-crm-admin [data-bfcamel-row-url]:hover{background:#f0f8f8}.bfcamel-crm-admin .bfcamel-crm-level-urgent{box-shadow:inset 4px 0 0 #b42318}
+.bfcamel-crm-admin .bfcamel-crm-request-person{margin:3px 0}.bfcamel-crm-admin .bfcamel-crm-request-preview{color:#4e6368;max-width:650px;overflow-wrap:anywhere;margin:6px 0}
+.bfcamel-crm-admin .bfcamel-crm-request-meta{display:flex;gap:12px;flex-wrap:wrap;color:#5f6f73;font-size:12px;margin-top:8px}.bfcamel-crm-admin .bfcamel-crm-request-meta a{font-size:13px}
+.bfcamel-crm-admin .bfcamel-crm-priority-label{display:inline-block;font-weight:600}.bfcamel-crm-admin .bfcamel-crm-priority-label--urgent{color:#a1251c}.bfcamel-crm-admin .bfcamel-crm-priority-label--high{color:#87500e}
+.bfcamel-crm-admin .bfcamel-crm-table td{vertical-align:top}.bfcamel-crm-admin .bfcamel-crm-empty{padding:30px!important}
+.bfcamel-crm-admin .bfcamel-crm-inbox-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}.bfcamel-crm-admin .bfcamel-crm-inbox-list{min-width:0}
+.bfcamel-crm-admin .bfcamel-crm-preview{min-width:0;border:1px solid #dce5e5;background:#fff;border-radius:10px;padding:16px}.bfcamel-crm-admin .bfcamel-crm-preview-toolbar{display:flex;justify-content:space-between;gap:8px;margin-bottom:10px}
+.bfcamel-crm-admin .bfcamel-crm-preview .wrap{margin:0;max-width:100%}.bfcamel-crm-admin .bfcamel-crm-preview h1{font-size:22px}.bfcamel-crm-admin .bfcamel-crm-preview .bfcamel-crm-editor-grid{display:block}.bfcamel-crm-admin .bfcamel-crm-preview .bfcamel-crm-panel{border:0;box-shadow:none;padding:12px 0;margin-bottom:12px;border-bottom:1px solid #e4ebeb;border-radius:0}.bfcamel-crm-admin .bfcamel-crm-preview .bfcamel-crm-sticky{position:static}.bfcamel-crm-admin .bfcamel-crm-preview .bfcamel-crm-page-title{display:block}.bfcamel-crm-admin .bfcamel-crm-preview .bfcamel-crm-page-title>.bfcamel-crm-actions>a{display:none}
+.bfcamel-crm-admin .bfcamel-crm-recipient{display:block;margin:7px 0}
+@media(min-width:1100px){.bfcamel-crm-admin .bfcamel-crm-inbox-layout.has-preview{grid-template-columns:minmax(0,1fr) minmax(380px,.95fr)}.bfcamel-crm-admin .has-preview .bfcamel-crm-owner-column{display:none}.bfcamel-crm-admin .has-preview .bfcamel-crm-table th,.bfcamel-crm-admin .has-preview .bfcamel-crm-table td{padding:10px 8px}}
+@media(max-width:782px){.bfcamel-notification-center{top:58px}.bfcamel-notification-toast{bottom:14px;right:16px}.bfcamel-crm-admin .bfcamel-crm-submissions-table th:nth-last-child(2),.bfcamel-crm-admin .bfcamel-crm-submissions-table td:nth-last-child(2){display:none}.bfcamel-crm-admin .bfcamel-crm-request-title{font-size:16px}.bfcamel-crm-admin .bfcamel-crm-contacts-table{min-width:650px}}
+@media(prefers-reduced-motion:reduce){.bfcamel-notification-center,.bfcamel-notification-toast{scroll-behavior:auto}}
+
+#toplevel_page_bfcamel-crm .awaiting-mod{background:#397d83!important}#toplevel_page_bfcamel-crm.bfcamel-has-urgent .awaiting-mod{background:#b42318!important}

@@ -151,6 +151,7 @@ final class Exporter {
     private static function submission_filters() {
         return array(
             'search'      => Request::get_text( 's' ),
+            'view'        => Request::get_key( 'view' ),
             'status'      => Request::get_key( 'status' ),
             'form_id'     => Request::get_id( 'form_id' ),
             'assigned_to' => Request::get_text( 'assigned_to' ),
@@ -197,3 +198,4 @@ final class Exporter {
         return preg_match( '/^[=+\-@\t\r]/u', $value ) ? "'" . $value : $value;
     }
 }
+

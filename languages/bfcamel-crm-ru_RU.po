@@ -2157,3 +2157,275 @@ msgstr "например, срочно, перевозка, волонтёр"
 #~ msgid ""
 #~ "The first 250 most recent submissions are shown in this alpha release."
 #~ msgstr "В этой альфа-версии отображаются 250 последних обращений."
+
+
+#: src/CRM/SubmissionService.php:180
+msgid "Submission"
+msgstr "Заявка"
+
+#: src/CRM/SubmissionService.php:201
+msgid "This submission is closed or already has another owner."
+msgstr "Эта заявка завершена или уже назначена другому сотруднику."
+
+#: src/CRM/SubmissionService.php:220
+msgid "Only the current owner can complete this submission."
+msgstr "Завершить заявку может только назначенный сотрудник."
+
+#: src/Admin/InboxView.php:27
+msgid "Read the request, take ownership and keep the next action clear."
+msgstr "Откройте обращение и возьмите заявку в работу."
+
+#: src/Admin/InboxView.php:28 src/Admin/ContactsPage.php:37 src/Admin/SubmissionDetailPage.php:65
+msgid "More"
+msgstr "Ещё"
+
+#: src/Admin/InboxView.php:34
+msgid "Submission views"
+msgstr "Представления заявок"
+
+#: src/Admin/InboxView.php:35
+msgid "Needs attention"
+msgstr "Требуют внимания"
+
+#: src/Admin/InboxView.php:38
+msgid "Name, phone or request contents"
+msgstr "Имя, телефон или содержание обращения"
+
+#: src/Admin/InboxView.php:38
+msgid "Search"
+msgstr "Найти"
+
+#: src/Admin/InboxView.php:39 src/Admin/ContactsPage.php:43
+msgid "Filters"
+msgstr "Фильтры"
+
+#: src/Admin/InboxView.php:39
+msgid "Active"
+msgstr "Применены"
+
+#: src/Admin/InboxView.php:60
+msgid "Select all submissions"
+msgstr "Выбрать все заявки"
+
+#: src/Admin/InboxView.php:60
+msgid "Request"
+msgstr "Обращение"
+
+#: src/Admin/InboxView.php:61
+msgid "No submissions match this view."
+msgstr "В этом представлении заявок нет."
+
+#: src/Admin/InboxView.php:68 src/Admin/NotificationAdmin.php:43 src/Admin/ContactsPage.php:341 src/Admin/DashboardPage.php:114
+msgid "Open submission"
+msgstr "Открыть заявку"
+
+#: src/Admin/InboxView.php:75
+msgid "Submission card"
+msgstr "Карточка заявки"
+
+#: src/Admin/InboxView.php:75
+msgid "Open full page"
+msgstr "Открыть отдельно"
+
+#: src/Admin/InboxView.php:75 src/Admin/NotificationAdmin.php:40 src/Admin/NotificationAdmin.php:70
+msgid "Close"
+msgstr "Закрыть"
+
+#: src/Admin/NotificationAdmin.php:40
+msgid "Loading…"
+msgstr "Загрузка…"
+
+#: src/Admin/NotificationAdmin.php:41 src/Admin/NotificationAdmin.php:58 src/Admin/NotificationAdmin.php:69 src/Admin/NotificationAdmin.php:70
+msgid "Notifications"
+msgstr "Уведомления"
+
+#: src/Admin/NotificationAdmin.php:41
+msgid "No new notifications."
+msgstr "Новых уведомлений нет."
+
+#: src/Admin/NotificationAdmin.php:42 src/Notifications/Notifications.php:247 src/Notifications/Notifications.php:254
+msgid "Urgent CRM submission"
+msgstr "Срочная заявка в CRM"
+
+#: src/Admin/NotificationAdmin.php:42 src/Notifications/Notifications.php:247
+msgid "High-priority CRM submission"
+msgstr "Заявка с высоким приоритетом"
+
+#: src/Admin/NotificationAdmin.php:43
+msgid "New CRM submissions"
+msgstr "Новые заявки в CRM"
+
+#: src/Admin/NotificationAdmin.php:44
+msgid "Could not load the card. Open the full page or try again."
+msgstr "Не удалось загрузить карточку. Откройте её отдельно или попробуйте ещё раз."
+
+#: src/Admin/NotificationAdmin.php:45
+msgid "Could not take the submission. Refresh to check its current owner."
+msgstr "Не удалось взять заявку. Обновите страницу, чтобы проверить ответственного."
+
+#: src/Admin/NotificationAdmin.php:46
+msgid "You are now responsible for this submission."
+msgstr "Вы назначены ответственным за эту заявку."
+
+#: src/Admin/NotificationAdmin.php:47
+msgid "Browser notifications are unavailable or blocked. CRM notifications remain available."
+msgstr "Уведомления браузера недоступны или заблокированы. Уведомления внутри CRM продолжают работать."
+
+#: src/Admin/NotificationAdmin.php:48
+msgid "Browser notifications enabled on this device."
+msgstr "Уведомления браузера включены на этом устройстве."
+
+#: src/Admin/NotificationAdmin.php:58
+msgid "CRM notifications"
+msgstr "Уведомления CRM"
+
+#: src/Admin/NotificationAdmin.php:64
+msgid "Urgent submissions waiting for an owner:"
+msgstr "Срочные заявки без ответственного:"
+
+#: src/Admin/NotificationAdmin.php:64
+msgid "Open submissions"
+msgstr "Открыть заявки"
+
+#: src/Admin/NotificationAdmin.php:72
+msgid "On this device"
+msgstr "На этом устройстве"
+
+#: src/Admin/NotificationAdmin.php:73
+msgid "Sound for urgent submissions"
+msgstr "Звук для срочных заявок"
+
+#: src/Admin/NotificationAdmin.php:74
+msgid "Enable browser notifications"
+msgstr "Включить уведомления браузера"
+
+#: src/Admin/NotificationAdmin.php:148
+msgid "Notifications and delivery"
+msgstr "Уведомления и доставка"
+
+#: src/Admin/NotificationAdmin.php:149
+msgid "Internal notifications are enabled. External delivery is opt-in and contains only a submission number and a secure CRM link."
+msgstr "Уведомления внутри CRM включены. Внешние каналы включаются отдельно: в сообщение попадут только номер заявки и ссылка в CRM."
+
+#: src/Admin/NotificationAdmin.php:150
+msgid "Failed deliveries:"
+msgstr "Неудачные отправки:"
+
+#: src/Admin/NotificationAdmin.php:152
+msgid "Email for urgent and high-priority submissions"
+msgstr "Почта для срочных заявок и заявок с высоким приоритетом"
+
+#: src/Admin/NotificationAdmin.php:153
+msgid "Email recipients"
+msgstr "Получатели писем"
+
+#: src/Admin/NotificationAdmin.php:158
+msgid "Hourly email digest for ordinary submissions"
+msgstr "Ежечасная сводка обычных заявок"
+
+#: src/Admin/NotificationAdmin.php:159
+msgid "Telegram for urgent submissions"
+msgstr "Telegram для срочных заявок"
+
+#: src/Admin/NotificationAdmin.php:160
+msgid "Telegram bot token"
+msgstr "Токен Telegram-бота"
+
+#: src/Admin/NotificationAdmin.php:160
+msgid "Configured. Leave blank to keep the token."
+msgstr "Настроен. Оставьте поле пустым, чтобы сохранить токен."
+
+#: src/Admin/NotificationAdmin.php:160
+msgid "Create a bot with BotFather and add it to the destination chat."
+msgstr "Создайте бота через BotFather и добавьте его в нужный чат."
+
+#: src/Admin/NotificationAdmin.php:161
+msgid "Remove the saved Telegram token"
+msgstr "Удалить сохранённый токен Telegram"
+
+#: src/Admin/NotificationAdmin.php:162
+msgid "Telegram chat ID"
+msgstr "ID чата Telegram"
+
+#: src/Admin/NotificationAdmin.php:163
+msgid "Remind about unclaimed urgent submissions after"
+msgstr "Напоминать о срочных заявках без ответственного через"
+
+#: src/Admin/NotificationAdmin.php:163
+msgid "Never"
+msgstr "Не напоминать"
+
+#: src/Admin/NotificationAdmin.php:163
+msgid "minutes"
+msgstr "минут"
+
+#: src/Admin/NotificationAdmin.php:164
+msgid "Status after taking a submission"
+msgstr "Статус после взятия в работу"
+
+#: src/Admin/NotificationAdmin.php:164
+msgid "Keep current status"
+msgstr "Сохранить текущий статус"
+
+#: src/Admin/NotificationAdmin.php:165
+msgid "Closed statuses: exclude from attention and notifications"
+msgstr "Завершённые статусы: исключить из требующих внимания и уведомлений"
+
+#: src/Admin/NotificationAdmin.php:166
+msgid "Delivery uses WordPress scheduled tasks. Configure a server cron for reliable delivery on quiet sites. A successful mail handoff does not guarantee inbox delivery."
+msgstr "Отправка выполняется планировщиком WordPress. Для сайтов с редкими посещениями настройте запуск планировщика на сервере. Успешная передача письма почтовому сервису не гарантирует его получение."
+
+#: src/Admin/NotificationAdmin.php:167
+msgid "Save notifications"
+msgstr "Сохранить уведомления"
+
+#: src/Admin/NotificationAdmin.php:180
+msgid "Invalid Telegram bot token."
+msgstr "Некорректный токен Telegram-бота."
+
+#: src/Admin/NotificationAdmin.php:184
+msgid "Invalid Telegram chat ID."
+msgstr "Некорректный ID чата Telegram."
+
+#: src/Admin/NotificationAdmin.php:185
+msgid "Configure the bot token and chat ID before enabling Telegram."
+msgstr "Перед включением Telegram укажите токен бота и ID чата."
+
+#: src/Admin/ContactsPage.php:274
+msgid "Edit contact"
+msgstr "Изменить контакт"
+
+#: src/Admin/ContactsPage.php:381
+msgid "Select all contacts"
+msgstr "Выбрать все контакты"
+
+#: src/Admin/SubmissionDetailPage.php:55
+msgid "Take ownership"
+msgstr "Взять в работу"
+
+#: src/Admin/SubmissionDetailPage.php:61
+msgid "Complete submission"
+msgstr "Завершить заявку"
+
+#: src/Notifications/Notifications.php:23
+msgid "Every minute"
+msgstr "Каждую минуту"
+
+#: src/Notifications/Notifications.php:158
+#, php-format
+msgid "Still waiting for an owner: submission #%d"
+msgstr "Заявка №%d всё ещё без ответственного"
+
+#: src/Notifications/Notifications.php:158
+#, php-format
+msgid "Priority raised: submission #%d"
+msgstr "Повышен приоритет заявки №%d"
+
+#: src/Notifications/Notifications.php:158
+#, php-format
+msgid "New submission #%d"
+msgstr "Новая заявка №%d"
+
+#: src/Notifications/Notifications.php:247
+msgid "CRM submission digest"
+msgstr "Сводка заявок CRM"

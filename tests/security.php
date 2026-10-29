@@ -18,6 +18,7 @@ function esc_attr( $v ) { return htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ); }
 function esc_html__( $v ) { return esc_html( $v ); }
 function wp_rand( $min, $max ) { return $min; }
 function map_deep( $value, $callback ) { return is_array( $value ) ? array_map( static function( $item ) use ( $callback ) { return map_deep( $item, $callback ); }, $value ) : $callback( $value ); }
+function wp_clear_scheduled_hook( $hook ) {}
 function delete_option( $key ) { global $bfcamel_test_options; unset( $bfcamel_test_options[ $key ] ); }
 $test_transients = array();
 function get_transient( $key ) { global $test_transients; return $test_transients[ $key ] ?? false; }

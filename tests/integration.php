@@ -16,7 +16,7 @@ $fixture = get_option( 'bfcamel_crm_test_fixture' );
 crm_assert( get_option( 'bfcamel_crm_test_snapshot' ) === crm_snapshot(), 'loading fixed code preserves every legacy CRM row byte-for-byte' );
 \BfCamel\CRM\Plugin::instance()->upgrade();
 crm_assert( get_option( 'bfcamel_crm_test_snapshot' ) === crm_snapshot(), 'upgrade preserves all submissions, revisions, identifiers, notes and evidence' );
-crm_assert( '6' === get_option( Schema::OPTION ), 'no destructive schema migration' );
+crm_assert( '7' === get_option( Schema::OPTION ), 'additive notification schema preserves original data' );
 
 // Retained data and permissions survive a real uninstall/reinstall lifecycle.
 update_option( 'bfcamel_crm_settings', array( 'delete_data_on_uninstall' => false ) );

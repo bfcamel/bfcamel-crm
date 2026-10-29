@@ -21,6 +21,8 @@ final class SubmissionDetailPage {
             wp_die( esc_html__( 'Submission not found.', 'bfcamel-crm' ) );
         }
 
+        $summary = SubmissionService::summary( $row );
+        $back_url = NotificationAdmin::return_url();
         $form = Repository::get( $row->form_id );
         $revision = Repository::get_revision( $row->revision_id );
         $schema = Repository::decode_schema( $revision );
@@ -39,24 +41,34 @@ final class SubmissionDetailPage {
         $notes = NoteService::for_entity( 'submission', $id );
         $updated = Request::get_key( 'updated' );
         ?>
-        <div class="wrap bfcamel-crm-admin">
+        <div class="wrap bfcamel-crm-admin" data-bfcamel-submission-id="<?php echo absint( $id ); ?>">
             <div class="bfcamel-crm-page-title">
                 <div>
-                    <h1><?php
-                        /* translators: %d: submission ID. */
-                        echo esc_html( sprintf( __( 'Submission #%d', 'bfcamel-crm' ), $id ) );
-                    ?></h1>
-                    <p class="description"><?php echo esc_html( $form ? $form->name : '#' . $row->form_id ); ?> · UUID <code><?php echo esc_html( $row->submission_uuid ); ?></code></p>
+                    <h1><?php echo esc_html( $summary['title'] ); ?></h1>
+                    <p class="description">#<?php echo absint( $id ); ?> · <?php echo esc_html( SubmissionService::priority_label( $current_priority ) ); ?> · <?php echo esc_html( SubmissionService::status_label( $row->status ) ); ?></p>
                 </div>
                 <div class="bfcamel-crm-actions">
-                    <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-submissions' ) ); ?>"><?php esc_html_e( 'Back', 'bfcamel-crm' ); ?></a>
+                    <a class="button" href="<?php echo esc_url( $back_url ); ?>"><?php esc_html_e( 'Back', 'bfcamel-crm' ); ?></a>
+                    <?php if ( $can_edit && ! $row->assigned_to && ! \BfCamel\CRM\Notifications\Notifications::is_closed( $row ) ) : ?>
+                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" data-bfcamel-claim>
+                            <input type="hidden" name="action" value="bfcamel_crm_claim_submission"><input type="hidden" name="submission_id" value="<?php echo absint( $id ); ?>"><input type="hidden" name="bfcamel_return" value="<?php echo esc_attr( $back_url ); ?>">
+                            <?php wp_nonce_field( 'bfcamel_crm_claim_' . $id ); ?><button type="submit" class="button button-primary"><?php esc_html_e( 'Take ownership', 'bfcamel-crm' ); ?></button>
+                        </form>
+                    <?php endif; ?>
+                    <?php if ( $can_edit && (int) $row->assigned_to === get_current_user_id() && ! \BfCamel\CRM\Notifications\Notifications::is_closed( $row ) && \BfCamel\CRM\Notifications\Notifications::closed_statuses() ) : ?>
+                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" data-bfcamel-complete>
+                            <input type="hidden" name="action" value="bfcamel_crm_complete_submission"><input type="hidden" name="submission_id" value="<?php echo absint( $id ); ?>"><input type="hidden" name="bfcamel_return" value="<?php echo esc_attr( $back_url ); ?>">
+                            <?php wp_nonce_field( 'bfcamel_crm_complete_' . $id ); ?><button type="submit" class="button button-primary"><?php esc_html_e( 'Complete submission', 'bfcamel-crm' ); ?></button>
+                        </form>
+                    <?php endif; ?>
                     <?php if ( $can_edit ) : ?>
+                        <details class="bfcamel-crm-more"><summary><?php esc_html_e( 'More', 'bfcamel-crm' ); ?></summary>
                         <form class="bfcamel-crm-inline-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                             <input type="hidden" name="action" value="bfcamel_crm_delete_submission">
-                            <input type="hidden" name="submission_id" value="<?php echo esc_attr( $id ); ?>">
+                            <input type="hidden" name="submission_id" value="<?php echo esc_attr( $id ); ?>"><input type="hidden" name="bfcamel_return" value="<?php echo esc_attr( $back_url ); ?>">
                             <?php wp_nonce_field( 'bfcamel_crm_delete_submission_' . $id ); ?>
                             <button type="submit" class="button button-link-delete" data-bfcamel-confirm data-bfcamel-confirm-message="<?php echo esc_attr__( 'Delete this submission permanently? Its consent evidence and internal history will also be deleted. This cannot be undone.', 'bfcamel-crm' ); ?>"><?php esc_html_e( 'Delete submission', 'bfcamel-crm' ); ?></button>
-                        </form>
+                        </form></details>
                     <?php endif; ?>
                 </div>
             </div>
@@ -88,7 +100,7 @@ final class SubmissionDetailPage {
                         <?php if ( $can_edit ) : ?>
                             <form class="bfcamel-crm-note-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                                 <input type="hidden" name="action" value="bfcamel_crm_add_submission_note">
-                                <input type="hidden" name="submission_id" value="<?php echo esc_attr( $id ); ?>">
+                                <input type="hidden" name="submission_id" value="<?php echo esc_attr( $id ); ?>"><input type="hidden" name="bfcamel_return" value="<?php echo esc_attr( $back_url ); ?>">
                                 <?php wp_nonce_field( 'bfcamel_crm_add_submission_note_' . $id ); ?>
                                 <textarea name="note" rows="4" required placeholder="<?php echo esc_attr__( 'Add an internal note…', 'bfcamel-crm' ); ?>"></textarea>
                                 <button class="button button-primary" type="submit"><?php esc_html_e( 'Add note', 'bfcamel-crm' ); ?></button>
@@ -97,8 +109,7 @@ final class SubmissionDetailPage {
                         <?php if ( ! $notes ) : ?><p class="description"><?php esc_html_e( 'No internal notes yet.', 'bfcamel-crm' ); ?></p><?php else : ?><ul class="bfcamel-crm-notes"><?php foreach ( $notes as $note ) : ?><li><div class="bfcamel-crm-note__body"><?php echo nl2br( esc_html( $note->note_text ) ); ?></div><div class="bfcamel-crm-note__meta"><?php echo esc_html( $note->actor_name ?: __( 'System', 'bfcamel-crm' ) ); ?> · <?php echo esc_html( mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $note->created_at ) ); ?></div></li><?php endforeach; ?></ul><?php endif; ?>
                     </div>
 
-                    <div class="bfcamel-crm-panel">
-                        <h2><?php esc_html_e( 'Submission history', 'bfcamel-crm' ); ?></h2>
+                    <details class="bfcamel-crm-panel"><summary><?php esc_html_e( 'Submission history', 'bfcamel-crm' ); ?></summary>
                         <?php if ( ! $activity ) : ?>
                             <p class="description"><?php esc_html_e( 'No history entries yet.', 'bfcamel-crm' ); ?></p>
                         <?php else : ?>
@@ -114,19 +125,19 @@ final class SubmissionDetailPage {
                                 <?php endforeach; ?>
                             </ul>
                         <?php endif; ?>
-                    </div>
+                    </details>
                 </main>
 
                 <aside>
                     <div class="bfcamel-crm-panel bfcamel-crm-sticky">
                         <h2><?php esc_html_e( 'CRM', 'bfcamel-crm' ); ?></h2>
                         <p><strong><?php esc_html_e( 'Contact sync', 'bfcamel-crm' ); ?>:</strong> <?php echo esc_html( ActivityFormatter::sync_label( $row->contact_sync_status ) ); ?></p>
-                        <?php if ( $row->contact_id && current_user_can( 'bfcamel_crm_manage_contacts' ) ) : ?><p><a href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-contacts&id=' . absint( $row->contact_id ) ) ); ?>"><?php esc_html_e( 'Open contact', 'bfcamel-crm' ); ?></a></p><?php endif; ?>
+                        <?php if ( $row->contact_id && current_user_can( 'bfcamel_crm_manage_contacts' ) ) : ?><p><a class="button bfcamel-crm-contact-link" href="<?php echo esc_url( add_query_arg( 'bfcamel_return', $back_url, admin_url( 'admin.php?page=bfcamel-crm-contacts&id=' . absint( $row->contact_id ) ) ) ); ?>"><?php echo esc_html( ( $summary['person'] ?: __( 'Open contact', 'bfcamel-crm' ) ) . ' →' ); ?></a></p><?php endif; ?>
 
                         <?php if ( $can_edit ) : ?>
                         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                             <input type="hidden" name="action" value="bfcamel_crm_update_submission">
-                            <input type="hidden" name="submission_id" value="<?php echo esc_attr( $id ); ?>">
+                            <input type="hidden" name="submission_id" value="<?php echo esc_attr( $id ); ?>"><input type="hidden" name="bfcamel_return" value="<?php echo esc_attr( $back_url ); ?>">
                             <?php wp_nonce_field( 'bfcamel_crm_update_submission_' . $id ); ?>
 
                             <p><label><strong><?php esc_html_e( 'Status', 'bfcamel-crm' ); ?></strong><select name="status"><?php foreach ( $statuses as $value => $label ) : ?><option value="<?php echo esc_attr( $value ); ?>" <?php selected( $row->status, $value ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></label></p>
@@ -148,12 +159,12 @@ final class SubmissionDetailPage {
                         <?php endif; ?>
                     </div>
 
-                    <div class="bfcamel-crm-panel">
-                        <h2><?php esc_html_e( 'Evidence', 'bfcamel-crm' ); ?></h2>
+                    <details class="bfcamel-crm-panel"><summary><?php esc_html_e( 'Evidence', 'bfcamel-crm' ); ?></summary>
+                        <p>UUID <code><?php echo esc_html( $row->submission_uuid ); ?></code></p>
                         <p><strong><?php esc_html_e( 'Form revision', 'bfcamel-crm' ); ?>:</strong> <?php echo esc_html( $revision ? $revision->version : $row->revision_id ); ?></p>
                         <p><strong><?php esc_html_e( 'Source URL', 'bfcamel-crm' ); ?>:</strong><br><code><?php echo esc_html( $row->source_url ); ?></code></p>
                         <p><strong><?php esc_html_e( 'IP stored', 'bfcamel-crm' ); ?>:</strong> <?php echo $row->source_ip ? esc_html( $row->source_ip ) : esc_html__( 'No', 'bfcamel-crm' ); ?></p>
-                    </div>
+                    </details>
                 </aside>
             </div>
         </div>
@@ -238,7 +249,8 @@ final class SubmissionDetailPage {
             self::rollback_error( __( 'The submission transaction could not be committed.', 'bfcamel-crm' ) );
         }
 
-        wp_safe_redirect( admin_url( 'admin.php?page=bfcamel-crm-submissions&id=' . $id . '&updated=1' ) );
+        do_action( 'bfcamel_crm_submission_updated', $id, $current->priority );
+        wp_safe_redirect( add_query_arg( 'bfcamel_return', NotificationAdmin::return_url(), admin_url( 'admin.php?page=bfcamel-crm-submissions&id=' . $id . '&updated=1' ) ) );
         exit;
     }
 
@@ -247,3 +259,4 @@ final class SubmissionDetailPage {
         wp_die( esc_html( $message ), esc_html__( 'Could not update submission', 'bfcamel-crm' ), array( 'back_link' => true ) );
     }
 }
+
