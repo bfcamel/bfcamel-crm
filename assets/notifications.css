@@ -2,7 +2,7 @@
 #wpadminbar .bfcamel-notification-count{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:#46666e;line-height:20px;text-align:center;font-size:12px}
 #wpadminbar .bfcamel-notification-count.has-unread{background:#397d83;color:#fff}#wpadminbar .bfcamel-notification-count.is-urgent{background:#b42318;color:#fff}
 .bfcamel-urgent-notice{border-left-color:#b42318}
-.bfcamel-notification-center{position:absolute;z-index:100100;right:20px;top:44px;width:min(430px,calc(100% - 32px));padding:18px;background:#fff;color:#133641;border:1px solid #dce5e5;border-radius:10px;box-shadow:0 12px 35px rgba(19,54,65,.18)}
+.bfcamel-notification-center{position:fixed;max-height:calc(100vh - 90px);overflow:auto;z-index:100100;right:20px;top:44px;width:min(430px,calc(100% - 32px));padding:18px;background:#fff;color:#133641;border:1px solid #dce5e5;border-radius:10px;box-shadow:0 12px 35px rgba(19,54,65,.18)}
 .bfcamel-notification-heading{display:flex;justify-content:space-between;align-items:center;gap:16px}
 .bfcamel-notification-heading h2{margin:0;font-size:18px}
 .bfcamel-notification-item{display:block;padding:12px 4px;border-bottom:1px solid #e4ebeb;color:#18434e;text-decoration:none}

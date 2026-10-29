@@ -123,8 +123,7 @@ final class Notifications {
     public static function read( $submission_id, $user_id ) {
         if ( ! user_can( $user_id, 'bfcamel_crm_view_submissions' ) ) return false;
         global $wpdb;
-        $sql = "INSERT INTO %i (event_id,user_id,channel,state,attempts,available_at,updated_at) SELECT id,%d,'in_app','read',0,%s,%s FROM %i WHERE submission_id=%d ON DUPLICATE KEY UPDATE state='read',updated_at=VALUES(updated_at)";
-        return false !== $wpdb->query( $wpdb->prepare( $sql, Schema::table( 'notification_receipts' ), $user_id, gmdate( 'Y-m-d H:i:s' ), gmdate( 'Y-m-d H:i:s' ), Schema::table( 'notifications' ), $submission_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Per-user read receipts never change shared submission workflow state.
+        return false !== $wpdb->query( $wpdb->prepare( "INSERT INTO %i (event_id,user_id,channel,state,attempts,available_at,updated_at) SELECT id,%d,'in_app','read',0,%s,%s FROM %i WHERE submission_id=%d ON DUPLICATE KEY UPDATE state='read',updated_at=VALUES(updated_at)", Schema::table( 'notification_receipts' ), $user_id, gmdate( 'Y-m-d H:i:s' ), gmdate( 'Y-m-d H:i:s' ), Schema::table( 'notifications' ), $submission_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Per-user read receipts never change shared submission workflow state.
     }
 
     public static function feed( $user_id ) {
@@ -132,13 +131,13 @@ final class Notifications {
         global $wpdb;
         $open = self::open_sql();
         $from = $wpdb->prepare( "FROM %i n INNER JOIN %i s ON s.id=n.submission_id LEFT JOIN %i r ON r.event_id=n.id AND r.user_id=%d AND r.channel='in_app'", Schema::table( 'notifications' ), Schema::table( 'submissions' ), Schema::table( 'notification_receipts' ), $user_id );
-        $unread = (int) $wpdb->get_var( "SELECT COUNT(*) {$from} WHERE {$open} AND COALESCE(r.state,'')<>'read'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Internal fragments are fully prepared above.
-        $rows = $wpdb->get_results( "SELECT n.*,s.priority,s.assigned_to,COALESCE(r.state,'') AS receipt_state {$from} WHERE {$open} ORDER BY n.id DESC LIMIT 30" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Internal fragments are fully prepared above; no payload or contact data enters notification transport.
+        $unread = (int) $wpdb->get_var( "SELECT COUNT(*) {$from} WHERE {$open} AND COALESCE(r.state,'')<>'read'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal fragments are fully prepared above.
+        $rows = $wpdb->get_results( "SELECT n.*,s.priority,s.assigned_to,COALESCE(r.state,'') AS receipt_state {$from} WHERE {$open} ORDER BY n.id DESC LIMIT 30" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal fragments are fully prepared above; no payload or contact data enters notification transport.
         $urgent_slugs = self::urgent_priorities();
         $urgent = 0;
         if ( $urgent_slugs ) {
             $condition = $wpdb->prepare( 's.priority IN (' . implode( ',', array_fill( 0, count( $urgent_slugs ), '%s' ) ) . ')', $urgent_slugs ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Generated placeholders only.
-            $urgent = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT s.id) {$from} WHERE {$open} AND s.assigned_to=0 AND {$condition}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Prepared internal fragments.
+            $urgent = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT s.id) {$from} WHERE {$open} AND s.assigned_to=0 AND {$condition}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Prepared internal fragments.
         }
         $latest = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(id),0) FROM %i', Schema::table( 'notifications' ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Monotonic cursor prevents replaying toasts after reload.
         $items = array();
@@ -186,8 +185,8 @@ final class Notifications {
         if ( $minutes < 1 ) return;
         $open = self::open_sql();
         $events_sql = $wpdb->prepare( '%i', Schema::table( 'notifications' ) );
-        $sql = $wpdb->prepare( "SELECT n.id,n.submission_id FROM %i n INNER JOIN %i s ON s.id=n.submission_id LEFT JOIN %i reminder ON reminder.event_key=CONCAT('reminder:',n.id) WHERE n.kind IN ('created','raised') AND n.id=(SELECT MAX(latest.id) FROM {$events_sql} latest WHERE latest.submission_id=n.submission_id AND latest.kind IN ('created','raised')) AND n.level='urgent' AND s.assigned_to=0 AND n.created_at<=%s AND reminder.id IS NULL AND {$open} ORDER BY n.id ASC LIMIT 20", Schema::table( 'notifications' ), Schema::table( 'submissions' ), Schema::table( 'notifications' ), gmdate( 'Y-m-d H:i:s', time() - $minutes * MINUTE_IN_SECONDS ) );
-        $rows = $wpdb->get_results( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Prepared internal open-status fragment and parameters.
+        $sql = $wpdb->prepare( "SELECT n.id,n.submission_id FROM %i n INNER JOIN %i s ON s.id=n.submission_id LEFT JOIN %i reminder ON reminder.event_key=CONCAT('reminder:',n.id) WHERE n.kind IN ('created','raised') AND n.id=(SELECT MAX(latest.id) FROM {$events_sql} latest WHERE latest.submission_id=n.submission_id AND latest.kind IN ('created','raised')) AND n.level='urgent' AND s.assigned_to=0 AND n.created_at<=%s AND reminder.id IS NULL AND {$open} ORDER BY n.id ASC LIMIT 20", Schema::table( 'notifications' ), Schema::table( 'submissions' ), Schema::table( 'notifications' ), gmdate( 'Y-m-d H:i:s', time() - $minutes * MINUTE_IN_SECONDS ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Both SQL fragments contain only allowlisted identifiers and prepared status placeholders.
+        $rows = $wpdb->get_results( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Prepared internal open-status fragment and parameters.
         foreach ( (array) $rows as $event ) {
             $row = SubmissionService::get( $event->submission_id );
             if ( $row && 'urgent' === self::level( $row->priority ) ) self::record( $row, 'reminder', 'reminder:' . $event->id );
@@ -197,7 +196,7 @@ final class Notifications {
     private static function deliver() {
         global $wpdb;
         $started = microtime( true );
-        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT r.*,n.submission_id,n.kind,n.level FROM %i r INNER JOIN %i n ON n.id=r.event_id WHERE r.channel IN ('email','telegram') AND r.state IN ('pending','sending') AND r.available_at<=%s ORDER BY n.level='urgent' DESC,r.event_id ASC LIMIT 20", Schema::table( 'notification_receipts' ), Schema::table( 'notifications' ), gmdate( 'Y-m-d H:i:s' ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded durable delivery queue with retry leases.
+        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT r.*,n.submission_id,n.kind,n.level FROM %i r INNER JOIN %i n ON n.id=r.event_id WHERE r.channel IN ('email','telegram') AND r.state IN ('pending','sending') AND r.available_at<=%s ORDER BY CASE n.level WHEN 'urgent' THEN 2 WHEN 'high' THEN 1 ELSE 0 END DESC,r.event_id ASC LIMIT 20", Schema::table( 'notification_receipts' ), Schema::table( 'notifications' ), gmdate( 'Y-m-d H:i:s' ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded durable delivery queue with retry leases.
         $done = array();
         foreach ( (array) $rows as $receipt ) {
             $key = $receipt->event_id . ':' . $receipt->user_id . ':' . $receipt->channel;

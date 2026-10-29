@@ -47,7 +47,7 @@ final class Bootstrap {
         add_menu_page( __( 'BfCamel CRM', 'bfcamel-crm' ), $menu_label, RoleManager::ACCESS_CAPABILITY, 'bfcamel-crm', array( $this, 'landing' ), 'dashicons-feedback', 26 );
         add_submenu_page( 'bfcamel-crm', __( 'Submissions', 'bfcamel-crm' ), __( 'Submissions', 'bfcamel-crm' ), 'bfcamel_crm_view_submissions', 'bfcamel-crm', '' );
         add_submenu_page( 'bfcamel-crm', __( 'Submissions', 'bfcamel-crm' ), __( 'Submissions', 'bfcamel-crm' ), 'bfcamel_crm_view_submissions', 'bfcamel-crm-submissions', array( $submissions, 'page' ) );
-        remove_submenu_page( 'bfcamel-crm', 'bfcamel-crm-submissions' );
+        remove_submenu_page( 'bfcamel-crm', 'bfcamel-crm' );
         add_submenu_page( 'bfcamel-crm', __( 'Contacts', 'bfcamel-crm' ), __( 'Contacts', 'bfcamel-crm' ), 'bfcamel_crm_manage_contacts', 'bfcamel-crm-contacts', array( $contacts, 'page' ) );
         add_submenu_page( 'bfcamel-crm', __( 'Forms', 'bfcamel-crm' ), __( 'Forms', 'bfcamel-crm' ), 'bfcamel_crm_manage_forms', 'bfcamel-crm-forms', array( $admin, 'forms_page' ) );
         add_submenu_page( 'bfcamel-crm', __( 'Dashboard', 'bfcamel-crm' ), __( 'Dashboard', 'bfcamel-crm' ), 'bfcamel_crm_view_dashboard', 'bfcamel-crm-dashboard', array( DashboardPage::class, 'render' ) );

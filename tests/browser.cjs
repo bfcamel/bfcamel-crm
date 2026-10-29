@@ -1,9 +1,11 @@
 const { chromium } = require(process.env.CRM_PLAYWRIGHT_MODULE);
 const fs = require('node:fs');
+let debugPage;
 (async () => {
   const browser = await chromium.launch({headless: true});
   const context = await browser.newContext({viewport: {width: 1440, height: 1000}});
-  const page = await context.newPage(); const errors = [];
+  const page = await context.newPage(); debugPage = page; const errors = [];
+  fs.mkdirSync(process.env.CRM_SCREENSHOTS, {recursive: true});
   page.on('pageerror', error => errors.push(error.message));
   const base = 'http://127.0.0.1:8899';
   await page.goto(base + '/wp-login.php');
@@ -52,4 +54,4 @@ const fs = require('node:fs');
   if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2)) throw new Error('Mobile page overflows viewport.');
   if (errors.length) throw new Error(errors.join('\n'));
   await browser.close(); console.log('Browser UI, preview, ownership, mobile navigation and AJAX permission tests passed.');
-})().catch(error => { console.error(error); process.exit(1); });
+})().catch(async error => { console.error(error); if (debugPage) { console.error('URL:', debugPage.url()); console.error((await debugPage.locator('body').innerText()).slice(-6000)); await debugPage.screenshot({path: process.env.CRM_SCREENSHOTS + '/failure.png', fullPage: true}); } process.exit(1); });

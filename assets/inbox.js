@@ -144,6 +144,7 @@
     center = document.getElementById('bfcamel-notification-center'); toast = document.getElementById('bfcamel-notification-toast');
     inbox = document.querySelector('[data-bfcamel-inbox]'); panel = inbox && inbox.querySelector('.bfcamel-crm-preview');
     updateFeed(feed);
+    if (inbox) { try { var oldScroll = Number(sessionStorage.getItem(key + ':scroll:' + listUrl()) || 0); if (oldScroll) window.scrollTo(0, oldScroll); } catch (e) {} }
     document.querySelectorAll('.bfcamel-crm-bulk-form').forEach(updateBulk);
     if (center) {
       var checkbox = center.querySelector('[data-bfcamel-sound]'); checkbox.checked = stored('sound', '0') === '1';
@@ -159,6 +160,7 @@
       if (bell && center) { event.preventDefault(); center.hidden = !center.hidden; return; }
       if (target.closest('[data-bfcamel-notification-close]') && center) { center.hidden = true; return; }
       if (target.closest('[data-bfcamel-preview-close]')) { if (allowLeave()) { history.pushState({}, '', listUrl()); closePanel(true); } return; }
+      if (inbox && target.closest('a[href]')) { try { sessionStorage.setItem(key + ':scroll:' + listUrl(), String(window.scrollY)); } catch (e) {} }
       var link = target.closest('[data-bfcamel-open]');
       if (link && inbox && !event.ctrlKey && !event.metaKey && !event.shiftKey && event.button === 0 && window.matchMedia('(min-width:1100px)').matches) { event.preventDefault(); lastLink = link; openPanel(link.dataset.bfcamelOpen, link.href, true); return; }
       var notificationLink = target.closest('[data-bfcamel-notification-submission]');

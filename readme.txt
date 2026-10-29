@@ -56,7 +56,16 @@ The plugin registers handlers with the WordPress Personal Data Export and Erase 
 
 = External services =
 
-BfCamel CRM does not send data to an external service and does not load a remote SDK, analytics service or CAPTCHA.
+No external service is required. Email and Telegram notifications are disabled until an administrator enables them.
+
+Optional email notifications use the site's configured WordPress mail service. They send a submission number and an authenticated CRM link to selected staff members. Submitted names, phone numbers and message bodies are not included.
+
+Optional urgent Telegram notifications call https://api.telegram.org using the administrator's bot token and chat ID. Telegram receives that configuration, the site link and a submission number when a new urgent event or reminder is delivered. Submitted personal data is not included. This feature is used only after explicit administrator configuration.
+
+Telegram terms: https://telegram.org/tos
+Telegram privacy policy: https://telegram.org/privacy
+
+The plugin does not load a remote SDK, analytics service or CAPTCHA.
 
 == Installation ==
 
@@ -76,7 +85,7 @@ No. Forms can collect data without document URLs. The settings screen displays a
 
 = Does the plugin send CRM data to a cloud service? =
 
-No. CRM data remains in the site's WordPress database unless an administrator exports it or another installed integration processes it.
+Submitted CRM data remains in the site's WordPress database. If an administrator enables email or Telegram notifications, the selected delivery service receives only a submission number and a CRM link. No submitted names, phones or request contents are included.
 
 = Does uninstall delete CRM data? =
 
@@ -195,3 +204,4 @@ This interface update clarifies CRM terminology and standardizes dashboard contr
 = 0.5.0 =
 
 This security and privacy update removes automatic CRM access from non-administrator roles. Review role permissions after updating.
+
