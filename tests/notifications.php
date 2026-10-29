@@ -86,6 +86,11 @@ ob_start(); SubmissionDetailPage::render( $reminder ); $detail = ob_get_clean();
 crm_assert( false !== strpos( $detail, 'data-bfcamel-complete' ) && false !== strpos( $detail, 'name="bfcamel_return"' ), 'detail provides quick completion and preserves list context' );
 $_GET['bfcamel_return'] = 'https://external.example/';
 crm_assert( 0 === strpos( NotificationAdmin::return_url(), admin_url() ), 'return links reject external origins' );
+$context = \BfCamel\CRM\Admin\InboxView::list_url( array( 'view' => 'all', 'search' => 'a+b@example.test & other' ), 2 );
+$url = add_query_arg( 'bfcamel_return', rawurlencode( $context ), admin_url( 'admin.php?page=bfcamel-crm-contacts&id=1' ) );
+wp_parse_str( wp_parse_url( $url, PHP_URL_QUERY ), $outer );
+wp_parse_str( wp_parse_url( $outer['bfcamel_return'], PHP_URL_QUERY ), $inner );
+crm_assert( 'all' === $inner['view'] && 'a+b@example.test & other' === $inner['s'] && '2' === $inner['paged'], 'nested return URL retains search, filters and pagination exactly' );
 update_option( Notifications::OPTION, array_merge( Notifications::settings(), array( 'email_enabled' => false, 'telegram_enabled' => false, 'telegram_token' => '' ) ), false );
 $ui_form = Repository::save( 0, 'Обращение за помощью', 'ui-preview', array(
     array( 'name' => 'name', 'type' => 'text', 'label' => 'Имя', 'mapping' => 'contact.name' ),

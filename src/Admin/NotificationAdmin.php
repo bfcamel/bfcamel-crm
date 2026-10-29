@@ -106,7 +106,7 @@ final class NotificationAdmin {
         check_admin_referer( 'bfcamel_crm_claim_' . $id );
         $result = SubmissionService::claim( $id, get_current_user_id() );
         if ( is_wp_error( $result ) ) wp_die( esc_html( $result->get_error_message() ) );
-        wp_safe_redirect( add_query_arg( array( 'updated' => 1, 'bfcamel_return' => self::return_url() ), Notifications::url( $id ) ) ); exit;
+        wp_safe_redirect( add_query_arg( array( 'updated' => 1, 'bfcamel_return' => rawurlencode( self::return_url() ) ), Notifications::url( $id ) ) ); exit;
     }
 
     private static function changed_feed( $id ) {
