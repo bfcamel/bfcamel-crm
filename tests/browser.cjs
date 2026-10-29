@@ -44,7 +44,7 @@ let debugPage;
   await page.waitForURL('**/*page=bfcamel-crm-contacts*');
   await page.locator('.bfcamel-crm-page-title .bfcamel-crm-actions > a').first().click();
   await page.waitForURL('**/*view=all*');
-  if (!new URL(page.url()).searchParams.get('s')) throw new Error('Contact return lost search context.');
+  if (new URL(page.url()).searchParams.get('s') !== 'victim@example.test') throw new Error('Contact return changed the search context.');
   await page.setViewportSize({width: 390, height: 844});
   await page.goto(base + '/wp-admin/admin.php?page=bfcamel-crm-submissions&view=all');
   const mobileLink = page.locator('a[data-bfcamel-open]').first(); await mobileLink.click();

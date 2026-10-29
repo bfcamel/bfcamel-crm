@@ -133,7 +133,7 @@ final class NotificationAdmin {
 
     public static function return_url( $area = 'submissions' ) {
         $fallback = admin_url( 'admin.php?page=bfcamel-crm-' . $area );
-        $candidate = wp_validate_redirect( Request::post_url( 'bfcamel_return', Request::get_text( 'bfcamel_return' ) ), $fallback );
+        $candidate = wp_validate_redirect( Request::post_url( 'bfcamel_return', Request::get_url( 'bfcamel_return' ) ), $fallback );
         if ( 0 === strpos( $candidate, '/' ) && 0 !== strpos( $candidate, '//' ) ) {
             $parts = wp_parse_url( admin_url() );
             $candidate = $parts['scheme'] . '://' . $parts['host'] . ( isset( $parts['port'] ) ? ':' . $parts['port'] : '' ) . $candidate;

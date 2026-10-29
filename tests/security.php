@@ -15,6 +15,7 @@ function wp_salt( $scheme ) { return 'test-only'; }
 function wp_get_session_token() { return ''; }
 function sanitize_html_class( $v ) { return preg_replace( '/[^A-Za-z0-9_-]/', '', $v ); }
 function esc_attr( $v ) { return htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ); }
+function esc_url_raw( $v ) { return filter_var( (string) $v, FILTER_SANITIZE_URL ); }
 function esc_html__( $v ) { return esc_html( $v ); }
 function wp_rand( $min, $max ) { return $min; }
 function map_deep( $value, $callback ) { return is_array( $value ) ? array_map( static function( $item ) use ( $callback ) { return map_deep( $item, $callback ); }, $value ) : $callback( $value ); }
@@ -84,6 +85,8 @@ $_POST = array( 'action' => 'bfcamel_crm_submit', 'bfcamel_crm_payload_version' 
 check( array( 'action' => 'custom', 'choices' => array( 'One' ) ) === Request::post_payload(), 'Namespaced form payload is broken.' );
 $_POST = array( 'action' => 'bfcamel_crm_submit', 'name' => 'Legacy visitor' );
 check( 'Legacy visitor' === Request::post_payload()['name'], 'Already-rendered legacy form is incompatible.' );
+$_GET['bfcamel_return'] = 'https://example.test/wp-admin/admin.php?s=person%40example.test';
+check( false !== strpos( Request::get_url( 'bfcamel_return' ), '%40' ), 'Navigation context lost its encoded search characters.' );
 $render = new ReflectionMethod( Renderer::class, 'render_field' ); $render->setAccessible( true );
 $html = $render->invoke( Renderer::instance(), array( 'name' => 'action', 'type' => 'text', 'label' => 'Action', 'width' => '100' ) );
 check( false !== strpos( $html, 'name="fields[action]"' ), 'Reserved field can override request routing.' );
