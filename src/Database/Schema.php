@@ -11,6 +11,8 @@ final class Schema {
     const ERROR_OPTION = 'bfcamel_crm_schema_error';
 
     private static $install_errors = array();
+    private static $transaction_active = false;
+    private static $transaction_locks = array();
 
     public static function maybe_upgrade() {
         if ( self::VERSION === (string) get_option( self::OPTION, '' ) ) {
@@ -471,17 +473,41 @@ final class Schema {
 
     public static function begin_transaction() {
         global $wpdb;
-        return false !== $wpdb->query( 'START TRANSACTION' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom CRM tables require an explicit transaction and cannot use cached state.
+        if ( self::$transaction_active ) return false;
+        self::$transaction_active = false !== $wpdb->query( 'START TRANSACTION' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom CRM tables require an explicit transaction.
+        return self::$transaction_active;
     }
 
     public static function commit() {
         global $wpdb;
-        return false !== $wpdb->query( 'COMMIT' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Commits the explicit custom-table transaction.
+        $committed = false !== $wpdb->query( 'COMMIT' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Commits the explicit custom-table transaction.
+        if ( $committed ) self::finish_transaction();
+        return $committed;
     }
 
     public static function rollback() {
         global $wpdb;
         $wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Rolls back the explicit custom-table transaction.
+        self::finish_transaction();
+    }
+
+    /** Hold an advisory lock until the owning transaction commits or rolls back. */
+    public static function hold_transaction_lock( $name ) {
+        global $wpdb;
+        if ( ! self::$transaction_active ) return false;
+        if ( isset( self::$transaction_locks[ $name ] ) ) return true;
+        $locked = 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 10)', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Connection-scoped lock must outlive every write in the transaction.
+        if ( $locked ) self::$transaction_locks[ $name ] = true;
+        return $locked;
+    }
+
+    private static function finish_transaction() {
+        global $wpdb;
+        foreach ( array_reverse( array_keys( self::$transaction_locks ) ) as $name ) {
+            $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Release only after COMMIT or ROLLBACK.
+        }
+        self::$transaction_locks = array();
+        self::$transaction_active = false;
     }
 
     public static function table( $name ) {
@@ -511,3 +537,4 @@ final class Schema {
         );
     }
 }
+

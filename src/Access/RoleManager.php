@@ -46,7 +46,7 @@ final class RoleManager {
         );
     }
 
-    public static function ensure_roles() {
+    public static function ensure_roles( $force = false ) {
         $stored = get_option( self::OPTION, false );
         $version = (string) get_option( self::VERSION_OPTION, '' );
         $roles = wp_roles();
@@ -83,7 +83,7 @@ final class RoleManager {
             }
         }
 
-        if ( false === $stored || self::VERSION !== $version || $changed ) {
+        if ( $force || false === $stored || self::VERSION !== $version || $changed ) {
             self::apply( $matrix );
             update_option( self::OPTION, $matrix, false );
             update_option( self::VERSION_OPTION, self::VERSION, false );
@@ -181,3 +181,4 @@ final class RoleManager {
         }
     }
 }
+

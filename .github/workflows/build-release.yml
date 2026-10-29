@@ -3,6 +3,15 @@ name: Build WordPress release
 on:
   pull_request:
   workflow_dispatch:
+    inputs:
+      build_release:
+        description: Build the installable ZIP
+        type: boolean
+        default: false
+      publish_release:
+        description: Publish the ZIP as a GitHub release (requires build_release)
+        type: boolean
+        default: false
   push:
     branches:
       - main
@@ -29,12 +38,61 @@ jobs:
           find . -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php tests/smoke.php
           php tests/duplicate-load.php
+          php tests/security.php
           find assets -type f -name '*.js' -print0 | xargs -0 -n1 node --check
 
+  integration:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        wordpress: ['6.2', 'latest']
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: integration-only
+          MYSQL_DATABASE: bfcamel_crm_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pintegration-only"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    env:
+      WP_PATH: ${{ runner.temp }}/bfcamel-wordpress
+      BFCAMEL_TEST_WP_LOAD: ${{ runner.temp }}/bfcamel-wordpress/wp-load.php
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mysqli, mbstring, zip
+          tools: wp-cli
+      - name: Install WordPress and seed existing 0.5.6 data
+        env:
+          TEST_WORDPRESS_VERSION: ${{ matrix.wordpress }}
+        run: |
+          wp core download --path="$WP_PATH" --version="$TEST_WORDPRESS_VERSION"
+          wp config create --path="$WP_PATH" --dbname=bfcamel_crm_test --dbuser=root --dbpass=integration-only --dbhost=127.0.0.1:3306
+          wp core install --path="$WP_PATH" --url=http://example.test --title=CRM-test --admin_user=admin --admin_password=integration-only --admin_email=admin@example.test --skip-email
+          git worktree add --detach "$RUNNER_TEMP/bfcamel-crm-base" d97473338d9d01275df08e08baa415342fc9584c
+          mkdir -p "$WP_PATH/wp-content/plugins/bfcamel-crm"
+          rsync -a --exclude='.git' "$RUNNER_TEMP/bfcamel-crm-base/" "$WP_PATH/wp-content/plugins/bfcamel-crm/"
+          wp plugin activate bfcamel-crm --path="$WP_PATH"
+          wp eval-file "$GITHUB_WORKSPACE/tests/integration-seed.php" --path="$WP_PATH"
+      - name: Update source without deleting data and run integration tests
+        run: |
+          rsync -a --exclude='.git' ./ "$WP_PATH/wp-content/plugins/bfcamel-crm/"
+          wp eval-file "$GITHUB_WORKSPACE/tests/integration.php" --path="$WP_PATH"
+
   package:
+    if: github.event_name == 'workflow_dispatch' && inputs.build_release
     needs:
       - validate
       - plugin-check
+      - integration
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -74,7 +132,7 @@ jobs:
 
   release:
     needs: package
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_release && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -113,3 +171,4 @@ jobs:
             --title "BfCamel CRM $version" \
             --notes-file "$notes_file" \
             --latest
+

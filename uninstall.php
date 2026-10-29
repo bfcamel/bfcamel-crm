@@ -52,6 +52,8 @@ function bfcamel_crm_uninstall() {
         'bfcamel_crm_export_data',
         'bfcamel_crm_manage_settings',
     );
+    // The permission matrix may be retained, but its applied state is revoked below.
+    delete_option( 'bfcamel_crm_role_permissions_version' );
     $roles = wp_roles();
     if ( $roles ) {
         foreach ( array_keys( $roles->roles ) as $role_slug ) {
@@ -67,3 +69,4 @@ function bfcamel_crm_uninstall() {
 }
 
 bfcamel_crm_uninstall();
+
