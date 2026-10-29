@@ -76,6 +76,8 @@ crm_assert( 0 === Notifications::feed( $second )['unread'], 'revoked users canno
 $before_delete = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', Schema::table( 'submissions' ) ) );
 crm_assert( true === SubmissionService::delete_permanently( $retry ), 'explicit submission deletion succeeds' );
 crm_assert( 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE event_id=%d', $receipts, $retry_event ) ) && $before_delete - 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', Schema::table( 'submissions' ) ) ), 'delete removes only its dependent notification metadata' );
+$search_result = SubmissionService::query( array( 'view' => 'all', 'search' => 'victim@example.test' ) );
+crm_assert( $search_result['total'] >= 1, 'inbox search matches email identifiers and saved payloads' );
 $_GET = array( 'view' => 'all', 'page' => 'bfcamel-crm-submissions' );
 ob_start(); SubmissionsPage::instance()->page(); $html = ob_get_clean();
 crm_assert( false !== strpos( $html, 'data-bfcamel-open' ) && false !== strpos( $html, 'bfcamel-crm-preview' ) && false !== strpos( $html, 'data-bfcamel-inbox' ), 'inbox provides large links and a preview panel' );

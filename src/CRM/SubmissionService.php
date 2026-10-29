@@ -41,7 +41,8 @@ final class SubmissionService {
         $search = isset( $filters['search'] ) ? trim( (string) $filters['search'] ) : '';
         if ( '' !== $search ) {
             $like = '%' . $wpdb->esc_like( $search ) . '%';
-            $parts = array( 's.submission_uuid LIKE %s','f.name LIKE %s','c.display_name LIKE %s','s.payload_json LIKE %s',$wpdb->prepare('EXISTS (SELECT 1 FROM %i e WHERE e.contact_id=s.contact_id AND e.value LIKE %%s)',$emails),$wpdb->prepare('EXISTS (SELECT 1 FROM %i p WHERE p.contact_id=s.contact_id AND p.value LIKE %%s)',$phones) );
+            $emails_sql = $wpdb->prepare( '%i', $emails ); $phones_sql = $wpdb->prepare( '%i', $phones );
+            $parts = array( 's.submission_uuid LIKE %s', 'f.name LIKE %s', 'c.display_name LIKE %s', 's.payload_json LIKE %s', "EXISTS (SELECT 1 FROM {$emails_sql} e WHERE e.contact_id=s.contact_id AND e.value LIKE %s)", "EXISTS (SELECT 1 FROM {$phones_sql} p WHERE p.contact_id=s.contact_id AND p.value LIKE %s)" );
             $search_args = array( $like,$like,$like,$like,$like,$like );
             if ( ctype_digit( $search ) ) { array_unshift( $parts, 's.id=%d' ); array_unshift( $search_args, absint( $search ) ); }
             $where[] = '(' . implode( ' OR ', $parts ) . ')'; $args = array_merge( $args, $search_args );
@@ -54,7 +55,7 @@ final class SubmissionService {
         if ( $form_id ) { $where[] = 's.form_id=%d'; $args[] = $form_id; }
         if ( isset( $filters['assigned_to'] ) && '' !== (string) $filters['assigned_to'] ) { $where[] = 's.assigned_to=%d'; $args[] = absint( $filters['assigned_to'] ); }
         $tag_id = isset( $filters['tag_id'] ) ? absint( $filters['tag_id'] ) : 0;
-        if ( $tag_id ) { $where[] = $wpdb->prepare( 'EXISTS (SELECT 1 FROM %i stf WHERE stf.submission_id=s.id AND stf.tag_id=%%d)', $links ); $args[] = $tag_id; }
+        if ( $tag_id ) { $links_sql = $wpdb->prepare( '%i', $links ); $where[] = "EXISTS (SELECT 1 FROM {$links_sql} stf WHERE stf.submission_id=s.id AND stf.tag_id=%d)"; $args[] = $tag_id; }
         $date_from = isset( $filters['date_from'] ) ? self::date_value( $filters['date_from'] ) : '';
         if ( $date_from ) { $where[] = 's.submitted_at >= %s'; $args[] = $date_from . ' 00:00:00'; }
         $date_to = isset( $filters['date_to'] ) ? self::date_value( $filters['date_to'] ) : '';
