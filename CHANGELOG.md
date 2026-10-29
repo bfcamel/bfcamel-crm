@@ -2,7 +2,13 @@
 
 ## Unreleased
 
-- Preserve existing CRM tables and immutable form revisions without a schema migration or data rewrite.
+- Make the attention inbox the CRM landing page, with three views, collapsed secondary controls and large request/contact links.
+- Add desktop submission previews, mobile full-card navigation, preserved list context and atomic take/complete actions.
+- Add per-user read state, shared urgent acknowledgement, WordPress toolbar/menu badges, browser notifications and optional sound.
+- Add opt-in email, ordinary-request digests, urgent Telegram delivery, retries and one reminder for unclaimed urgent requests.
+- Add schema version 7 with two notification-only tables; all pre-existing CRM tables and records are retained without backfill or historical alerts.
+
+- Preserve existing CRM tables and immutable form revisions without rewriting their records.
 - Keep public submissions for review when they introduce an unverified identifier for an existing contact. Exact matches link read-only; new public consent evidence does not overwrite an existing contact's consent status.
 - Hold contact identifier locks through commit or rollback, including manual contact creation and editing.
 - Include detached, conflicting and submission-only email payloads in paged privacy export and erasure, with submission-linked evidence cleanup.

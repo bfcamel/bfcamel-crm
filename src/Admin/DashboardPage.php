@@ -109,9 +109,9 @@ final class DashboardPage {
                 <thead><tr><th>ID</th><th><?php esc_html_e( 'Form', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Contact', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Status', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Received', 'bfcamel-crm' ); ?></th></tr></thead>
                 <tbody>
                 <?php if ( ! $rows ) : ?><tr><td colspan="5"><?php esc_html_e( 'No submissions yet.', 'bfcamel-crm' ); ?></td></tr><?php endif; ?>
-                <?php foreach ( (array) $rows as $row ) : ?>
-                    <tr>
-                        <td><a href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-submissions&id=' . absint( $row->id ) ) ); ?>">#<?php echo esc_html( $row->id ); ?></a></td>
+                <?php foreach ( (array) $rows as $row ) : $summary = SubmissionService::summary( $row ); $url = \BfCamel\CRM\Notifications\Notifications::url( $row->id ); ?>
+                    <tr data-bfcamel-row-url="<?php echo esc_url( $url ); ?>">
+                        <td><a class="bfcamel-crm-request-title" href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-submissions&id=' . absint( $row->id ) ) ); ?>"><?php echo esc_html( $summary['title'] ); ?></a><div class="description">#<?php echo absint( $row->id ); ?> · <?php esc_html_e( 'Open submission', 'bfcamel-crm' ); ?> →</div></td>
                         <td><?php echo esc_html( $row->form_name ?: '#' . $row->form_id ); ?></td>
                         <td><?php echo esc_html( $row->contact_name ?: '—' ); ?></td>
                         <td><span class="bfcamel-crm-badge bfcamel-crm-badge--<?php echo esc_attr( sanitize_html_class( $row->status ) ); ?>"><?php echo esc_html( SubmissionService::status_label( $row->status ) ); ?></span></td>
@@ -124,3 +124,4 @@ final class DashboardPage {
         <?php
     }
 }
+

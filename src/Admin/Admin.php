@@ -29,9 +29,9 @@ final class Admin {
             return;
         }
 
-        wp_enqueue_style( 'bfcamel-crm-admin', BFCAMEL_CRM_URL . 'assets/admin.css', array(), BFCAMEL_CRM_VERSION );
+        wp_enqueue_style( 'bfcamel-crm-admin', BFCAMEL_CRM_URL . 'assets/admin.css', array(), BFCAMEL_CRM_VERSION . '.' . filemtime( BFCAMEL_CRM_DIR . 'assets/admin.css' ) );
         wp_add_inline_style( 'bfcamel-crm-admin', $this->badge_styles() );
-        wp_enqueue_script( 'bfcamel-crm-admin', BFCAMEL_CRM_URL . 'assets/admin.js', array(), BFCAMEL_CRM_VERSION, true );
+        wp_enqueue_script( 'bfcamel-crm-admin', BFCAMEL_CRM_URL . 'assets/admin.js', array(), BFCAMEL_CRM_VERSION . '.' . filemtime( BFCAMEL_CRM_DIR . 'assets/admin.js' ), true );
 
         $submission_tags = array();
         foreach ( TagService::all( 'submission' ) as $tag ) {
@@ -308,7 +308,7 @@ final class Admin {
                 </tbody></table></div>
             </div>
             <?php submit_button(); ?>
-        </form></div>
+        </form><?php NotificationAdmin::settings_panel(); ?></div>
         <?php
     }
 
@@ -407,3 +407,4 @@ final class Admin {
         }
     }
 }
+

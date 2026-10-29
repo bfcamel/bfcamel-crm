@@ -10,13 +10,11 @@
     var adminConfig = window.BfCamelCRMAdmin || {};
     var adminStrings = adminConfig.strings || {};
 
-    document.querySelectorAll('[data-bfcamel-confirm]').forEach(function (control) {
-      control.addEventListener('click', function (event) {
-        var message = control.getAttribute('data-bfcamel-confirm-message') || adminStrings.confirm || 'Are you sure you want to continue?';
-        if (!window.confirm(message)) {
-          event.preventDefault();
-        }
-      });
+    document.addEventListener('click', function (event) {
+      var control = event.target.closest('[data-bfcamel-confirm]');
+      if (!control) return;
+      var message = control.getAttribute('data-bfcamel-confirm-message') || adminStrings.confirm || 'Are you sure you want to continue?';
+      if (!window.confirm(message)) event.preventDefault();
     });
 
     document.querySelectorAll('.bfcamel-crm-select-all').forEach(function (toggle) {
@@ -57,8 +55,11 @@
 
     var page = new URLSearchParams(window.location.search).get('page') || '';
     var scope = page.indexOf('contacts') !== -1 ? 'contact' : 'submission';
+    window.BfCamelCRMEnhance = function (container) {
+      container.querySelectorAll('input[name="tags"]').forEach(function (input) { makeTagPicker(input, scope); });
+    };
     document.querySelectorAll('input[name="tags"]').forEach(function (input) { makeTagPicker(input, scope); });
-    document.querySelectorAll('input[name="bulk_tags"]').forEach(function (input) { makeTagPicker(input, 'submission'); });
+    document.querySelectorAll('input[name="bulk_tags"]').forEach(function (input) { makeTagPicker(input, scope); });
 
     var root = document.getElementById('bfcamel-crm-builder');
     var hidden = document.getElementById('bfcamel-crm-schema-json');
@@ -352,3 +353,4 @@
     render();
   });
 })();
+

@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class Schema {
-    const VERSION = '6';
+    const VERSION = '7';
     const OPTION  = 'bfcamel_crm_db_version';
     const ERROR_OPTION = 'bfcamel_crm_schema_error';
 
@@ -282,6 +282,39 @@ final class Schema {
             ) {$cc};"
         );
 
+        $notifications = self::table( 'notifications' );
+        self::run_delta(
+            "CREATE TABLE {$notifications} (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                submission_id BIGINT UNSIGNED NOT NULL,
+                event_key VARCHAR(190) NOT NULL,
+                kind VARCHAR(20) NOT NULL,
+                level VARCHAR(20) NOT NULL,
+                queued TINYINT(1) NOT NULL DEFAULT 0,
+                created_at DATETIME NOT NULL,
+                PRIMARY KEY (id),
+                UNIQUE KEY event_key (event_key),
+                KEY submission_id (submission_id),
+                KEY queued (queued),
+                KEY created_at (created_at)
+            ) {$cc};"
+        );
+        $receipts = self::table( 'notification_receipts' );
+        self::run_delta(
+            "CREATE TABLE {$receipts} (
+                event_id BIGINT UNSIGNED NOT NULL,
+                user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+                channel VARCHAR(20) NOT NULL,
+                state VARCHAR(20) NOT NULL,
+                attempts SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+                available_at DATETIME NOT NULL,
+                updated_at DATETIME NOT NULL,
+                PRIMARY KEY (event_id,user_id,channel),
+                KEY delivery (state,available_at),
+                KEY user_channel (user_id,channel,state)
+            ) {$cc};"
+        );
+
         self::ensure_transactional_tables();
 
         $verification = self::verify();
@@ -358,6 +391,8 @@ final class Schema {
                 'consent_events'  => array( 'source_type', 'recorded_by' ),
                 'notes'           => array( 'entity_type', 'entity_id', 'note_text', 'user_id' ),
                 'activity_log'    => array( 'meta_json', 'user_id' ),
+                'notifications' => array( 'submission_id', 'event_key', 'queued', 'level' ),
+                'notification_receipts' => array( 'event_id', 'user_id', 'channel', 'state', 'attempts', 'available_at' ),
             );
             foreach ( $required_columns as $suffix => $expected ) {
                 $table = self::table( $suffix );
@@ -373,6 +408,8 @@ final class Schema {
         if ( ! $missing ) {
             $required_indexes = array(
                 array( 'tags', 'slug', array( 'slug' ) ),
+                array( 'notifications', 'event_key', array( 'event_key' ) ),
+                array( 'notification_receipts', 'PRIMARY', array( 'event_id', 'user_id', 'channel' ) ),
                 array( 'submission_tags', 'PRIMARY', array( 'submission_id', 'tag_id' ) ),
                 array( 'contact_tags', 'PRIMARY', array( 'contact_id', 'tag_id' ) ),
             );
@@ -423,6 +460,8 @@ final class Schema {
             'contact_tags',
             'notes',
             'activity_log',
+            'notifications',
+            'notification_receipts',
         );
     }
 

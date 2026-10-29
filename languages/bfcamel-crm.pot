@@ -1949,3 +1949,275 @@ msgstr ""
 #: src/Admin/SubmissionDetailPage.php:135
 msgid "e.g. urgent, transport, volunteer"
 msgstr ""
+
+
+#: src/CRM/SubmissionService.php:180
+msgid "Submission"
+msgstr ""
+
+#: src/CRM/SubmissionService.php:201
+msgid "This submission is closed or already has another owner."
+msgstr ""
+
+#: src/CRM/SubmissionService.php:220
+msgid "Only the current owner can complete this submission."
+msgstr ""
+
+#: src/Admin/InboxView.php:27
+msgid "Read the request, take ownership and keep the next action clear."
+msgstr ""
+
+#: src/Admin/InboxView.php:28 src/Admin/ContactsPage.php:37 src/Admin/SubmissionDetailPage.php:65
+msgid "More"
+msgstr ""
+
+#: src/Admin/InboxView.php:34
+msgid "Submission views"
+msgstr ""
+
+#: src/Admin/InboxView.php:35
+msgid "Needs attention"
+msgstr ""
+
+#: src/Admin/InboxView.php:38
+msgid "Name, phone or request contents"
+msgstr ""
+
+#: src/Admin/InboxView.php:38
+msgid "Search"
+msgstr ""
+
+#: src/Admin/InboxView.php:39 src/Admin/ContactsPage.php:43
+msgid "Filters"
+msgstr ""
+
+#: src/Admin/InboxView.php:39
+msgid "Active"
+msgstr ""
+
+#: src/Admin/InboxView.php:60
+msgid "Select all submissions"
+msgstr ""
+
+#: src/Admin/InboxView.php:60
+msgid "Request"
+msgstr ""
+
+#: src/Admin/InboxView.php:61
+msgid "No submissions match this view."
+msgstr ""
+
+#: src/Admin/InboxView.php:68 src/Admin/NotificationAdmin.php:43 src/Admin/ContactsPage.php:341 src/Admin/DashboardPage.php:114
+msgid "Open submission"
+msgstr ""
+
+#: src/Admin/InboxView.php:75
+msgid "Submission card"
+msgstr ""
+
+#: src/Admin/InboxView.php:75
+msgid "Open full page"
+msgstr ""
+
+#: src/Admin/InboxView.php:75 src/Admin/NotificationAdmin.php:40 src/Admin/NotificationAdmin.php:70
+msgid "Close"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:40
+msgid "Loading…"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:41 src/Admin/NotificationAdmin.php:58 src/Admin/NotificationAdmin.php:69 src/Admin/NotificationAdmin.php:70
+msgid "Notifications"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:41
+msgid "No new notifications."
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:42 src/Notifications/Notifications.php:247 src/Notifications/Notifications.php:254
+msgid "Urgent CRM submission"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:42 src/Notifications/Notifications.php:247
+msgid "High-priority CRM submission"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:43
+msgid "New CRM submissions"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:44
+msgid "Could not load the card. Open the full page or try again."
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:45
+msgid "Could not take the submission. Refresh to check its current owner."
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:46
+msgid "You are now responsible for this submission."
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:47
+msgid "Browser notifications are unavailable or blocked. CRM notifications remain available."
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:48
+msgid "Browser notifications enabled on this device."
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:58
+msgid "CRM notifications"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:64
+msgid "Urgent submissions waiting for an owner:"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:64
+msgid "Open submissions"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:72
+msgid "On this device"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:73
+msgid "Sound for urgent submissions"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:74
+msgid "Enable browser notifications"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:148
+msgid "Notifications and delivery"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:149
+msgid "Internal notifications are enabled. External delivery is opt-in and contains only a submission number and a secure CRM link."
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:150
+msgid "Failed deliveries:"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:152
+msgid "Email for urgent and high-priority submissions"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:153
+msgid "Email recipients"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:158
+msgid "Hourly email digest for ordinary submissions"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:159
+msgid "Telegram for urgent submissions"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:160
+msgid "Telegram bot token"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:160
+msgid "Configured. Leave blank to keep the token."
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:160
+msgid "Create a bot with BotFather and add it to the destination chat."
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:161
+msgid "Remove the saved Telegram token"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:162
+msgid "Telegram chat ID"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:163
+msgid "Remind about unclaimed urgent submissions after"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:163
+msgid "Never"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:163
+msgid "minutes"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:164
+msgid "Status after taking a submission"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:164
+msgid "Keep current status"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:165
+msgid "Closed statuses: exclude from attention and notifications"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:166
+msgid "Delivery uses WordPress scheduled tasks. Configure a server cron for reliable delivery on quiet sites. A successful mail handoff does not guarantee inbox delivery."
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:167
+msgid "Save notifications"
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:180
+msgid "Invalid Telegram bot token."
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:184
+msgid "Invalid Telegram chat ID."
+msgstr ""
+
+#: src/Admin/NotificationAdmin.php:185
+msgid "Configure the bot token and chat ID before enabling Telegram."
+msgstr ""
+
+#: src/Admin/ContactsPage.php:274
+msgid "Edit contact"
+msgstr ""
+
+#: src/Admin/ContactsPage.php:381
+msgid "Select all contacts"
+msgstr ""
+
+#: src/Admin/SubmissionDetailPage.php:55
+msgid "Take ownership"
+msgstr ""
+
+#: src/Admin/SubmissionDetailPage.php:61
+msgid "Complete submission"
+msgstr ""
+
+#: src/Notifications/Notifications.php:23
+msgid "Every minute"
+msgstr ""
+
+#: src/Notifications/Notifications.php:158
+#, php-format
+msgid "Still waiting for an owner: submission #%d"
+msgstr ""
+
+#: src/Notifications/Notifications.php:158
+#, php-format
+msgid "Priority raised: submission #%d"
+msgstr ""
+
+#: src/Notifications/Notifications.php:158
+#, php-format
+msgid "New submission #%d"
+msgstr ""
+
+#: src/Notifications/Notifications.php:247
+msgid "CRM submission digest"
+msgstr ""

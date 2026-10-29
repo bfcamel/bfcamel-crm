@@ -23,6 +23,11 @@ final class Request {
         return is_scalar( $value ) ? sanitize_key( (string) $value ) : sanitize_key( $default );
     }
 
+    public static function get_url( $key, $default = '' ) {
+        $value = isset( $_GET[ $key ] ) ? wp_unslash( $_GET[ $key ] ) : $default; // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only navigation context is URL-sanitized below and restricted to wp-admin by the caller.
+        return is_scalar( $value ) ? esc_url_raw( (string) $value ) : esc_url_raw( $default );
+    }
+
     public static function get_id( $key, $default = 0 ) {
         // Read-only filters do not change state; state-changing handlers verify their own nonces.
         $value = isset( $_GET[ $key ] ) ? wp_unslash( $_GET[ $key ] ) : $default; // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only filter value is unslashed here and normalized on the next line.

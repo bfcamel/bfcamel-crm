@@ -240,7 +240,7 @@ final class Privacy {
     private function paged_submissions( $email_address, $contact_ids, $page ) {
         global $wpdb;
         $offset = ( max( 1, absint( $page ) ) - 1 ) * self::PAGE_SIZE;
-        $rows = $wpdb->get_results( $wpdb->prepare(
+        $rows = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded legacy privacy scan must read current payloads.
             'SELECT s.*,r.schema_json FROM %i s LEFT JOIN %i r ON r.id=s.revision_id ORDER BY s.id ASC LIMIT %d OFFSET %d',
             Schema::table( 'submissions' ), Schema::table( 'form_revisions' ), self::PAGE_SIZE + 1, $offset
         ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded scan of legacy payloads requires fresh rows, without a destructive backfill.

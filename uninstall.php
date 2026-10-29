@@ -13,6 +13,8 @@ function bfcamel_crm_uninstall() {
     if ( $delete_data ) {
         global $wpdb;
         $tables = array(
+            'notification_receipts',
+            'notifications',
             'submission_tags',
             'contact_tags',
             'consent_events',
@@ -33,6 +35,8 @@ function bfcamel_crm_uninstall() {
             $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Explicit opt-in uninstall removes only allowlisted plugin tables and requires current database state.
         }
 
+        delete_option( 'bfcamel_crm_notifications' );
+        delete_option( 'bfcamel_crm_notification_start_id' );
         delete_option( 'bfcamel_crm_db_version' );
         delete_option( 'bfcamel_crm_schema_error' );
         delete_option( 'bfcamel_crm_legal_documents' );
@@ -41,6 +45,7 @@ function bfcamel_crm_uninstall() {
         delete_option( 'bfcamel_crm_role_permissions_version' );
     }
 
+    wp_clear_scheduled_hook( 'bfcamel_crm_notification_tick' );
     $capabilities = array(
         'bfcamel_crm_access',
         'bfcamel_crm_view_dashboard',
