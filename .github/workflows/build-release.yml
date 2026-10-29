@@ -58,9 +58,6 @@ jobs:
         options: >-
           --health-cmd="mysqladmin ping -h 127.0.0.1 -pintegration-only"
           --health-interval=10s --health-timeout=5s --health-retries=10
-    env:
-      WP_PATH: ${{ runner.temp }}/bfcamel-wordpress
-      BFCAMEL_TEST_WP_LOAD: ${{ runner.temp }}/bfcamel-wordpress/wp-load.php
     steps:
       - uses: actions/checkout@v4
         with:
@@ -70,6 +67,10 @@ jobs:
           php-version: '8.3'
           extensions: mysqli, mbstring, zip
           tools: wp-cli
+      - name: Configure isolated test paths
+        run: |
+          echo "WP_PATH=$RUNNER_TEMP/bfcamel-wordpress" >> "$GITHUB_ENV"
+          echo "BFCAMEL_TEST_WP_LOAD=$RUNNER_TEMP/bfcamel-wordpress/wp-load.php" >> "$GITHUB_ENV"
       - name: Install WordPress and seed existing 0.5.6 data
         env:
           TEST_WORDPRESS_VERSION: ${{ matrix.wordpress }}
