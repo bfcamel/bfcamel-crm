@@ -9,6 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class ConsentService {
+    const CHANNELS = array( 'email' => 'Электронная почта', 'sms' => 'SMS', 'call' => 'Звонки', 'message' => 'Личные сообщения' );
+
     public static function types() {
         return array(
             'personal_data' => __( 'Personal data processing', 'bfcamel-crm' ),
@@ -41,7 +43,7 @@ final class ConsentService {
         $missing   = array();
 
         foreach ( array( 'personal_data_consent', 'privacy_policy', 'marketing_consent' ) as $key ) {
-            if ( empty( $documents[ $key ]['url'] ) ) {
+            if ( empty( $documents[ $key ]['archive_id'] ) ) {
                 $missing[] = $key;
             }
         }
@@ -75,6 +77,18 @@ final class ConsentService {
             foreach ( $evidence['documents'] as $doc ) {
                 if ( empty( $doc['archive_id'] ) ) return false;
             }
+            if ( 'marketing' === $consent_type ) {
+                $evidence['channels'] = array();
+                foreach ( $schema as $contact_field ) {
+                    $key = $contact_field['name'];
+                    if ( empty( $payload[ $key ] ) ) continue;
+                    if ( 'email' === $contact_field['type'] ) $evidence['channels']['email'] = $key;
+                    if ( 'tel' === $contact_field['type'] ) {
+                        foreach ( array( 'sms', 'call', 'message' ) as $channel ) $evidence['channels'][ $channel ] = $key;
+                    }
+                    if ( 'social_pages' === ( $contact_field['custom_key'] ?? '' ) ) $evidence['channels']['message'] = $key;
+                }
+            }
             $evidence['utc'] = gmdate( 'Y-m-d\TH:i:s\Z' );
             $evidence['form_name'] = $source['form_name'] ?? '';
             $evidence['field_key'] = $choice['field_key'];
@@ -85,7 +99,7 @@ final class ConsentService {
         return true;
     }
 
-    public static function record_manual( $contact_id, $consent_type, $status, $user_id ) {
+    public static function record_manual( $contact_id, $consent_type, $status, $user_id, $channel = '', $basis = '' ) {
         $types        = self::types();
         $statuses     = self::statuses();
         $consent_type = sanitize_key( $consent_type );
@@ -99,10 +113,14 @@ final class ConsentService {
             'source_ip'  => '',
             'user_agent' => Request::server_textarea( 'HTTP_USER_AGENT', 1000 ),
         );
-        return self::record( $contact_id, 0, $consent_type, $status, 0, 0, self::document_snapshot( $consent_type ), $source, $user_id, 'manual' );
+        if ( '' === trim( $basis ) || ( $channel && ( 'marketing' !== $consent_type || ! isset( self::CHANNELS[ $channel ] ) || 'revoked' !== $status ) ) ) return false;
+        $evidence = self::document_snapshot( $consent_type );
+        $evidence['basis'] = sanitize_text_field( $basis );
+        $evidence['utc'] = gmdate( 'c' );
+        return self::record( $contact_id, 0, $consent_type, $status, 0, 0, $evidence, $source, $user_id, 'manual', $channel );
     }
 
-    public static function record( $contact_id, $submission_id, $consent_type, $status, $form_id, $revision_id, $documents, $source, $user_id = 0, $source_type = 'form' ) {
+    public static function record( $contact_id, $submission_id, $consent_type, $status, $form_id, $revision_id, $documents, $source, $user_id = 0, $source_type = 'form', $channel = '' ) {
         global $wpdb;
 
         $consent_type = sanitize_key( $consent_type );
@@ -126,10 +144,11 @@ final class ConsentService {
                 'source_ip'      => sanitize_text_field( $source['source_ip'] ?? '' ),
                 'user_agent'     => sanitize_textarea_field( $source['user_agent'] ?? '' ),
                 'source_type'    => $source_type,
+                'channel'        => $channel,
                 'recorded_by'    => absint( $user_id ),
                 'event_at'       => current_time( 'mysql' ),
             ),
-            array( '%d', '%d', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s' )
+            array( '%d', '%d', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s' )
         );
         if ( ! $inserted ) {
             return false;
@@ -157,6 +176,7 @@ final class ConsentService {
         $events   = null === $events ? self::events_for_contact( $contact_id ) : (array) $events;
 
         foreach ( $events as $event ) {
+            if ( ! empty( $event->channel ) ) continue;
             $type   = sanitize_key( $event->consent_type );
             $status = sanitize_key( $event->status );
             if ( isset( $current[ $type ], $statuses[ $status ] ) && ! isset( $found[ $type ] ) ) {
@@ -165,6 +185,20 @@ final class ConsentService {
             }
         }
         return $current;
+    }
+
+    public static function channel_states( $contact_id ) {
+        $states = array();
+        foreach ( self::events_for_contact( $contact_id ) as $event ) {
+            if ( 'marketing' !== $event->consent_type ) continue;
+            $proof = json_decode( $event->documents_json, true );
+            foreach ( self::CHANNELS as $channel => $label ) {
+                if ( isset( $states[ $channel ] ) || ( $event->channel && $event->channel !== $channel ) ) continue;
+                if ( 'granted' === $event->status && ! isset( $proof['channels'][ $channel ] ) ) continue;
+                $states[ $channel ] = $event->status;
+            }
+        }
+        return $states;
     }
 
     public static function events_for_contact( $contact_id ) {
@@ -193,7 +227,7 @@ final class ConsentService {
 
         foreach ( $keys as $key ) {
             $document = self::clean_doc( $documents[ $key ] ?? array() );
-            if ( empty( $document['url'] ) ) {
+            if ( empty( $document['archive_id'] ) ) {
                 $snapshot['documents_configured'] = false;
             }
             $snapshot['documents'][ $key ] = $document;

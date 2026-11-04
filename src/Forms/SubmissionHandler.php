@@ -26,16 +26,28 @@ final class SubmissionHandler {
             Renderer::instance()->retry( $form_id, home_url( '/' . ltrim( (string) $path, '/' ) ), Request::post_payload(), new \WP_Error( 'revision', 'Форма или документы изменились. Проверьте ответы и подтвердите согласия заново.' ) );
         }
 
-        $schema=Repository::decode_schema($revision);$result=$this->validate_payload($schema,Request::post_payload());
+        $schema=Repository::decode_schema($revision);$result=$this->validate_payload($schema,Request::post_payload($schema));
         if(is_wp_error($result))Renderer::instance()->retry($form_id,$return_url,Request::post_payload(),$result);
-        if($this->is_rate_limited($form_id))Renderer::instance()->retry($form_id,$return_url,Request::post_payload(),new \WP_Error('limited','Повторите попытку через несколько секунд.'));
         $payload=$result;$settings=Repository::decode_settings($revision);$workflow=WorkflowService::evaluate($form_id,$settings,$payload);$source=$this->source_context($return_url);$source['form_name'] = $form->name;
         $source['source_url'] = $return_url;
-        $source['source_ip'] = Request::server_textarea( 'REMOTE_ADDR', 100 );
+        $source['source_ip'] = $this->client_ip();
         if ( ! filter_var( $source['source_ip'], FILTER_VALIDATE_IP ) ) $this->redirect($return_url,$form_id,'error');
-        $uuid=wp_generate_uuid4();
+        $token = Request::post_text( 'submission_token' );
+        if ( ! wp_is_uuid( $token, 4 ) ) $this->redirect($return_url,$form_id,'error');
+        $digest = hash_hmac( 'sha256', wp_json_encode( array( $token, $form_id, $revision_id, $source['source_ip'], $payload ) ), wp_salt( 'nonce' ) );
+        $uuid = substr( $digest, 0, 8 ) . '-' . substr( $digest, 8, 4 ) . '-4' . substr( $digest, 13, 3 ) . '-8' . substr( $digest, 17, 3 ) . '-' . substr( $digest, 20, 12 );
         if(!Schema::begin_transaction())$this->redirect($return_url,$form_id,'error');
-        global $wpdb;$inserted=$wpdb->insert(Schema::table('submissions'),array('form_id'=>$form_id,'revision_id'=>$revision_id,'submission_uuid'=>$uuid,'contact_id'=>0,'status'=>$workflow['status'],'contact_sync_status'=>'pending','assigned_to'=>0,'priority'=>$workflow['priority'],'payload_json'=>wp_json_encode($payload),'source_url'=>$source['source_url'],'source_ip'=>$source['source_ip'],'user_agent'=>$source['user_agent'],'submitted_at'=>current_time('mysql')),array('%d','%d','%s','%d','%s','%s','%d','%s','%s','%s','%s','%s','%s')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional insert into the plugin's custom submissions table.
+        global $wpdb;
+        if ( ! Schema::hold_transaction_lock( 'bfc_submission_' . $uuid ) ) $this->rollback_and_redirect($return_url,$form_id);
+        if ( $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE submission_uuid=%s', Schema::table( 'submissions' ), $uuid ) ) ) {
+            Schema::rollback();
+            $this->redirect($return_url,$form_id,'success');
+        }
+        if ( $this->is_rate_limited( $form_id ) ) {
+            Schema::rollback();
+            Renderer::instance()->retry($form_id,$return_url,Request::post_payload(),new \WP_Error('limited','Повторите попытку через несколько секунд.'));
+        }
+        $inserted=$wpdb->insert(Schema::table('submissions'),array('form_id'=>$form_id,'revision_id'=>$revision_id,'submission_uuid'=>$uuid,'contact_id'=>0,'status'=>$workflow['status'],'contact_sync_status'=>'pending','assigned_to'=>0,'priority'=>$workflow['priority'],'payload_json'=>wp_json_encode($payload),'source_url'=>$source['source_url'],'source_ip'=>$source['source_ip'],'user_agent'=>$source['user_agent'],'submitted_at'=>current_time('mysql')),array('%d','%d','%s','%d','%s','%s','%d','%s','%s','%s','%s','%s','%s')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional insert into the plugin's custom submissions table.
         if(!$inserted)$this->rollback_and_redirect($return_url,$form_id);
         $submission_id=absint($wpdb->insert_id);$contact=ContactService::resolve_and_sync($schema,$payload);$contact_id=absint($contact['contact_id']??0);$sync_status=sanitize_key($contact['status']??'error');
         if('error'===$sync_status)$this->rollback_and_redirect($return_url,$form_id);
@@ -91,7 +103,22 @@ final class SubmissionHandler {
     }
     private function sanitize_value($type,$raw,$options){switch($type){case'email':return sanitize_email(is_scalar($raw)?$raw:'');case'tel':case'text':case'hidden':case'date':return sanitize_text_field(is_scalar($raw)?$raw:'');case'number':if(''===$raw||null===$raw)return'';return is_numeric($raw)?(string)$raw:new \WP_Error('bfcamel_crm_number',__( 'Invalid number.', 'bfcamel-crm' ));case'textarea':return sanitize_textarea_field(is_scalar($raw)?$raw:'');case'select':case'radio':$value=sanitize_text_field(is_scalar($raw)?$raw:'');if(''===$value)return'';return in_array($value,$options,true)?$value:new \WP_Error('bfcamel_crm_option',__( 'Invalid option.', 'bfcamel-crm' ));case'checkbox':$values=array();foreach((array)$raw as $item){$item=sanitize_text_field($item);if(in_array($item,$options,true))$values[]=$item;}return array_values(array_unique($values));case'consent_personal_data':case'consent_marketing':return '1' === $raw;default:return sanitize_text_field(is_scalar($raw)?$raw:'');}}
     private function is_empty($value){if(is_array($value))return 0===count($value);if(is_bool($value))return false===$value;return''===trim((string)$value);}
-    private function source_context($source_url){$settings=get_option('bfcamel_crm_settings',array());$store_ip=!empty($settings['store_ip']);$store_url=!isset($settings['store_source_url'])||!empty($settings['store_source_url']);$store_agent=!isset($settings['store_user_agent'])||!empty($settings['store_user_agent']);$ip='';if($store_ip){$candidate=Request::server_textarea('REMOTE_ADDR',100);if(filter_var($candidate,FILTER_VALIDATE_IP))$ip=$candidate;}return array('source_url'=>$store_url?esc_url_raw($source_url):'','source_ip'=>$ip,'user_agent'=>$store_agent?Request::server_textarea('HTTP_USER_AGENT',1000):'');}
+    private function source_context( $url ) {
+        $settings = get_option( 'bfcamel_crm_settings', array() );
+        return array( 'source_url' => $url, 'user_agent' => ! empty( $settings['store_user_agent'] ) ? Request::server_textarea( 'HTTP_USER_AGENT', 1000 ) : '' );
+    }
+
+    private function client_ip() {
+        $peer = Request::server_textarea( 'REMOTE_ADDR', 100 );
+        $trusted = defined( 'BFCAMEL_CRM_TRUSTED_PROXIES' ) ? (array) BFCAMEL_CRM_TRUSTED_PROXIES : array();
+        if ( ! in_array( $peer, $trusted, true ) ) return $peer;
+        foreach ( array_reverse( explode( ',', Request::server_textarea( 'HTTP_X_FORWARDED_FOR', 1024 ) ) ) as $address ) {
+            $address = trim( $address );
+            if ( ! filter_var( $address, FILTER_VALIDATE_IP ) ) return '';
+            if ( ! in_array( $address, $trusted, true ) ) return $address;
+        }
+        return '';
+    }
     private function is_rate_limited( $form_id ) {
         global $wpdb;
         $ip = Request::server_textarea( 'REMOTE_ADDR', 100 );

@@ -106,6 +106,16 @@ final class Register {
         $row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id=%d', Schema::table( 'privacy_register' ), $id ) );
         if ( ! $row ) wp_die( 'Запись не найдена.' );
         nocache_headers();
+        if ( 'act' === Request::get_key( 'format' ) && 'erase_submission' === $row->operation ) {
+            $info = json_decode( $row->details, true );
+            header( 'Content-Type: text/plain; charset=UTF-8' );
+            header( 'Content-Disposition: attachment; filename="crm-act-' . $id . '.txt"' );
+            echo "ПРОЕКТ АКТА ОБ УНИЧТОЖЕНИИ ПЕРСОНАЛЬНЫХ ДАННЫХ\n";
+            echo "Дата и время (UTC): " . $row->occurred_at . "\n";
+            foreach ( $info as $name => $value ) echo $name . ': ' . $value . "\n";
+            echo "Обработчик по поручению (если применимо): __________________\nДолжность и подпись ответственного: __________________";
+            exit;
+        }
         header( 'Content-Type: application/json; charset=UTF-8' );
         header( 'Content-Disposition: attachment; filename="crm-register-' . $id . '.json"' );
         echo wp_json_encode( $row, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
@@ -135,14 +145,17 @@ final class Register {
         <label>Срок проверки <input type="date" name="due"></label></p>
         <p><label>Основание <input name="reason" required></label></p>
         <button class="button" name="operation" value="purpose">Сохранить цель</button>
-        <hr><label><input type="checkbox" name="confirmed" value="1"> Проверены личность, все цели заявки и состав удаляемых данных</label>
+        <hr><p><label>Состояние писем, выгрузок и резервных копий <input name="copies"></label></p><label><input type="checkbox" name="confirmed" value="1"> Проверены личность, все цели заявки и состав удаляемых данных</label>
         <button class="button" name="operation" value="erase">Уничтожить данные выбранной заявки</button></form>
         <h2>Журнал операций</h2><ul><?php foreach ( $logs as $log ) : ?>
-        <li><?php echo esc_html( $log->occurred_at . ' UTC · ' . $log->operation ); ?> <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'bfcamel_crm_privacy_report', 'id' => $log->id ), admin_url( 'admin-post.php' ) ), 'bfcamel_privacy_report' ) ); ?>">Скачать запись</a></li><?php endforeach; ?></ul></div><?php
+        <li><?php echo esc_html( $log->occurred_at . ' UTC · ' . $log->operation ); ?> <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'bfcamel_crm_privacy_report', 'id' => $log->id ), admin_url( 'admin-post.php' ) ), 'bfcamel_privacy_report' ) ); ?>">Скачать запись</a> <?php if ( 'erase_submission' === $log->operation ) : ?><a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'bfcamel_crm_privacy_report', 'id' => $log->id, 'format' => 'act' ), admin_url( 'admin-post.php' ) ), 'bfcamel_privacy_report' ) ); ?>">Проект акта</a><?php endif; ?></li><?php endforeach; ?></ul></div><?php
     }
 
     private static function matches( $phone ) {
         global $wpdb;
+        $contacts = $wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT contact_id FROM %i WHERE normalized=%s', Schema::table( 'contact_phones' ), $phone ) );
+        foreach ( $contacts as $contact ) echo '<p><a href="' . esc_url( admin_url( 'admin.php?page=bfcamel-crm-contacts&id=' . (int) $contact ) ) . '">Контакт #' . (int) $contact . '</a></p>';
+        $contacts = array_map( 'intval', $contacts );
         $cursor = 0;
         do {
             $rows = $wpdb->get_results( $wpdb->prepare( 'SELECT s.id,s.payload_json,r.schema_json,s.contact_id FROM %i s LEFT JOIN %i r ON r.id=s.revision_id WHERE s.id>%d ORDER BY s.id LIMIT 200', Schema::table( 'submissions' ), Schema::table( 'form_revisions' ), $cursor ) );
@@ -150,7 +163,7 @@ final class Register {
                 $cursor = (int) $row->id;
                 $values = json_decode( $row->payload_json, true ) ?: array();
                 $schema = json_decode( (string) $row->schema_json, true );
-                $candidate = false;
+                $candidate = in_array( (int) $row->contact_id, $contacts, true );
                 foreach ( (array) $schema as $field ) {
                     if ( 'tel' !== $field['type'] && 'contact.phone' !== ( $field['mapping'] ?? '' ) ) continue;
                     $value = $values[ $field['name'] ] ?? '';

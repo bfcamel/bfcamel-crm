@@ -60,7 +60,7 @@ final class Renderer {
             <?php if($state_form===absint($form->id)&&'success'===$state): ?><div class="bfcamel-form-response bfcamel-crm-response bfcamel-crm-response--success" role="status"><?php echo esc_html($settings['success_message']); ?></div><?php elseif($state_form===absint($form->id)&&'error'===$state): ?><div class="bfcamel-form-response bfcamel-crm-response bfcamel-crm-response--error" role="alert"><?php echo esc_html($settings['error_message']); ?></div><?php endif; ?>
             <?php if ( $this->error ) : ?><p role="alert"><?php echo esc_html( $this->error->get_error_message() ); ?></p><?php endif; ?>
             <form class="<?php echo esc_attr(implode(' ',$classes)); ?>" style="<?php echo esc_attr($style); ?>" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                <input type="hidden" name="consent_context" value="<?php echo esc_attr( \BfCamel\CRM\Consent\DocumentArchive::context( (int) $form->id, (int) $revision->id, $this->current_url() ) ); ?>">
+                <input type="hidden" name="submission_token" value="<?php echo esc_attr( wp_generate_uuid4() ); ?>"><input type="hidden" name="consent_context" value="<?php echo esc_attr( \BfCamel\CRM\Consent\DocumentArchive::context( (int) $form->id, (int) $revision->id, $this->current_url() ) ); ?>">
                 <input type="hidden" name="bfcamel_crm_payload_version" value="2"><input type="hidden" name="action" value="bfcamel_crm_submit"><input type="hidden" name="form_id" value="<?php echo esc_attr($form->id); ?>"><input type="hidden" name="revision_id" value="<?php echo esc_attr($revision->id); ?>"><input type="hidden" name="return_url" value="<?php echo esc_url($this->current_url()); ?>"><?php wp_nonce_field('bfcamel_crm_submit_'.$form->id.'_'.$revision->id,'bfcamel_crm_nonce'); ?>
                 <div class="bfcamel-form-honeypot bfcamel-crm-hp" aria-hidden="true"><label><?php esc_html_e('Leave this field empty','bfcamel-crm'); ?><input type="text" name="bfcamel_crm_website" value="" tabindex="-1" autocomplete="off"></label></div>
                 <div class="bfcamel-form-grid bfcamel-crm-grid">
@@ -93,6 +93,8 @@ final class Renderer {
 
     private function render_consent( $field, $id, $class ) {
         $name=sanitize_key($field['name']??'');$required=!empty($field['required']);$label=$this->legalize_label((string)($field['label']??''));
+        $keys = 'consent_marketing' === $field['type'] ? array( 'marketing_consent' ) : array( 'personal_data_consent', 'privacy_policy' );
+        foreach ( $keys as $key ) if ( false === strpos( $field['label'], '{' . $key . '}' ) ) $label .= ' ' . $this->legalize_label( '{' . $key . '}' );
         if ( $required ) $label .= ' <span class="bfcamel-required bfcamel-crm-required" aria-hidden="true">*</span>';
         return '<div class="'.$class.' bfcamel-consent bfcamel-crm-consent" data-field-key="'.esc_attr($name).'" data-field-type="'.esc_attr($field['type']??'').'"><label class="bfcamel-consent-label bfcamel-crm-consent-label" for="'.esc_attr($id).'"><input id="'.esc_attr($id).'" type="checkbox" name="fields['.esc_attr($name).']" value="1"'.($required?' required aria-required="true"':'').'><span>'.$label.'</span></label></div>';
     }

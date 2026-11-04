@@ -159,7 +159,7 @@ final class ContactService {
             $filter_key = $consent_type . '_consent';
             $status = isset( $filters[ $filter_key ] ) ? sanitize_key( $filters[ $filter_key ] ) : '';
             if ( in_array( $status, $allowed_consent, true ) ) {
-                $where[] = "COALESCE((SELECT ce2.status FROM {$consents_sql} ce2 WHERE ce2.contact_id=c.id AND ce2.consent_type=%s ORDER BY ce2.event_at DESC,ce2.id DESC LIMIT 1),'unknown')=%s";
+                $where[] = "COALESCE((SELECT ce2.status FROM {$consents_sql} ce2 WHERE ce2.contact_id=c.id AND ce2.channel='' AND ce2.consent_type=%s ORDER BY ce2.event_at DESC,ce2.id DESC LIMIT 1),'unknown')=%s";
                 $args[] = $consent_type;
                 $args[] = $status;
             }
@@ -177,8 +177,8 @@ final class ContactService {
             (SELECT GROUP_CONCAT(p.value ORDER BY p.is_primary DESC,p.id ASC SEPARATOR ', ') FROM {$phones_sql} p WHERE p.contact_id=c.id) AS phone_values,
             (SELECT cf.field_value FROM {$fields_sql} cf WHERE cf.contact_id=c.id AND cf.field_key='city' LIMIT 1) AS city,
             (SELECT GROUP_CONCAT(t.name ORDER BY t.name SEPARATOR ', ') FROM {$links_sql} ct INNER JOIN {$tags_sql} t ON t.id=ct.tag_id WHERE ct.contact_id=c.id) AS tag_names,
-            (SELECT ce.status FROM {$consents_sql} ce WHERE ce.contact_id=c.id AND ce.consent_type='personal_data' ORDER BY ce.event_at DESC,ce.id DESC LIMIT 1) AS personal_data_consent,
-            (SELECT ce.status FROM {$consents_sql} ce WHERE ce.contact_id=c.id AND ce.consent_type='marketing' ORDER BY ce.event_at DESC,ce.id DESC LIMIT 1) AS marketing_consent
+            (SELECT ce.status FROM {$consents_sql} ce WHERE ce.contact_id=c.id AND ce.channel='' AND ce.consent_type='personal_data' ORDER BY ce.event_at DESC,ce.id DESC LIMIT 1) AS personal_data_consent,
+            (SELECT ce.status FROM {$consents_sql} ce WHERE ce.contact_id=c.id AND ce.channel='' AND ce.consent_type='marketing' ORDER BY ce.event_at DESC,ce.id DESC LIMIT 1) AS marketing_consent
             FROM {$contacts_sql} c
             WHERE {$where_sql}
             ORDER BY c.updated_at DESC,c.id DESC
@@ -357,7 +357,7 @@ final class ContactService {
             if ( ! isset( $allowed_types[ $consent_type ], $allowed_statuses[ $status ] ) || 'unknown' === $status ) {
                 continue;
             }
-            if ( ! ConsentService::record_manual( $contact_id, $consent_type, $status, $user_id ) ) {
+            if ( ! ConsentService::record_manual( $contact_id, $consent_type, $status, $user_id, '', \BfCamel\CRM\Support\Request::post_text( 'consent_basis' ) ) ) {
                 return self::rollback_error( __( 'Could not record consent status.', 'bfcamel-crm' ) );
             }
         }

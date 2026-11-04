@@ -20,9 +20,9 @@ final class WorkflowPage {
         $missing = \BfCamel\CRM\Consent\ConsentService::missing_document_types();
         if ( ! $missing ) return;
         $settings = get_option( 'bfcamel_crm_settings', array() );
-        if ( ! empty( $settings['legal_risk_acknowledged_at'] ) ) return;
+
         $url = admin_url( 'admin.php?page=bfcamel-crm-settings#bfcamel-legal' );
-        echo '<div class="notice notice-warning"><p>' . esc_html__( 'BfCamel CRM: one or more legal document URLs are missing. Forms continue to collect data, and you remain responsible for the legal basis and wording used on this site.', 'bfcamel-crm' ) . ' <a href="' . esc_url( $url ) . '">' . esc_html__( 'Review legal settings', 'bfcamel-crm' ) . '</a></p></div>';
+        echo '<div class="notice notice-warning"><p>' . 'Заполните архив редакций. До этого приём заявок с соответствующими согласиями закрыт.' . ' <a href="' . esc_url( $url ) . '">' . esc_html__( 'Review legal settings', 'bfcamel-crm' ) . '</a></p></div>';
     }
 
     public function page() {

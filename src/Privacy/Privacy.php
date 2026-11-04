@@ -202,7 +202,7 @@ final class Privacy {
         if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
             return;
         }
-        $content = '<p>' . esc_html__( 'If forms created with BfCamel CRM are used on this site, the plugin may store submitted form data, CRM contacts, internal notes, consent events, source URLs and browser information. IP address storage is optional and disabled by default. Site owners choose whether to provide links to legal documents and remain responsible for the legal basis, consent wording and retention periods used on their site.', 'bfcamel-crm' ) . '</p>';
+        $content = '<p>' . 'При отправке формы CRM сохраняет ответы, время, IP, страницу, редакцию формы и ссылки на тексты согласий. Рассылка требует отдельного согласия.' . '</p>';
         wp_add_privacy_policy_content( __( 'BfCamel CRM', 'bfcamel-crm' ), wp_kses_post( wpautop( $content ) ) );
     }
 
@@ -312,6 +312,10 @@ final class Privacy {
     public function erase_selected( $row, $reason ) {
         global $wpdb;
         $details = array( 'submission_id' => (int) $row->id, 'system' => 'BfCamel CRM', 'reason' => $reason, 'method' => 'Очистка полей заявки, технических метаданных, заметок и журнала заявки', 'external' => 'Копии, выгрузки, письма и карточка контакта проверяются отдельно' );
+        $details['Оператор'] = 'Благотворительный фонд помощи животным «Люди и Верблюды», г. Казань, ул. Большая Красная, д. 1Б, помещение 1001';
+        $details['Исполнитель'] = wp_get_current_user()->display_name;
+        $details['Категории'] = implode( ', ', array_keys( json_decode( $row->payload_json, true ) ?: array() ) );
+        $details['Внешние копии'] = \BfCamel\CRM\Support\Request::post_text( 'copies' ) ?: 'Требуется отдельная проверка';
         if ( ! Register::log( 'erase_requested', $details ) || ! Schema::begin_transaction() ) return false;
         $locked = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id=%d FOR UPDATE', Schema::table( 'submissions' ), $row->id ) );
         if ( ! $locked || ! $this->scrub_submission( $locked ) ||

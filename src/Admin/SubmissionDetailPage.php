@@ -108,7 +108,7 @@ final class SubmissionDetailPage {
                         <?php foreach ( $events as $event ) : $proof = json_decode( $event->documents_json, true ); ?>
                             <p><strong><?php echo esc_html( ActivityFormatter::consent_type_label( $event->consent_type ) ); ?></strong>
                             — <?php echo esc_html( ActivityFormatter::consent_status_label( $event->status ) ); ?><br>
-                            <?php echo esc_html( $proof['utc'] ?? $event->event_at ); ?>
+                            <?php echo esc_html( isset( $proof['utc'] ) ? wp_date( 'd.m.Y H:i:s T', strtotime( $proof['utc'] ) ) : $event->event_at ); ?>
                             · <?php echo esc_html( $proof['form_name'] ?? '' ); ?>
                             · <?php echo esc_html( $event->source_url ); ?></p>
                             <?php foreach ( (array) ( $proof['documents'] ?? array() ) as $doc ) : ?>
@@ -119,8 +119,10 @@ final class SubmissionDetailPage {
                             <?php if ( $event->source_ip ) : ?><details><summary>IP отправителя</summary><?php echo esc_html( $event->source_ip ); ?></details><?php endif; ?>
                         <?php endforeach; ?>
                         <?php if ( ! $events ) : ?>Редакция не подтверждена<?php endif; ?>
+                        <?php if ( ! array_filter( (array) $events, static function( $event ) { return 'marketing' === $event->consent_type && 'granted' === $event->status; } ) ) : ?><p>В этой заявке согласие на рассылку не предоставлено.</p><?php endif; ?>
                         <?php if ( $row->contact_id ) : $current = \BfCamel\CRM\Consent\ConsentService::current_statuses( $row->contact_id ); ?>
                             <p>Рассылка сейчас: <?php echo esc_html( ActivityFormatter::consent_status_label( $current['marketing'] ) ); ?></p>
+                            <ul><?php foreach ( \BfCamel\CRM\Consent\ConsentService::channel_states( $row->contact_id ) as $key => $status ) : ?><li><?php echo esc_html( \BfCamel\CRM\Consent\ConsentService::CHANNELS[$key] . ' · ' . ActivityFormatter::consent_status_label( $status ) ); ?></li><?php endforeach; ?></ul>
                         <?php endif; ?>
                     </div>
 
