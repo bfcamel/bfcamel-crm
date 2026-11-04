@@ -64,6 +64,8 @@ for ( $i = 0; $i < 105; $i++ ) {
     $ids[] = crm_insert_submission( $form, 0, array( 'name' => 'Legacy person ' . $i, 'email' => $email, 'phone' => '70000000000' ), 'conflict' );
 }
 $linked = crm_insert_submission( $form, $victim, array( 'name' => 'Existing person', 'email' => 'victim@example.test' ), 'linked' );
+// The insert helper bypasses the public handler. Reproduce the 0.6.0 post-commit hook.
+\BfCamel\CRM\Notifications\Notifications::created( $linked );
 // A valid legacy email field with submission_only mapping must also remain discoverable.
 $schema[1]['mapping'] = 'submission_only';
 $standalone = Repository::save( 0, 'Standalone form', 'standalone-form', $schema, array(), 1 );
