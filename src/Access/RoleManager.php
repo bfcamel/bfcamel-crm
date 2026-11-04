@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class RoleManager {
     const OPTION = 'bfcamel_crm_role_permissions';
     const VERSION_OPTION = 'bfcamel_crm_role_permissions_version';
-    const VERSION = '3';
+    const VERSION = '4';
     const ACCESS_CAPABILITY = 'bfcamel_crm_access';
 
     public static function register() {
@@ -23,7 +23,8 @@ final class RoleManager {
             'bfcamel_crm_edit_submissions' => __( 'Edit submissions', 'bfcamel-crm' ),
             'bfcamel_crm_manage_contacts'  => __( 'Manage contacts', 'bfcamel-crm' ),
             'bfcamel_crm_manage_consents'  => __( 'Manage consents', 'bfcamel-crm' ),
-            'bfcamel_crm_export_data'      => __( 'Export CRM data', 'bfcamel-crm' ),
+            'bfcamel_crm_export_contacts' => 'Экспорт контактов',
+            'bfcamel_crm_export_submissions' => 'Экспорт заявок',
         );
     }
 
@@ -35,7 +36,8 @@ final class RoleManager {
             'bfcamel_crm_edit_submissions',
             'bfcamel_crm_manage_contacts',
             'bfcamel_crm_manage_consents',
-            'bfcamel_crm_export_data',
+            'bfcamel_crm_export_contacts',
+            'bfcamel_crm_export_submissions',
         );
     }
 
@@ -61,7 +63,16 @@ final class RoleManager {
                 $matrix[ $role_slug ] = self::default_permissions( $role_slug );
                 $changed = true;
             } else {
-                $legacy_all_access = self::VERSION !== $version && 'administrator' !== $role_slug && self::all_enabled( $matrix[ $role_slug ] );
+                $legacy_all_access = version_compare( (string) $version, '3', '<' ) && 'administrator' !== $role_slug && self::all_enabled( $matrix[ $role_slug ] );
+                if ( array_key_exists( 'bfcamel_crm_export_data', $matrix[ $role_slug ] ) ) {
+                    $old = ! empty( $matrix[ $role_slug ]['bfcamel_crm_export_data'] );
+                    $matrix[ $role_slug ]['bfcamel_crm_export_contacts'] = 'administrator' === $role_slug || ( $old && ! empty( $matrix[ $role_slug ]['bfcamel_crm_manage_contacts'] ) );
+                    $matrix[ $role_slug ]['bfcamel_crm_export_submissions'] = 'administrator' === $role_slug || ( $old && ! empty( $matrix[ $role_slug ]['bfcamel_crm_view_submissions'] ) );
+                    unset( $matrix[ $role_slug ]['bfcamel_crm_export_data'] );
+                    $role = get_role( $role_slug );
+                    if ( $role ) $role->remove_cap( 'bfcamel_crm_export_data' );
+                    $changed = true;
+                }
                 foreach ( self::capability_keys() as $capability ) {
                     if ( ! array_key_exists( $capability, $matrix[ $role_slug ] ) ) {
                         $matrix[ $role_slug ][ $capability ] = 'administrator' === $role_slug;

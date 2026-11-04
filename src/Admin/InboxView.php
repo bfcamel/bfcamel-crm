@@ -25,7 +25,7 @@ final class InboxView {
         ?>
         <div class="wrap bfcamel-crm-admin bfcamel-crm-inbox" data-bfcamel-inbox>
             <div class="bfcamel-crm-page-title"><div><h1><?php esc_html_e( 'Submissions', 'bfcamel-crm' ); ?></h1><p class="description"><?php esc_html_e( 'Read the request, take ownership and keep the next action clear.', 'bfcamel-crm' ); ?></p></div>
-                <?php if ( current_user_can( 'bfcamel_crm_export_data' ) ) : ?><details class="bfcamel-crm-more"><summary><?php esc_html_e( 'More', 'bfcamel-crm' ); ?></summary><div>
+                <?php if ( current_user_can( 'bfcamel_crm_export_submissions' ) ) : ?><details class="bfcamel-crm-more"><summary><?php esc_html_e( 'More', 'bfcamel-crm' ); ?></summary><div>
                     <?php foreach ( array( 'csv' => __( 'Export CSV', 'bfcamel-crm' ), 'xlsx' => __( 'Export XLSX', 'bfcamel-crm' ) ) as $format => $label ) : $args = array_merge( array( 'action' => 'bfcamel_crm_export', 'type' => 'submissions', 'format' => $format, 's' => $filters['search'] ), array_diff_key( $filters, array( 'search' => true ) ) ); ?>
                     <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( $args, admin_url( 'admin-post.php' ) ), 'bfcamel_crm_export_submissions_' . $format ) ); ?>"><?php echo esc_html( $label ); ?></a>
                     <?php endforeach; ?>

@@ -14,9 +14,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Exporter {
     public static function handle() {
-        if ( ! current_user_can( 'bfcamel_crm_export_data' ) ) {
-            wp_die( esc_html__( 'You do not have permission to export CRM data.', 'bfcamel-crm' ) );
-        }
         if ( ! Schema::is_current() ) {
             wp_die( esc_html( Schema::readiness_message() ), esc_html__( 'CRM database update required', 'bfcamel-crm' ), array( 'back_link' => true ) );
         }
@@ -26,22 +23,54 @@ final class Exporter {
             wp_die( esc_html__( 'Invalid export request.', 'bfcamel-crm' ) );
         }
         $source_capability = 'contacts' === $type ? 'bfcamel_crm_manage_contacts' : 'bfcamel_crm_view_submissions';
-        if ( ! current_user_can( $source_capability ) ) {
+        if ( ! current_user_can( $source_capability ) || ! current_user_can( 'bfcamel_crm_export_' . $type ) ) {
             wp_die( esc_html__( 'You do not have permission to export this CRM area.', 'bfcamel-crm' ) );
         }
         check_admin_referer( 'bfcamel_crm_export_' . $type . '_' . $format );
 
-        if ( 'contacts' === $type ) {
-            list( $headers, $rows ) = self::contacts();
-        } else {
-            list( $headers, $rows ) = self::submissions( self::submission_filters() );
+        $ids = Request::post_id_list( 'selected_ids' );
+        $selected = Request::post_id( 'selected_only' );
+        if ( $selected && ( 'contacts' !== $type || ! $ids ) ) wp_die( 'Выберите контакты для экспорта.' );
+        self::prepare( $type, $format, $selected ? $ids : array() );
+    }
+
+    private static function prepare( $type, $format, $ids ) {
+        $filters = 'contacts' === $type ? ContactsPage::filters() : self::submission_filters();
+        if ( $ids ) $filters = array( 'ids' => $ids );
+        $result = 'contacts' === $type ? ContactService::query( $filters, 1, 10 ) : SubmissionService::query( $filters, 1, 10 );
+        if ( $result['total'] > 5000 ) wp_die( 'Выберите более узкий фильтр: за одну операцию можно экспортировать до 5000 записей.' );
+        list( $headers, $rows, $keys ) = 'contacts' === $type ? self::contacts( $filters ) : self::submissions( $filters );
+        if ( Request::post_id( 'download' ) ) {
+            $columns = Request::post_array( 'columns' );
+            $indexes = array();
+            foreach ( $columns as $key ) {
+                $i = array_search( $key, $keys, true );
+                if ( false === $i ) wp_die( 'Состав полей изменился. Откройте экспорт заново.' );
+                $indexes[$i] = $i;
+            }
+            if ( ! $indexes ) wp_die( 'Выберите хотя бы одно поле.' );
+            $project = static function( $row ) use ( $indexes ) {
+                $values = array();
+                foreach ( $indexes as $index ) $values[] = $row[$index];
+                return $values;
+            };
+            self::download( 'bfcamel-crm-' . $type . '-' . gmdate( 'Ymd-His' ) . '.' . $format, $format, $project( $headers ), array_map( $project, $rows ) );
         }
-        $filename = 'bfcamel-crm-' . $type . '-' . gmdate( 'Y-m-d-His' ) . '.' . $format;
-        self::download( $filename, $format, $headers, $rows );
+        $args = array( 'action' => 'bfcamel_crm_export', 'type' => $type, 'format' => $format );
+        if ( ! $ids ) foreach ( $filters as $key => $value ) $args[ 'search' === $key ? 's' : $key ] = $value;
+        $url = add_query_arg( $args, admin_url( 'admin-post.php' ) );
+        nocache_headers();
+        ?><!doctype html><html lang="ru"><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Экспорт CRM</title><main><h1><?php echo 'contacts' === $type ? 'Экспорт контактов' : 'Экспорт заявок'; ?></h1>
+        <p>Записей по выбранным фильтрам: <?php echo absint( count( $rows ) ); ?>. Формат: <?php echo esc_html( strtoupper( $format ) ); ?>.</p>
+        <form action="<?php echo esc_url( $url ); ?>" method="post"><?php wp_nonce_field( 'bfcamel_crm_export_' . $type . '_' . $format ); ?>
+        <?php if ( $ids ) : ?><input type="hidden" name="selected_only" value="1"><?php foreach ( $ids as $id ) : ?><input type="hidden" name="selected_ids[]" value="<?php echo absint( $id ); ?>"><?php endforeach; endif; ?>
+        <fieldset><legend>Поля файла</legend><?php foreach ( $headers as $i => $label ) : ?><label><input type="checkbox" name="columns[]" value="<?php echo esc_attr( $keys[$i] ); ?>" <?php checked( 0 === $i ); ?>><?php echo esc_html( $label ); ?></label><br><?php endforeach; ?></fieldset>
+        <button name="download" value="1" type="submit">Скачать файл</button></form></main></html><?php
+        exit;
     }
 
     public static function download_selected_contacts( $ids, $format ) {
-        if ( ! current_user_can( 'bfcamel_crm_export_data' ) || ! current_user_can( 'bfcamel_crm_manage_contacts' ) ) {
+        if ( ! current_user_can( 'bfcamel_crm_export_contacts' ) || ! current_user_can( 'bfcamel_crm_manage_contacts' ) ) {
             wp_die( esc_html__( 'You do not have permission to export CRM data.', 'bfcamel-crm' ) );
         }
         $format = sanitize_key( $format );
@@ -52,8 +81,7 @@ final class Exporter {
         if ( ! $ids ) {
             wp_die( esc_html__( 'Select at least one contact.', 'bfcamel-crm' ) );
         }
-        list( $headers, $rows ) = self::contacts( array( 'ids' => $ids ) );
-        self::download( 'bfcamel-crm-contacts-selected-' . gmdate( 'Y-m-d-His' ) . '.' . $format, $format, $headers, $rows );
+        self::prepare( 'contacts', $format, $ids );
     }
 
     private static function contacts( $override_filters = null ) {
@@ -82,6 +110,7 @@ final class Exporter {
         $headers = array( 'ID', __( 'Name', 'bfcamel-crm' ), __( 'Email', 'bfcamel-crm' ), __( 'Phone', 'bfcamel-crm' ), __( 'Organization', 'bfcamel-crm' ) );
         foreach ( $custom_keys as $key ) {
             if ( ContactService::CITY_FIELD === $key ) $headers[] = __( 'City', 'bfcamel-crm' );
+            elseif ( ContactService::STAGE_FIELD === $key ) $headers[] = 'Рабочий статус';
             elseif ( ContactService::SOCIAL_PAGES_FIELD === $key ) $headers[] = __( 'Social pages', 'bfcamel-crm' );
             else {
                 /* translators: %s: custom contact field key. */
@@ -110,7 +139,8 @@ final class Exporter {
             $row[] = $contact->updated_at;
             $rows[] = $row;
         }
-        return array( $headers, $rows );
+        $keys = array_merge( array( 'id','name','email','phone','organization' ), array_map( static function( $key ) { return 'custom:' . $key; }, $custom_keys ), array( 'status','tags','personal_data','marketing','created','updated' ) );
+        return array( $headers, $rows, $keys );
     }
 
     private static function submissions( $filters ) {
@@ -145,7 +175,8 @@ final class Exporter {
             }
             $rows[] = $row;
         }
-        return array( $headers, $rows );
+        $keys = array_merge( array( 'id','uuid','form','contact','status','priority','owner','tags','received','source' ), array_map( static function( $key ) { return 'field:' . $key; }, $payload_keys ) );
+        return array( $headers, $rows, $keys );
     }
 
     private static function submission_filters() {

@@ -10,6 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class ContactService {
     const CACHE_GROUP = 'bfcamel_crm';
+    const STAGE_FIELD = 'bfcrm_staff_stage';
     const CITY_FIELD = 'city';
     const SOCIAL_PAGES_FIELD = 'social_page';
 
@@ -60,6 +61,7 @@ final class ContactService {
         if ( $phone && ! self::add_phone( $contact_id, $mapped['phone'] ) ) return array( 'contact_id' => 0, 'status' => 'error' );
 
         foreach ( $mapped['custom'] as $key => $value ) {
+            if ( self::STAGE_FIELD === $key ) continue;
             if ( self::SOCIAL_PAGES_FIELD === $key ) {
                 $existing_fields = self::get_custom_fields( $contact_id );
                 $value = self::merge_social_pages( $existing_fields[ self::SOCIAL_PAGES_FIELD ] ?? '', $value );
@@ -132,6 +134,15 @@ final class ContactService {
 
         $where = array( '1=1' );
         $args = array();
+        if ( ! empty( $filters['stage'] ) ) {
+            $where[] = "EXISTS (SELECT 1 FROM {$fields_sql} stage WHERE stage.contact_id=c.id AND stage.field_key=%s AND stage.field_value=%s)";
+            $args[] = self::STAGE_FIELD;
+            $args[] = $filters['stage'];
+        }
+        if ( ! empty( $filters['status'] ) ) {
+            $where[] = 'c.status=%s';
+            $args[] = $filters['status'];
+        }
         $search = isset( $filters['search'] ) ? trim( (string) $filters['search'] ) : '';
         if ( '' !== $search ) {
             $like = '%' . $wpdb->esc_like( $search ) . '%';
@@ -192,6 +203,11 @@ final class ContactService {
             'per_page'    => $per_page,
             'total_pages' => max( 1, (int) ceil( $total / $per_page ) ),
         );
+    }
+
+    public static function stored_statuses() {
+        global $wpdb;
+        return $wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT status FROM %i ORDER BY status', Schema::table( 'contacts' ) ) );
     }
 
     public static function all_for_export( $filters = array() ) {
@@ -417,9 +433,16 @@ final class ContactService {
         $old_email = $old_emails ? (string) $old_emails[0]->value : '';
         $old_phone = $old_phones ? (string) $old_phones[0]->value : '';
         $old_custom = self::get_custom_fields( $contact_id );
+        if ( isset( $data['stage'] ) ) {
+            $stage = self::truncate_text( sanitize_text_field( $data['stage'] ), 190 );
+            if ( $stage !== ( $old_custom[ self::STAGE_FIELD ] ?? '' ) && ! self::replace_custom_field( $contact_id, self::STAGE_FIELD, $stage ) ) {
+                return new \WP_Error( 'stage_update', 'Не удалось сохранить рабочий статус.' );
+            }
+        }
         $old_city = isset( $old_custom[ self::CITY_FIELD ] ) ? (string) $old_custom[ self::CITY_FIELD ] : '';
         $old_social_pages = isset( $old_custom[ self::SOCIAL_PAGES_FIELD ] ) ? self::normalize_social_pages( $old_custom[ self::SOCIAL_PAGES_FIELD ] ) : '';
         $changes = array();
+        if ( isset( $stage ) && $stage !== ( $old_custom[ self::STAGE_FIELD ] ?? '' ) ) $changes['stage'] = array( 'from' => $old_custom[ self::STAGE_FIELD ] ?? '', 'to' => $stage );
         if ( (string) $current->display_name !== $name ) $changes['name'] = array( 'from' => (string) $current->display_name, 'to' => $name );
         if ( (string) $current->organization !== $organization ) $changes['organization'] = array( 'from' => (string) $current->organization, 'to' => $organization );
         if ( $old_email !== $email ) $changes['email'] = array( 'from' => $old_email, 'to' => $email );

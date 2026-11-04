@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.2
+
+- Separate role permissions for exporting contacts and submissions.
+- Select columns before downloading a filtered CSV or XLSX. Contact records support staff-assigned workflow stages.
+
 ## Unreleased
 
 - Make the attention inbox the CRM landing page, with three views, collapsed secondary controls and large request/contact links.

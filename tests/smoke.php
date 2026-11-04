@@ -85,9 +85,9 @@ check( "'@SUM(A1)" === $xlsx_cell->invoke( null, '@SUM(A1)' ), 'XLSX injection p
 
 $root = dirname( __DIR__ );
 $plugin = file_get_contents( $root . '/bfcamel-crm.php' ); $readme = file_get_contents( $root . '/readme.txt' );
-check( false !== strpos( $plugin, 'Version: 0.6.1' ), 'Plugin header version is not 0.6.1.' );
-check( false !== strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION', '0.6.1' )" ), 'Plugin constant version is not 0.6.1.' );
-check( false !== strpos( $readme, 'Stable tag: 0.6.1' ), 'Stable tag is not 0.6.1.' );
+check( false !== strpos( $plugin, 'Version: 0.6.2' ), 'Plugin header version is not 0.6.2.' );
+check( false !== strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION', '0.6.2' )" ), 'Plugin constant version is not 0.6.2.' );
+check( false !== strpos( $readme, 'Stable tag: 0.6.2' ), 'Stable tag is not 0.6.2.' );
 check( false === strpos( $plugin, 'Update URI:' ), 'A third-party Update URI would block WordPress.org updates.' );
 check( strpos( $plugin, "if ( defined( 'BFCAMEL_CRM_FILE' ) )" ) < strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION'" ), 'Duplicate guard moved after constants.' );
 $schema = file_get_contents( $root . '/src/Database/Schema.php' );
