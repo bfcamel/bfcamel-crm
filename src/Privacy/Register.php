@@ -111,8 +111,8 @@ final class Register {
             header( 'Content-Type: text/plain; charset=UTF-8' );
             header( 'Content-Disposition: attachment; filename="crm-act-' . $id . '.txt"' );
             echo "ПРОЕКТ АКТА ОБ УНИЧТОЖЕНИИ ПЕРСОНАЛЬНЫХ ДАННЫХ\n";
-            echo "Дата и время (UTC): " . $row->occurred_at . "\n";
-            foreach ( $info as $name => $value ) echo $name . ': ' . $value . "\n";
+            echo "Дата и время (UTC): " . $row->occurred_at . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- This response is a plain-text document.
+            foreach ( $info as $name => $value ) echo $name . ': ' . $value . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- This response is a plain-text document.
             echo "Обработчик по поручению (если применимо): __________________\nДолжность и подпись ответственного: __________________";
             exit;
         }
@@ -170,7 +170,7 @@ final class Register {
                     if ( is_string( $value ) && $phone === ContactService::normalize_phone( $value ) ) $candidate = true;
                 }
                 if ( ! $schema ) foreach ( $values as $value ) if ( is_string( $value ) && $phone === ContactService::normalize_phone( $value ) ) $candidate = true;
-                if ( $candidate ) echo '<p><a href="' . esc_url( admin_url( 'admin.php?page=bfcamel-crm-submissions&id=' . $cursor ) ) . '">Заявка #' . $cursor . '</a></p>';
+                if ( $candidate ) echo '<p><a href="' . esc_url( admin_url( 'admin.php?page=bfcamel-crm-submissions&id=' . $cursor ) ) . '">Заявка #' . absint( $cursor ) . '</a></p>';
             }
         } while ( count( (array) $rows ) === 200 );
     }

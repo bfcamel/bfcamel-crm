@@ -19,7 +19,7 @@ final class Renderer {
         $this->error = $error;
         $this->page_url = $page;
         nocache_headers();
-        wp_die( $this->shortcode( array( 'id' => $id ) ), 'Проверьте форму', array( 'response' => 422 ) );
+        wp_die( $this->shortcode( array( 'id' => $id ) ), 'Проверьте форму', array( 'response' => 422 ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Renderer escapes each form value before returning HTML.
     }
 
     private function __construct() {}

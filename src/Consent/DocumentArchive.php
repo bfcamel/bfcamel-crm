@@ -25,7 +25,7 @@ final class DocumentArchive {
         if ( ! $entry ) wp_die( 'Редакция не найдена.', '', array( 'response' => 404 ) );
         header( 'Content-Type: text/plain; charset=UTF-8' );
         header( 'X-Content-Type-Options: nosniff' );
-        echo $entry['body']; // Plain text response.
+        echo $entry['body']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- This response is a plain-text document.
         exit;
     }
 
