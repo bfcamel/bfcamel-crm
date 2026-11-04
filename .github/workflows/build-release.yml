@@ -71,7 +71,7 @@ jobs:
         run: |
           echo "WP_PATH=$RUNNER_TEMP/bfcamel-wordpress" >> "$GITHUB_ENV"
           echo "BFCAMEL_TEST_WP_LOAD=$RUNNER_TEMP/bfcamel-wordpress/wp-load.php" >> "$GITHUB_ENV"
-      - name: Install WordPress and seed existing 0.5.6 data
+      - name: Install WordPress and seed existing 0.6.0 data
         env:
           TEST_WORDPRESS_VERSION: ${{ matrix.wordpress }}
         run: |
@@ -79,14 +79,16 @@ jobs:
           wp config create --path="$WP_PATH" --dbname=bfcamel_crm_test --dbuser=root --dbpass=integration-only --dbhost=127.0.0.1:3306
           wp config set DISABLE_WP_CRON true --raw --path="$WP_PATH"
           wp core install --path="$WP_PATH" --url=http://example.test --title=CRM-test --admin_user=admin --admin_password=integration-only --admin_email=admin@example.test --skip-email
-          git worktree add --detach "$RUNNER_TEMP/bfcamel-crm-base" d97473338d9d01275df08e08baa415342fc9584c
+          git worktree add --detach "$RUNNER_TEMP/bfcamel-crm-base" 0ec9136d21bcfb36a6b9e02045c8fd961b7c7441
           mkdir -p "$WP_PATH/wp-content/plugins/bfcamel-crm"
           rsync -a --exclude='.git' "$RUNNER_TEMP/bfcamel-crm-base/" "$WP_PATH/wp-content/plugins/bfcamel-crm/"
           wp plugin activate bfcamel-crm --path="$WP_PATH"
           wp eval-file "$GITHUB_WORKSPACE/tests/integration-seed.php" --path="$WP_PATH"
       - name: Update source without deleting data and run integration tests
         run: |
-          rsync -a --exclude='.git' ./ "$WP_PATH/wp-content/plugins/bfcamel-crm/"
+          sudo apt-get update && sudo apt-get install -y gettext zip rsync
+          bash scripts/build-release.sh
+          wp plugin install "$GITHUB_WORKSPACE/build/bfcamel-crm-0.6.1.zip" --force --activate --path="$WP_PATH"
           wp eval-file "$GITHUB_WORKSPACE/tests/integration.php" --path="$WP_PATH"
           wp eval-file "$GITHUB_WORKSPACE/tests/notifications.php" --path="$WP_PATH"
 

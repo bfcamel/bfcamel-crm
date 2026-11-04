@@ -153,6 +153,7 @@ final class ActivityFormatter {
             'granted' => __( 'Granted', 'bfcamel-crm' ),
             'denied'  => __( 'Not granted', 'bfcamel-crm' ),
             'revoked' => __( 'Revoked', 'bfcamel-crm' ),
+            'pending' => 'Ожидает подтверждения',
             'unknown' => __( 'Unknown', 'bfcamel-crm' ),
         );
         $status = sanitize_key( $status );

@@ -31,14 +31,15 @@ final class Plugin {
     }
 
     public function upgrade(){
-        Schema::maybe_upgrade();if ( Schema::is_current() && ! wp_next_scheduled( \BfCamel\CRM\Privacy\Register::HOOK ) ) wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', \BfCamel\CRM\Privacy\Register::HOOK );WorkflowService::seed_defaults();RoleManager::ensure_roles();self::seed_defaults();Notifications::initialize();
+        if ( true !== Schema::maybe_upgrade() ) return;
+        if ( Schema::is_current() && ! wp_next_scheduled( \BfCamel\CRM\Privacy\Register::HOOK ) ) wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', \BfCamel\CRM\Privacy\Register::HOOK );WorkflowService::seed_defaults();RoleManager::ensure_roles();self::seed_defaults();Notifications::initialize();
     }
 
     public static function activate( $network_wide = false ){
         if ( $network_wide && is_multisite() ) {
             wp_die( esc_html__( 'BfCamel CRM does not support network-wide activation. Activate it separately on each site.', 'bfcamel-crm' ) );
         }
-        $installed=Schema::install();if(is_wp_error($installed))wp_die(esc_html($installed->get_error_message()));self::seed_defaults();WorkflowService::seed_defaults();RoleManager::ensure_roles(true);Notifications::initialize();
+        $installed=Schema::maybe_upgrade();if(is_wp_error($installed))wp_die(esc_html($installed->get_error_message()));self::seed_defaults();WorkflowService::seed_defaults();RoleManager::ensure_roles(true);Notifications::initialize();
     }
     public static function deactivate(){wp_clear_scheduled_hook(Notifications::CRON);wp_clear_scheduled_hook(\BfCamel\CRM\Privacy\Register::HOOK);}
     public static function capabilities(){return RoleManager::all_capabilities();}

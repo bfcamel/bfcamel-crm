@@ -56,7 +56,7 @@ $note = (object) array( 'event_type' => 'note_added', 'meta_json' => '{}', 'mess
 check( 'Internal note added.' === ActivityFormatter::message( $note ), 'Note activity label is missing.' );
 $contact_edit = (object) array( 'event_type' => 'contact_updated', 'meta_json' => json_encode( array( 'changes' => array( 'name' => array( 'from' => 'A', 'to' => 'B' ) ) ) ), 'message' => '' );
 check( false !== strpos( ActivityFormatter::message( $contact_edit ), 'A → B' ), 'Contact edit audit details are missing.' );
-check( array( 'unknown', 'granted', 'denied', 'revoked' ) === array_keys( ConsentService::statuses() ), 'Consent statuses are incomplete.' );
+check( array( 'unknown', 'granted', 'denied', 'revoked', 'pending' ) === array_keys( ConsentService::statuses() ), 'Consent statuses are incomplete.' );
 check( "https://vk.com/example\n@example" === \BfCamel\CRM\CRM\ContactService::normalize_social_pages( array( 'https://vk.com/example', 'https://vk.com/example', '@example' ) ), 'Social pages are not normalized and de-duplicated.' );
 
 $bfcamel_test_options[ WorkflowService::CONFIG_OPTION ] = WorkflowService::default_config();
@@ -85,9 +85,9 @@ check( "'@SUM(A1)" === $xlsx_cell->invoke( null, '@SUM(A1)' ), 'XLSX injection p
 
 $root = dirname( __DIR__ );
 $plugin = file_get_contents( $root . '/bfcamel-crm.php' ); $readme = file_get_contents( $root . '/readme.txt' );
-check( false !== strpos( $plugin, 'Version: 0.6.0' ), 'Plugin header version is not 0.6.0.' );
-check( false !== strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION', '0.6.0' )" ), 'Plugin constant version is not 0.6.0.' );
-check( false !== strpos( $readme, 'Stable tag: 0.6.0' ), 'Stable tag is not 0.6.0.' );
+check( false !== strpos( $plugin, 'Version: 0.6.1' ), 'Plugin header version is not 0.6.1.' );
+check( false !== strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION', '0.6.1' )" ), 'Plugin constant version is not 0.6.1.' );
+check( false !== strpos( $readme, 'Stable tag: 0.6.1' ), 'Stable tag is not 0.6.1.' );
 check( false === strpos( $plugin, 'Update URI:' ), 'A third-party Update URI would block WordPress.org updates.' );
 check( strpos( $plugin, "if ( defined( 'BFCAMEL_CRM_FILE' ) )" ) < strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION'" ), 'Duplicate guard moved after constants.' );
 $schema = file_get_contents( $root . '/src/Database/Schema.php' );

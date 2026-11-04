@@ -18,14 +18,16 @@ final class Schema {
         if ( self::VERSION === (string) get_option( self::OPTION, '' ) ) {
             return true;
         }
-        if ( get_transient( 'bfcamel_crm_schema_lock' ) ) {
+        global $wpdb;
+        $lock = 'bfcrm_schema_' . substr( hash( 'sha256', DB_NAME . ':' . $wpdb->prefix ), 0, 40 );
+        if ( 1 !== (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 10)', $lock ) ) ) {
             return new \WP_Error( 'bfcamel_crm_schema_locked', __( 'Another BfCamel CRM database update is already running.', 'bfcamel-crm' ) );
         }
-        set_transient( 'bfcamel_crm_schema_lock', 1, MINUTE_IN_SECONDS );
         try {
-            return self::install();
+            $version = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name=%s', $wpdb->options, self::OPTION ) );
+            return self::VERSION === (string) $version ? true : self::install();
         } finally {
-            delete_transient( 'bfcamel_crm_schema_lock' );
+            $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
         }
     }
 
