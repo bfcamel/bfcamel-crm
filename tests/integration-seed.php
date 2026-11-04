@@ -42,7 +42,7 @@ function crm_insert_submission( $form, $contact_id, $payload, $sync_status = 'co
 }
 
 if ( defined( 'BFCAMEL_CRM_TEST_HELPERS_ONLY' ) ) return;
-crm_assert( '0.5.6' === BFCAMEL_CRM_VERSION, 'seed uses pre-fix 0.5.6' );
+crm_assert( '0.6.0' === BFCAMEL_CRM_VERSION, 'seed uses 0.6.0' );
 $schema = array(
     array( 'name' => 'name', 'type' => 'text', 'label' => 'Name', 'required' => true, 'mapping' => 'contact.name' ),
     array( 'name' => 'email', 'type' => 'email', 'label' => 'Email', 'mapping' => 'contact.email' ),
@@ -55,6 +55,7 @@ $schema = array(
 $form_id = Repository::save( 0, 'Legacy form', 'legacy-form', $schema, array(), 1 );
 crm_assert( ! is_wp_error( $form_id ), 'seed legacy form and immutable revision' );
 $form = Repository::get( $form_id );
+$_POST['consent_basis'] = 'Integration fixture';
 $victim = ContactService::create_manual( array( 'name' => 'Existing person', 'email' => 'victim@example.test', 'phone' => '79990000000', 'city' => 'Original city' ), array( 'Original tag' ), 1, array( 'marketing' => 'revoked' ) );
 crm_assert( ! is_wp_error( $victim ), 'seed existing contact, tags and consent' );
 $ids = array();

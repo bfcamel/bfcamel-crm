@@ -24,6 +24,7 @@ final class ConsentService {
             'granted' => __( 'Granted', 'bfcamel-crm' ),
             'denied'  => __( 'Not granted', 'bfcamel-crm' ),
             'revoked' => __( 'Revoked', 'bfcamel-crm' ),
+            'pending' => 'Ожидает подтверждения',
         );
     }
 
@@ -78,6 +79,13 @@ final class ConsentService {
                 if ( empty( $doc['archive_id'] ) ) return false;
             }
             if ( 'marketing' === $consent_type ) {
+                global $wpdb;
+                if ( $contact_id ) {
+                    if ( ! $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE id=%d FOR UPDATE', Schema::table( 'contacts' ), $contact_id ) ) ) return false;
+                    $latest = self::latest_marketing( $contact_id );
+                    $states = self::channel_states( $contact_id );
+                    if ( $latest && ( in_array( $latest->status, array( 'revoked', 'pending' ), true ) || in_array( 'revoked', $states, true ) ) ) $choice['status'] = 'pending';
+                }
                 $evidence['channels'] = array();
                 foreach ( $schema as $contact_field ) {
                     $key = $contact_field['name'];
@@ -99,6 +107,11 @@ final class ConsentService {
         return true;
     }
 
+    public static function latest_marketing( $id ) {
+        global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM %i WHERE contact_id=%d AND consent_type='marketing' ORDER BY id DESC LIMIT 1 FOR UPDATE", Schema::table( 'consent_events' ), $id ) );
+    }
+
     public static function record_manual( $contact_id, $consent_type, $status, $user_id, $channel = '', $basis = '' ) {
         $types        = self::types();
         $statuses     = self::statuses();
@@ -113,8 +126,16 @@ final class ConsentService {
             'source_ip'  => '',
             'user_agent' => Request::server_textarea( 'HTTP_USER_AGENT', 1000 ),
         );
-        if ( '' === trim( $basis ) || ( $channel && ( 'marketing' !== $consent_type || ! isset( self::CHANNELS[ $channel ] ) || 'revoked' !== $status ) ) ) return false;
+        if ( 'pending' === $status || '' === trim( $basis ) || ( $channel && ( 'marketing' !== $consent_type || ! isset( self::CHANNELS[ $channel ] ) || 'revoked' !== $status ) ) ) return false;
         $evidence = self::document_snapshot( $consent_type );
+        if ( 'marketing' === $consent_type && 'granted' === $status ) {
+            $latest = self::latest_marketing( $contact_id );
+            if ( $latest ) {
+                if ( 'form' !== $latest->source_type || 'pending' !== $latest->status || Request::post_id( 'marketing_event' ) !== (int) $latest->id ) return false;
+                $evidence = json_decode( $latest->documents_json, true );
+                $evidence['confirmed_event'] = (int) $latest->id;
+            }
+        }
         $evidence['basis'] = sanitize_text_field( $basis );
         $evidence['utc'] = gmdate( 'c' );
         return self::record( $contact_id, 0, $consent_type, $status, 0, 0, $evidence, $source, $user_id, 'manual', $channel );

@@ -33,14 +33,19 @@ final class SubmissionHandler {
         $source['source_ip'] = $this->client_ip();
         if ( ! filter_var( $source['source_ip'], FILTER_VALIDATE_IP ) ) $this->redirect($return_url,$form_id,'error');
         $token = Request::post_text( 'submission_token' );
+        if ( 'initialize' === $token ) Renderer::instance()->retry( $form_id, $return_url, Request::post_payload(), new \WP_Error( 'initialize', 'Подтвердите отправку заявки.' ) );
         if ( ! wp_is_uuid( $token, 4 ) ) $this->redirect($return_url,$form_id,'error');
-        $digest = hash_hmac( 'sha256', wp_json_encode( array( $token, $form_id, $revision_id, $source['source_ip'], $payload ) ), wp_salt( 'nonce' ) );
+        $digest = hash_hmac( 'sha256', wp_json_encode( array( $token, $form_id ) ), wp_salt( 'nonce' ) );
         $uuid = substr( $digest, 0, 8 ) . '-' . substr( $digest, 8, 4 ) . '-4' . substr( $digest, 13, 3 ) . '-8' . substr( $digest, 17, 3 ) . '-' . substr( $digest, 20, 12 );
         if(!Schema::begin_transaction())$this->redirect($return_url,$form_id,'error');
         global $wpdb;
         if ( ! Schema::hold_transaction_lock( 'bfc_submission_' . $uuid ) ) $this->rollback_and_redirect($return_url,$form_id);
-        if ( $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE submission_uuid=%s', Schema::table( 'submissions' ), $uuid ) ) ) {
+        $existing = $wpdb->get_row( $wpdb->prepare( 'SELECT revision_id,payload_json FROM %i WHERE submission_uuid=%s FOR UPDATE', Schema::table( 'submissions' ), $uuid ) );
+        if ( $existing ) {
             Schema::rollback();
+            if ( (int) $existing->revision_id !== $revision_id || json_decode( $existing->payload_json, true ) !== $payload ) {
+                Renderer::instance()->retry( $form_id, $return_url, Request::post_payload(), new \WP_Error( 'token_conflict', 'Эта попытка уже обработана. Проверьте данные и отправьте новую заявку.' ) );
+            }
             $this->redirect($return_url,$form_id,'success');
         }
         if ( $this->is_rate_limited( $form_id ) ) {

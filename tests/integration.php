@@ -49,6 +49,7 @@ update_option( 'bfcamel_crm_legal_documents', $docs, false );
 $form = Repository::get( $fixture['form_id'] );
 $victim_before = wp_json_encode( array( ContactService::get_emails( $fixture['victim'] ), ContactService::get_phones( $fixture['victim'] ), ContactService::get_custom_fields( $fixture['victim'] ), ConsentService::current_statuses( $fixture['victim'] ) ) );
 $request = array( 'form_id' => $form->id, 'revision_id' => $form->current_revision_id, 'ip' => '198.51.100.1', 'fields' => array( 'name' => 'Changed name', 'email' => 'attacker@example.test', 'phone' => '79990000000', 'city' => 'Attacker city', 'consent' => '1', 'action' => 'user-selected-action', 'choices' => array( 'Two' ) ) );
+$request['token'] = wp_generate_uuid4();
 $count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', Schema::table( 'submissions' ) ) );
 crm_worker_end( crm_worker_start( $request ) );
 $last = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i ORDER BY id DESC LIMIT 1', Schema::table( 'submissions' ) ) );
@@ -59,12 +60,17 @@ crm_assert( 'user-selected-action' === $payload['action'] && array( 'Two' ) === 
 crm_assert( array() === ContactService::find_contact_ids_by_email_value( 'attacker@example.test' ), 'attacker email never added to victim identity' );
 crm_assert( $victim_before === wp_json_encode( array( ContactService::get_emails( $fixture['victim'] ), ContactService::get_phones( $fixture['victim'] ), ContactService::get_custom_fields( $fixture['victim'] ), ConsentService::current_statuses( $fixture['victim'] ) ) ), 'public conflict cannot change original contact or consent' );
 
+$request['ip'] = '198.51.100.20';
+crm_worker_end( crm_worker_start( $request ) );
+crm_assert( $count + 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', Schema::table( 'submissions' ) ) ), 'retry from another IP creates no duplicate' );
+$request['token'] = wp_generate_uuid4();
 $request['ip'] = '198.51.100.2';
 $request['fields']['email'] = 'victim@example.test';
 crm_worker_end( crm_worker_start( $request ) );
 $last = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i ORDER BY id DESC LIMIT 1', Schema::table( 'submissions' ) ) );
 crm_assert( 'linked' === $last->contact_sync_status && (int) $fixture['victim'] === (int) $last->contact_id, 'known identifiers still link legitimate repeat submissions' );
 crm_assert( $victim_before === wp_json_encode( array( ContactService::get_emails( $fixture['victim'] ), ContactService::get_phones( $fixture['victim'] ), ContactService::get_custom_fields( $fixture['victim'] ), ConsentService::current_statuses( $fixture['victim'] ) ) ), 'even linked public requests leave fields and contact consent unchanged' );
+$request['token'] = wp_generate_uuid4();
 $request['ip'] = '198.51.100.3'; $request['legacy'] = true; unset( $request['fields']['action'] );
 crm_worker_end( crm_worker_start( $request ) );
 crm_assert( $count + 3 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', Schema::table( 'submissions' ) ) ), 'already-rendered legacy forms continue saving submissions' );
@@ -117,3 +123,18 @@ foreach ( $fixture['ids'] as $index => $id ) {
 }
 crm_assert( 'Original city' === ContactService::get_custom_fields( $fixture['victim'] )['city'], 'existing victim details survive all operations' );
 echo "WordPress/MySQL security and data-preservation integration tests passed.\n";
+
+$id = $fixture['victim'];
+$marketing_schema = array( array( 'name'=>'marketing', 'type'=>'consent_marketing' ), array( 'name'=>'phone', 'type'=>'tel' ) );
+$grant = static function() use ( $id, $fixture, $form, $marketing_schema ) {
+    crm_assert( ConsentService::capture_from_submission( $fixture['linked'], $id, $form->id, $form->current_revision_id, $marketing_schema, array( 'marketing'=>'1', 'phone'=>'79990000000' ), array() ), 'capture repeat consent' );
+};
+$grant();
+$pending = ConsentService::latest_marketing( $id );
+crm_assert( 'pending' === $pending->status, 'repeat submission cannot undo withdrawal' );
+$_POST['marketing_event'] = $pending->id;
+crm_assert( ConsentService::record_manual( $id, 'marketing', 'revoked', 1, '', 'New withdrawal' ), 'record intervening withdrawal' );
+crm_assert( ! ConsentService::record_manual( $id, 'marketing', 'granted', 1, '', 'Verification' ), 'stale confirmation rejected' );
+$grant();
+$_POST['marketing_event'] = ConsentService::latest_marketing( $id )->id;
+crm_assert( ConsentService::record_manual( $id, 'marketing', 'granted', 1, '', 'Confirmed by telephone' ), 'current request confirmed' );
