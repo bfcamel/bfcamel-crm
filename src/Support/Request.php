@@ -74,13 +74,23 @@ final class Request {
         return map_deep( wp_unslash( $_POST[ $key ] ), 'sanitize_textarea_field' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Action controllers verify their nonce; every scalar value is sanitized by map_deep().
     }
 
-    public static function post_payload() {
+    public static function post_payload( $schema = array() ) {
         // The public submission handler verifies its form nonce before calling this method.
         if ( '2' === self::post_text( 'bfcamel_crm_payload_version' ) ) {
-            return self::post_array( 'fields' );
+            $values = self::post_array( 'fields' );
+            $input = isset( $_POST['fields'] ) && is_array( $_POST['fields'] ) ? $_POST['fields'] : array();
+        } else {
+            $values = map_deep( wp_unslash( $_POST ), 'sanitize_textarea_field' );
+            $input = $_POST;
         }
-        // Accept already-rendered pre-update forms until their nonce expires.
-        return map_deep( wp_unslash( $_POST ), 'sanitize_textarea_field' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Every submitted scalar value is unslashed and sanitized at the request boundary.
+        // Preserve the exact checkbox wire value for strict validation. Never persist raw input.
+        foreach ( $schema as $field ) {
+            $name = $field['name'];
+            if ( in_array( $field['type'], array( 'consent_personal_data', 'consent_marketing' ), true ) && array_key_exists( $name, $input ) ) {
+                $values[ $name ] = '1' === $input[ $name ] ? '1' : false;
+            }
+        }
+        return $values;
     }
 
     public static function post_id_list( $key ) {

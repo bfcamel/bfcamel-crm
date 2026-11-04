@@ -58,7 +58,7 @@ final class InboxView {
                         <input type="text" name="bulk_tags" aria-label="<?php esc_attr_e( 'Tags', 'bfcamel-crm' ); ?>"><button type="submit" class="button"><?php esc_html_e( 'Apply', 'bfcamel-crm' ); ?></button>
                     </div><?php endif; ?>
                     <div class="bfcamel-crm-panel bfcamel-crm-panel--table"><table class="widefat bfcamel-crm-table bfcamel-crm-submissions-table"><thead><tr><?php if ( $can_edit ) : ?><td class="check-column"><input type="checkbox" class="bfcamel-crm-select-all" aria-label="<?php esc_attr_e( 'Select all submissions', 'bfcamel-crm' ); ?>"></td><?php endif; ?><th><?php esc_html_e( 'Request', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Priority', 'bfcamel-crm' ); ?></th><th class="bfcamel-crm-owner-column"><?php esc_html_e( 'Responsible', 'bfcamel-crm' ); ?></th><th><?php esc_html_e( 'Received', 'bfcamel-crm' ); ?></th></tr></thead><tbody>
-                    <?php if ( ! $result['rows'] ) : ?><tr><td colspan="<?php echo $can_edit ? 5 : 4; ?>" class="bfcamel-crm-empty"><?php esc_html_e( 'No submissions match this view.', 'bfcamel-crm' ); ?> <a href="<?php echo esc_url( self::list_url( array( 'view' => 'all' ) ) ); ?>"><?php esc_html_e( 'All submissions', 'bfcamel-crm' ); ?></a></td></tr><?php endif; ?>
+                    <?php if ( ! $result['rows'] ) : ?><tr><td colspan="<?php echo $can_edit ? 5 : 4; ?>"><div class="bfcamel-crm-empty"><?php esc_html_e( 'No submissions match this view.', 'bfcamel-crm' ); ?> <a href="<?php echo esc_url( self::list_url( array( 'view' => 'all' ) ) ); ?>"><?php esc_html_e( 'All submissions', 'bfcamel-crm' ); ?></a></div></td></tr><?php endif; ?>
                     <?php foreach ( (array) $result['rows'] as $row ) : $summary = SubmissionService::summary( $row ); $url = add_query_arg( 'bfcamel_return', rawurlencode( $list_url . '#submission-' . absint( $row->id ) ), Notifications::url( $row->id ) ); $level = Notifications::level( $row->priority ); ?>
                     <tr data-bfcamel-row-url="<?php echo esc_url( $url ); ?>" data-bfcamel-row-id="<?php echo absint( $row->id ); ?>" class="bfcamel-crm-request-row bfcamel-crm-level-<?php echo esc_attr( $level ); ?>">
                         <?php if ( $can_edit ) : ?><th class="check-column"><input type="checkbox" name="submission_ids[]" value="<?php echo absint( $row->id ); ?>" aria-label="<?php echo esc_attr( $summary['title'] ); ?>"></th><?php endif; ?>
@@ -72,7 +72,7 @@ final class InboxView {
                     </tbody></table></div>
                 </form>
                 <?php self::pagination($result,'bottom'); ?>
-            </div><aside class="bfcamel-crm-preview" aria-label="<?php esc_attr_e( 'Submission card', 'bfcamel-crm' ); ?>" hidden><div class="bfcamel-crm-preview-toolbar"><a class="button" data-bfcamel-full-card href="<?php echo esc_url( $list_url ); ?>"><?php esc_html_e( 'Open full page', 'bfcamel-crm' ); ?></a><button type="button" class="button" data-bfcamel-preview-close><?php esc_html_e( 'Close', 'bfcamel-crm' ); ?></button></div><div data-bfcamel-preview-content aria-live="polite"></div></aside></div>
+            </div></div>
         </div><?php
     }
 

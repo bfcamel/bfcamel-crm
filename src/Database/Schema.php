@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class Schema {
-    const VERSION = '7';
+    const VERSION = '8';
     const OPTION  = 'bfcamel_crm_db_version';
     const ERROR_OPTION = 'bfcamel_crm_schema_error';
 
@@ -191,6 +191,7 @@ final class Schema {
                 contact_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
                 submission_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
                 consent_type VARCHAR(50) NOT NULL,
+                channel VARCHAR(20) NOT NULL DEFAULT '',
                 status VARCHAR(20) NOT NULL,
                 form_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
                 revision_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
@@ -315,6 +316,27 @@ final class Schema {
             ) {$cc};"
         );
 
+        $purposes = self::table( 'purposes' );
+        self::run_delta( "CREATE TABLE {$purposes} (
+            submission_id BIGINT UNSIGNED NOT NULL,
+            purpose VARCHAR(24) NOT NULL,
+            state VARCHAR(16) NOT NULL DEFAULT 'active',
+            due_at DATETIME NULL,
+            reviewed_at DATETIME NOT NULL,
+            reason VARCHAR(190) NOT NULL DEFAULT '',
+            PRIMARY KEY (submission_id,purpose),
+            KEY due (state,due_at)
+        ) {$cc};" );
+        $register = self::table( 'privacy_register' );
+        self::run_delta( "CREATE TABLE {$register} (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            operation VARCHAR(24) NOT NULL,
+            actor BIGINT UNSIGNED NOT NULL,
+            occurred_at DATETIME NOT NULL,
+            details LONGTEXT NOT NULL,
+            PRIMARY KEY (id),
+            KEY operation_time (operation,occurred_at)
+        ) {$cc};" );
         self::ensure_transactional_tables();
 
         $verification = self::verify();
@@ -388,7 +410,9 @@ final class Schema {
                 'tags'            => array( 'id', 'name', 'slug' ),
                 'submission_tags' => array( 'submission_id', 'tag_id' ),
                 'contact_tags'    => array( 'contact_id', 'tag_id' ),
-                'consent_events'  => array( 'source_type', 'recorded_by' ),
+                'purposes' => array( 'submission_id', 'purpose', 'state', 'due_at' ),
+                'privacy_register' => array( 'operation', 'actor', 'occurred_at', 'details' ),
+                'consent_events'  => array( 'source_type', 'recorded_by', 'channel' ),
                 'notes'           => array( 'entity_type', 'entity_id', 'note_text', 'user_id' ),
                 'activity_log'    => array( 'meta_json', 'user_id' ),
                 'notifications' => array( 'submission_id', 'event_key', 'queued', 'level' ),
@@ -462,6 +486,8 @@ final class Schema {
             'activity_log',
             'notifications',
             'notification_receipts',
+            'purposes',
+            'privacy_register',
         );
     }
 

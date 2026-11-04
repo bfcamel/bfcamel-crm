@@ -21,3 +21,5 @@
 .bfcamel-form-response,.bfcamel-crm-response{margin:0 0 18px;padding:12px 15px;border:1px solid;border-radius:10px}.bfcamel-crm-response--success{background:#eff8f2;border-color:#91c99f;color:#174f2b}.bfcamel-crm-response--error{background:#fff3f1;border-color:#e6a49d;color:#7a241a}
 @media(max-width:760px){.bfcamel-col-6,.bfcamel-col-4,.bfcamel-col-3,.bfcamel-crm-field--50,.bfcamel-crm-field--33,.bfcamel-crm-field--25{grid-column:span 12}}
 @media(prefers-reduced-motion:reduce){.bfcamel-form *,.bfcamel-form *::before,.bfcamel-form *::after{transition:none!important;scroll-behavior:auto!important}}
+
+.bfcamel-crm-consent-label .bfcamel-crm-required { color: #b32d2e; }

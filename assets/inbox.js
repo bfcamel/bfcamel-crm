@@ -105,29 +105,6 @@
   }
   function allowLeave() { return !dirty || window.confirm(strings.unsaved); }
   function listUrl() { var url = new URL(window.location.href); url.hash = ''; return url.href; }
-  function closePanel(focus) {
-    if (!panel) return;
-    panel.hidden = true; inbox.querySelector('.bfcamel-crm-inbox-layout').classList.remove('has-preview');
-    requestToken++; currentCard = 0; dirty = false;
-    if (focus && lastLink && document.contains(lastLink)) lastLink.focus();
-  }
-  function openPanel(id, url, historyMode) {
-    if (!panel || !window.matchMedia('(min-width:1100px)').matches) { window.location.href = url; return; }
-    if (!allowLeave()) return;
-    dirty = false; currentCard = Number(id); var token = ++requestToken;
-    panel.hidden = false; inbox.querySelector('.bfcamel-crm-inbox-layout').classList.add('has-preview');
-    panel.querySelector('[data-bfcamel-full-card]').href = url;
-    var content = panel.querySelector('[data-bfcamel-preview-content]'); content.textContent = strings.loading;
-    if (historyMode) history.pushState({bfcamelCard: Number(id)}, '', listUrl() + '#submission-' + id);
-    var returnUrl = listUrl() + '#submission-' + id;
-    api('bfcamel_crm_submission_detail', {id: id, bfcamel_return: returnUrl}, 'GET').then(function (result) {
-      if (token !== requestToken) return;
-      content.innerHTML = result.html;
-      if (window.BfCamelCRMEnhance) window.BfCamelCRMEnhance(content);
-      read(id);
-      var heading = content.querySelector('h1'); if (heading) { heading.setAttribute('tabindex', '-1'); heading.focus({preventScroll: true}); }
-    }).catch(function () { if (token === requestToken) content.textContent = strings.error; });
-  }
   function updateBulk(form) {
     var bar = form.querySelector('.bfcamel-crm-bulk-bar'); if (!bar) return;
     var checked = form.querySelectorAll('tbody .check-column input:checked').length; bar.hidden = !checked;
@@ -159,10 +136,7 @@
       var bell = target.closest('#wp-admin-bar-bfcamel-crm-notifications a');
       if (bell && center) { event.preventDefault(); center.hidden = !center.hidden; return; }
       if (target.closest('[data-bfcamel-notification-close]') && center) { center.hidden = true; return; }
-      if (target.closest('[data-bfcamel-preview-close]')) { if (allowLeave()) { history.pushState({}, '', listUrl()); closePanel(true); } return; }
       if (inbox && target.closest('a[href]')) { try { sessionStorage.setItem(key + ':scroll:' + listUrl(), String(window.scrollY)); } catch (e) {} }
-      var link = target.closest('[data-bfcamel-open]');
-      if (link && inbox && !event.ctrlKey && !event.metaKey && !event.shiftKey && event.button === 0 && window.matchMedia('(min-width:1100px)').matches) { event.preventDefault(); lastLink = link; openPanel(link.dataset.bfcamelOpen, link.href, true); return; }
       var notificationLink = target.closest('[data-bfcamel-notification-submission]');
       if (notificationLink) read(notificationLink.dataset.bfcamelNotificationSubmission);
       var row = target.closest('[data-bfcamel-row-url]');
@@ -180,21 +154,14 @@
         var id = form.querySelector('[name="submission_id"]').value;
         api(form.matches('[data-bfcamel-complete]') ? 'bfcamel_crm_complete_submission' : 'bfcamel_crm_claim_submission', {submission_id: id}).then(function (next) {
           updateFeed(next); dirty = false;
-          if (currentCard) openPanel(id, panel.querySelector('[data-bfcamel-full-card]').href, false);
-          else window.location.reload();
+          window.location.reload();
         }).catch(function (error) { window.alert(error.message || strings.claimError); if (button) button.disabled = false; });
       } else dirty = false;
     });
     window.addEventListener('beforeunload', function (event) { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
-    window.addEventListener('popstate', function () {
-      var match = window.location.hash.match(/^#submission-(\d+)$/);
-      if (match && inbox) openPanel(match[1], new URL('admin.php?page=bfcamel-crm-submissions&id=' + match[1], config.ajaxUrl).href, false);
-      else if (allowLeave()) closePanel(true);
-    });
     document.addEventListener('visibilitychange', function () { if (!document.hidden) poll(); });
     window.addEventListener('pointerdown', function () { if (stored('sound', '0') === '1') { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume().catch(function () {}); } catch (e) {} } }, {once: true});
     var fullCard = !inbox && document.querySelector('[data-bfcamel-submission-id]'); if (fullCard && config.enabled) read(fullCard.dataset.bfcamelSubmissionId);
-    var initial = window.location.hash.match(/^#submission-(\d+)$/); if (initial && panel) openPanel(initial[1], new URL('admin.php?page=bfcamel-crm-submissions&id=' + initial[1], config.ajaxUrl).href, false);
     timer = setTimeout(poll, 20000);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ready); else ready();

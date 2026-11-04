@@ -85,13 +85,13 @@ check( "'@SUM(A1)" === $xlsx_cell->invoke( null, '@SUM(A1)' ), 'XLSX injection p
 
 $root = dirname( __DIR__ );
 $plugin = file_get_contents( $root . '/bfcamel-crm.php' ); $readme = file_get_contents( $root . '/readme.txt' );
-check( false !== strpos( $plugin, 'Version: 0.5.6' ), 'Plugin header version is not 0.5.6.' );
-check( false !== strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION', '0.5.6' )" ), 'Plugin constant version is not 0.5.6.' );
-check( false !== strpos( $readme, 'Stable tag: 0.5.6' ), 'Stable tag is not 0.5.6.' );
+check( false !== strpos( $plugin, 'Version: 0.6.0' ), 'Plugin header version is not 0.6.0.' );
+check( false !== strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION', '0.6.0' )" ), 'Plugin constant version is not 0.6.0.' );
+check( false !== strpos( $readme, 'Stable tag: 0.6.0' ), 'Stable tag is not 0.6.0.' );
 check( false === strpos( $plugin, 'Update URI:' ), 'A third-party Update URI would block WordPress.org updates.' );
 check( strpos( $plugin, "if ( defined( 'BFCAMEL_CRM_FILE' ) )" ) < strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION'" ), 'Duplicate guard moved after constants.' );
 $schema = file_get_contents( $root . '/src/Database/Schema.php' );
-check( false !== strpos( $schema, "const VERSION = '7'" ), 'Database schema version is not 7.' );
+check( false !== strpos( $schema, "const VERSION = '8'" ), 'Database schema version is not 8.' );
 check( false !== strpos( $schema, "self::table( 'notes' )" ), 'Internal notes table is missing.' );
 check( false !== strpos( $schema, "strpos( (string) \$screen->id, 'bfcamel-crm' )" ), 'The database error notice is not limited to BfCamel CRM screens.' );
 check( false !== strpos( $schema, 'Check the database user permissions' ), 'The database error notice does not explain how to resolve the problem.' );

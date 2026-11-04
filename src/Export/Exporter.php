@@ -163,6 +163,7 @@ final class Exporter {
     }
 
     private static function download( $filename, $format, $headers, $rows ) {
+        if ( ! \BfCamel\CRM\Privacy\Register::log( 'export', array( 'file' => $filename, 'columns' => $headers, 'count' => count( $rows ), 'purpose' => 'Рабочая выгрузка CRM' ) ) ) wp_die( 'Не удалось зарегистрировать выгрузку.' );
         if ( 'csv' === $format ) {
             self::csv( $filename, $headers, $rows );
         }

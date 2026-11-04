@@ -208,7 +208,7 @@ final class Repository {
 
     public static function default_settings() {
         return array(
-            'style_mode'=>'default','columns'=>'2','primary_color'=>'#18434e','text_color'=>'#243b40','field_bg'=>'#faf7f6','border_color'=>'#e4dad8','button_color'=>'#18434e','button_text'=>'#ffffff','border_radius'=>'12','custom_class'=>'','submit_label'=>__( 'Submit', 'bfcamel-crm' ),'success_message'=>__( 'Thank you. Your message has been received.', 'bfcamel-crm' ),'error_message'=>__( 'Please check the form and try again.', 'bfcamel-crm' ),
+            'purpose_volunteer'=>'','purpose_animal'=>'','purpose_notice'=>'','style_mode'=>'default','columns'=>'2','primary_color'=>'#18434e','text_color'=>'#243b40','field_bg'=>'#faf7f6','border_color'=>'#e4dad8','button_color'=>'#18434e','button_text'=>'#ffffff','border_radius'=>'12','custom_class'=>'','submit_label'=>__( 'Submit', 'bfcamel-crm' ),'success_message'=>__( 'Thank you. Your message has been received.', 'bfcamel-crm' ),'error_message'=>__( 'Please check the form and try again.', 'bfcamel-crm' ),
             'default_status'=>WorkflowService::default_status(),'default_priority'=>WorkflowService::default_priority(),
         );
     }
@@ -229,14 +229,31 @@ final class Repository {
             $label='html'===$type?wp_kses_post($field['label']??''):sanitize_textarea_field($field['label']??'');
             $classes=array_filter(array_map('sanitize_html_class',preg_split('/\s+/',(string)($field['css_class']??''))));
             $result[]=array('name'=>$name,'type'=>$type,'label'=>$label,'required'=>!empty($field['required']),'width'=>$width,'placeholder'=>sanitize_text_field($field['placeholder']??''),'mapping'=>$mapping,'custom_key'=>sanitize_key($field['custom_key']??''),'css_class'=>implode(' ',$classes),'options'=>$options);
-        }return $result;
+        }
+        $policy = self::validate_consents( $result );
+        return is_wp_error( $policy ) ? $policy : $result;
+    }
+
+    public static function validate_consents( $schema ) {
+        $types = array_column( $schema, 'type' );
+        if ( 1 !== count( array_keys( $types, 'consent_personal_data', true ) ) ||
+            count( array_keys( $types, 'consent_marketing', true ) ) > 1 ) {
+            return new \WP_Error( 'invalid_consent_schema', 'Добавьте одно обязательное согласие на обработку данных и не более одного согласия на рассылку.' );
+        }
+        foreach ( $schema as $field ) {
+            if ( ( 'consent_personal_data' === $field['type'] && empty( $field['required'] ) ) ||
+                ( 'consent_marketing' === $field['type'] && ! empty( $field['required'] ) ) ) {
+                return new \WP_Error( 'invalid_consent_schema', 'Согласие на обработку данных обязательно. Согласие на рассылку добровольно.' );
+            }
+        }
+        return true;
     }
 
     private static function sanitize_settings( $settings ) {
         $defaults=self::default_settings();$settings=wp_parse_args(is_array($settings)?$settings:array(),$defaults);$mode=sanitize_key($settings['style_mode']);if('unstyled'===$mode)$mode='theme';if(!in_array($mode,array('theme','default','custom'),true))$mode='default';
         $columns=in_array((string)$settings['columns'],array('1','2'),true)?(string)$settings['columns']:'2';$radius=min(60,max(0,absint($settings['border_radius'])));$status=sanitize_key($settings['default_status']);$priority=sanitize_key($settings['default_priority']);
         if(!WorkflowService::is_valid('status',$status))$status=WorkflowService::default_status();if(!WorkflowService::is_valid('priority',$priority))$priority=WorkflowService::default_priority();
-        return array('style_mode'=>$mode,'columns'=>$columns,'primary_color'=>sanitize_hex_color($settings['primary_color'])?:$defaults['primary_color'],'text_color'=>sanitize_hex_color($settings['text_color'])?:$defaults['text_color'],'field_bg'=>sanitize_hex_color($settings['field_bg'])?:$defaults['field_bg'],'border_color'=>sanitize_hex_color($settings['border_color'])?:$defaults['border_color'],'button_color'=>sanitize_hex_color($settings['button_color'])?:$defaults['button_color'],'button_text'=>sanitize_hex_color($settings['button_text'])?:$defaults['button_text'],'border_radius'=>(string)$radius,'custom_class'=>sanitize_html_class($settings['custom_class']),'submit_label'=>sanitize_text_field($settings['submit_label']),'success_message'=>sanitize_text_field($settings['success_message']),'error_message'=>sanitize_text_field($settings['error_message']),'default_status'=>$status,'default_priority'=>$priority);
+        return array('purpose_volunteer'=>sanitize_text_field($settings['purpose_volunteer']),'purpose_animal'=>sanitize_text_field($settings['purpose_animal']),'purpose_notice'=>sanitize_text_field($settings['purpose_notice']),'style_mode'=>$mode,'columns'=>$columns,'primary_color'=>sanitize_hex_color($settings['primary_color'])?:$defaults['primary_color'],'text_color'=>sanitize_hex_color($settings['text_color'])?:$defaults['text_color'],'field_bg'=>sanitize_hex_color($settings['field_bg'])?:$defaults['field_bg'],'border_color'=>sanitize_hex_color($settings['border_color'])?:$defaults['border_color'],'button_color'=>sanitize_hex_color($settings['button_color'])?:$defaults['button_color'],'button_text'=>sanitize_hex_color($settings['button_text'])?:$defaults['button_text'],'border_radius'=>(string)$radius,'custom_class'=>sanitize_html_class($settings['custom_class']),'submit_label'=>sanitize_text_field($settings['submit_label']),'success_message'=>sanitize_text_field($settings['success_message']),'error_message'=>sanitize_text_field($settings['error_message']),'default_status'=>$status,'default_priority'=>$priority);
     }
 
     private static function rollback_error( $code, $message ) {

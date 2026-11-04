@@ -202,7 +202,7 @@ final class Privacy {
         if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
             return;
         }
-        $content = '<p>' . esc_html__( 'If forms created with BfCamel CRM are used on this site, the plugin may store submitted form data, CRM contacts, internal notes, consent events, source URLs and browser information. IP address storage is optional and disabled by default. Site owners choose whether to provide links to legal documents and remain responsible for the legal basis, consent wording and retention periods used on their site.', 'bfcamel-crm' ) . '</p>';
+        $content = '<p>' . 'При отправке формы CRM сохраняет ответы, время, IP, страницу, редакцию формы и ссылки на тексты согласий. Рассылка требует отдельного согласия.' . '</p>';
         wp_add_privacy_policy_content( __( 'BfCamel CRM', 'bfcamel-crm' ), wp_kses_post( wpautop( $content ) ) );
     }
 
@@ -307,6 +307,26 @@ final class Privacy {
         $rows         = $wpdb->get_results( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Privacy export requires fresh rows; identifiers use %i and generated IN lists contain placeholders only.
         $has_more     = count( $rows ) > self::PAGE_SIZE;
         return array( 'rows' => array_slice( $rows, 0, self::PAGE_SIZE ), 'has_more' => $has_more );
+    }
+
+    public function erase_selected( $row, $reason ) {
+        global $wpdb;
+        $details = array( 'submission_id' => (int) $row->id, 'system' => 'BfCamel CRM', 'reason' => $reason, 'method' => 'Очистка полей заявки, технических метаданных, заметок и журнала заявки', 'external' => 'Копии, выгрузки, письма и карточка контакта проверяются отдельно' );
+        $details['Оператор'] = 'Благотворительный фонд помощи животным «Люди и Верблюды», г. Казань, ул. Большая Красная, д. 1Б, помещение 1001';
+        $details['Исполнитель'] = wp_get_current_user()->display_name;
+        $details['Категории'] = implode( ', ', array_keys( json_decode( $row->payload_json, true ) ?: array() ) );
+        $details['Внешние копии'] = \BfCamel\CRM\Support\Request::post_text( 'copies' ) ?: 'Требуется отдельная проверка';
+        if ( ! Register::log( 'erase_requested', $details ) || ! Schema::begin_transaction() ) return false;
+        $locked = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id=%d FOR UPDATE', Schema::table( 'submissions' ), $row->id ) );
+        if ( ! $locked || ! $this->scrub_submission( $locked ) ||
+            false === $wpdb->update( Schema::table( 'submissions' ), array( 'contact_id' => 0 ), array( 'id' => $row->id ) ) ||
+            false === $wpdb->delete( Schema::table( 'purposes' ), array( 'submission_id' => $row->id ) ) ||
+            ! Register::log( 'erase_submission', $details ) || ! Schema::commit() ) {
+            Schema::rollback();
+            Register::log( 'erase_failed', $details );
+            return false;
+        }
+        return true;
     }
 
     private function scrub_submission( $submission ) {

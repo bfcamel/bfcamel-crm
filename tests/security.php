@@ -14,6 +14,8 @@ function is_wp_error( $value ) { return $value instanceof WP_Error; }
 function wp_salt( $scheme ) { return 'test-only'; }
 function wp_get_session_token() { return ''; }
 function sanitize_html_class( $v ) { return preg_replace( '/[^A-Za-z0-9_-]/', '', $v ); }
+function checked( $value, $current, $echo ) { return $value == $current ? ' checked' : ''; }
+function selected( $value, $current, $echo ) { return $value == $current ? ' selected' : ''; }
 function esc_attr( $v ) { return htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ); }
 function esc_url_raw( $v ) { return filter_var( (string) $v, FILTER_SANITIZE_URL ); }
 function esc_html__( $v ) { return esc_html( $v ); }
@@ -107,3 +109,23 @@ get_role( 'administrator' )->remove_cap( 'bfcamel_crm_access' );
 RoleManager::ensure_roles( true );
 check( ! empty( get_role( 'administrator' )->caps['bfcamel_crm_access'] ), 'Activation cannot repair missing capabilities.' );
 echo "Security regression tests passed.\n";
+
+$validate = new ReflectionMethod( \BfCamel\CRM\Forms\SubmissionHandler::class, 'validate_payload' );
+$validate->setAccessible( true );
+$schema = array(
+    array( 'name' => 'privacy', 'type' => 'consent_personal_data', 'required' => true ),
+    array( 'name' => 'subscribe', 'type' => 'consent_marketing', 'required' => false ),
+    array( 'name' => 'phone', 'type' => 'tel', 'required' => true ),
+    array( 'name' => 'date', 'type' => 'date' ),
+);
+$handler = \BfCamel\CRM\Forms\SubmissionHandler::instance();
+$answers = array( 'privacy' => '1', 'phone' => '+7 (999) 123-45-67', 'date' => '2024-02-29' );
+check( ! is_wp_error( $validate->invoke( $handler, $schema, $answers ) ), 'Optional marketing must not block submission.' );
+foreach ( array( false, 'false', 'on', array( '1' ), '0' ) as $bad ) {
+    foreach ( array( 'privacy', 'subscribe' ) as $field ) {
+        check( is_wp_error( $validate->invoke( $handler, $schema, array_merge( $answers, array( $field => $bad ) ) ) ), 'Malformed consent accepted.' );
+    }
+}
+foreach ( array( array( 'date' => '2023-02-29' ), array( 'phone' => 'letters' ), array( 'privacy' => '' ) ) as $invalid ) {
+    check( is_wp_error( $validate->invoke( $handler, $schema, array_merge( $answers, $invalid ) ) ), 'Invalid input accepted.' );
+}

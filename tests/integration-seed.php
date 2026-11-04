@@ -15,6 +15,8 @@ function crm_snapshot() {
     $snapshot = array();
     foreach ( array( 'forms', 'form_revisions', 'contacts', 'contact_emails', 'contact_phones', 'contact_fields', 'submissions', 'consent_events', 'tags', 'submission_tags', 'contact_tags', 'notes', 'activity_log' ) as $suffix ) {
         $rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i', Schema::table( $suffix ) ), ARRAY_A );
+        if ( 'consent_events' === $suffix ) foreach ( $rows as &$row ) unset( $row['channel'] );
+        unset( $row );
         $rows = array_map( 'wp_json_encode', $rows );
         sort( $rows, SORT_STRING );
         $snapshot[ $suffix ] = hash( 'sha256', wp_json_encode( $rows ) );
