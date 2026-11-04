@@ -59,6 +59,7 @@ final class ConsentService {
             }
 
             $consent_type = 'consent_personal_data' === $type ? 'personal_data' : 'marketing';
+            if ( 'marketing' === $consent_type && empty( $payload[ $name ] ) ) continue;
             $status       = self::status_from_form_value( $payload[ $name ] ?? '' );
             if ( ! isset( $choices[ $consent_type ] ) || 'granted' === $status ) {
                 $choices[ $consent_type ] = array(
@@ -71,6 +72,11 @@ final class ConsentService {
 
         foreach ( $choices as $consent_type => $choice ) {
             $evidence              = self::document_snapshot( $consent_type, $choice['field'] );
+            foreach ( $evidence['documents'] as $doc ) {
+                if ( empty( $doc['archive_id'] ) ) return false;
+            }
+            $evidence['utc'] = gmdate( 'Y-m-d\TH:i:s\Z' );
+            $evidence['form_name'] = $source['form_name'] ?? '';
             $evidence['field_key'] = $choice['field_key'];
             if ( ! self::record( $contact_id, $submission_id, $consent_type, $choice['status'], $form_id, $revision_id, $evidence, $source, 0, 'form' ) ) {
                 return false;
@@ -197,6 +203,7 @@ final class ConsentService {
 
     private static function clean_doc( $document ) {
         return array(
+            'archive_id'     => sanitize_key( $document['archive_id'] ?? '' ),
             'title'          => sanitize_text_field( $document['title'] ?? '' ),
             'url'            => esc_url_raw( $document['url'] ?? '' ),
             'version'        => sanitize_text_field( $document['version'] ?? '' ),

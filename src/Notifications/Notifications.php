@@ -31,6 +31,9 @@ final class Notifications {
             $latest = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(id),0) FROM %i', Schema::table( 'submissions' ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Establish an activation boundary without notifying about historical submissions.
             add_option( self::START_OPTION, $latest, '', false );
         }
+        $stored = get_option( self::OPTION, array() );
+        $clean = array_diff_key( (array) $stored, array_flip( array( 'telegram_enabled', 'telegram_token', 'telegram_chat', 'normal_digest', 'reminder_minutes' ) ) );
+        if ( $clean !== $stored ) update_option( self::OPTION, $clean, false );
         if ( ! wp_next_scheduled( self::CRON ) ) wp_schedule_event( time() + 60, 'bfcamel_crm_minute', self::CRON );
     }
 
@@ -103,12 +106,11 @@ final class Notifications {
         $settings = self::settings();
         $ok = true;
         $available = 'normal' === $level ? ( (int) floor( time() / HOUR_IN_SECONDS ) + 1 ) * HOUR_IN_SECONDS : time();
-        if ( ! empty( $settings['email_enabled'] ) && ( 'normal' !== $level || ! empty( $settings['normal_digest'] ) ) ) {
+        if ( ! empty( $settings['email_enabled'] ) && 'normal' !== $level ) {
             $ids = array_map( 'absint', (array) $settings['recipients'] );
             if ( $row->assigned_to ) $ids[] = absint( $row->assigned_to );
             foreach ( array_unique( $ids ) as $user_id ) if ( user_can( $user_id, 'bfcamel_crm_view_submissions' ) && false === self::receipt( $event_id, $user_id, 'email', 'pending', $available ) ) $ok = false;
         }
-        if ( 'urgent' === $level && ! empty( $settings['telegram_enabled'] ) && $settings['telegram_chat'] && $settings['telegram_token'] && false === self::receipt( $event_id, 0, 'telegram', 'pending', time() ) ) $ok = false;
         if ( $ok ) {
             global $wpdb;
             $wpdb->update( Schema::table( 'notifications' ), array( 'queued' => 1 ), array( 'id' => $event_id ), array( '%d' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Only mark fully enqueued events; failed receipt writes are retried.
@@ -172,25 +174,20 @@ final class Notifications {
                 $row = SubmissionService::get( $event->submission_id );
                 if ( $row ) self::queue( $event->id, $row, $event->level );
             }
-            self::reminders();
             self::deliver();
         } finally {
             $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Release after delivery state is persisted.
         }
     }
 
-    private static function reminders() {
-        global $wpdb;
-        $minutes = (int) self::settings()['reminder_minutes'];
-        if ( $minutes < 1 ) return;
-        $open = self::open_sql();
-        $events_sql = $wpdb->prepare( '%i', Schema::table( 'notifications' ) );
-        $sql = $wpdb->prepare( "SELECT n.id,n.submission_id FROM %i n INNER JOIN %i s ON s.id=n.submission_id LEFT JOIN %i reminder ON reminder.event_key=CONCAT('reminder:',n.id) WHERE n.kind IN ('created','raised') AND n.id=(SELECT MAX(latest.id) FROM {$events_sql} latest WHERE latest.submission_id=n.submission_id AND latest.kind IN ('created','raised')) AND n.level='urgent' AND s.assigned_to=0 AND n.created_at<=%s AND reminder.id IS NULL AND {$open} ORDER BY n.id ASC LIMIT 20", Schema::table( 'notifications' ), Schema::table( 'submissions' ), Schema::table( 'notifications' ), gmdate( 'Y-m-d H:i:s', time() - $minutes * MINUTE_IN_SECONDS ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Both SQL fragments contain only allowlisted identifiers and prepared status placeholders.
-        $rows = $wpdb->get_results( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Prepared internal open-status fragment and parameters.
-        foreach ( (array) $rows as $event ) {
-            $row = SubmissionService::get( $event->submission_id );
-            if ( $row && 'urgent' === self::level( $row->priority ) ) self::record( $row, 'reminder', 'reminder:' . $event->id );
-        }
+    private static function eligible_email( $receipt ) {
+        if ( 'email' !== $receipt->channel || 'normal' === $receipt->level || 'reminder' === $receipt->kind ) return false;
+        $row = SubmissionService::get( $receipt->submission_id );
+        $settings = self::settings();
+        return $row && ! self::is_closed( $row ) && ! empty( $settings['email_enabled'] )
+            && user_can( $receipt->user_id, 'bfcamel_crm_view_submissions' )
+            && ( (int) $row->assigned_to === (int) $receipt->user_id ||
+                in_array( (int) $receipt->user_id, array_map( 'absint', (array) $settings['recipients'] ), true ) );
     }
 
     private static function deliver() {
@@ -201,32 +198,17 @@ final class Notifications {
         foreach ( (array) $rows as $receipt ) {
             $key = $receipt->event_id . ':' . $receipt->user_id . ':' . $receipt->channel;
             if ( isset( $done[ $key ] ) || microtime( true ) - $started > 20 ) continue;
-            $row = SubmissionService::get( $receipt->submission_id );
-            $settings = self::settings();
-            $eligible = $row && ! self::is_closed( $row );
-            if ( 'reminder' === $receipt->kind && $row && $row->assigned_to ) $eligible = false;
-            if ( 'email' === $receipt->channel ) $eligible = $eligible && ! empty( $settings['email_enabled'] ) && user_can( $receipt->user_id, 'bfcamel_crm_view_submissions' ) && ( in_array( (int) $receipt->user_id, array_map( 'absint', (array) $settings['recipients'] ), true ) || (int) $row->assigned_to === (int) $receipt->user_id );
-            else $eligible = $eligible && ! empty( $settings['telegram_enabled'] ) && 'urgent' === self::level( $row->priority );
-            if ( ! $eligible ) { self::delivery_state( $receipt, 'cancelled' ); continue; }
-            $batch = array( $receipt );
-            if ( 'email' === $receipt->channel && 'normal' === $receipt->level ) {
-                if ( empty( $settings['normal_digest'] ) ) { self::delivery_state( $receipt, 'cancelled' ); continue; }
-                foreach ( $rows as $other ) {
-                    if ( $other !== $receipt && 'email' === $other->channel && (int) $other->user_id === (int) $receipt->user_id && 'normal' === $other->level ) {
-                        $other_row = SubmissionService::get( $other->submission_id );
-                        if ( $other_row && ! self::is_closed( $other_row ) ) $batch[] = $other;
-                    }
-                }
+            if ( ! self::eligible_email( $receipt ) ) {
+                self::delivery_state( $receipt, 'cancelled' );
+                continue;
             }
-            $leased = array();
-            foreach ( $batch as $item ) {
-                if ( self::delivery_state( $item, 'sending', time() + 300 ) ) {
-                    $leased[] = $item; $done[ $item->event_id . ':' . $item->user_id . ':' . $item->channel ] = true;
-                }
+            if ( ! self::delivery_state( $receipt, 'sending', time() + 300 ) ) continue;
+            if ( ! self::eligible_email( $receipt ) ) {
+                self::delivery_state( $receipt, 'cancelled' );
+                continue;
             }
-            if ( ! $leased ) continue;
-            $sent = 'email' === $receipt->channel ? self::email( $leased ) : self::telegram( $receipt );
-            foreach ( $leased as $item ) self::delivery_state( $item, $sent ? 'sent' : ( (int) $item->attempts >= 4 ? 'failed' : 'pending' ), time() + min( HOUR_IN_SECONDS, 60 * ( 2 ** (int) $item->attempts ) ) );
+            $sent = self::email( array( $receipt ) );
+            self::delivery_state( $receipt, $sent ? 'sent' : ( (int) $receipt->attempts >= 4 ? 'failed' : 'pending' ), time() + min( HOUR_IN_SECONDS, 60 * ( 2 ** (int) $receipt->attempts ) ) );
         }
     }
 
@@ -247,10 +229,4 @@ final class Notifications {
         return wp_mail( $user->user_email, $title, implode( "\n\n", $lines ) );
     }
 
-    private static function telegram( $event ) {
-        $settings = self::settings();
-        if ( ! preg_match( '/^\d+:[A-Za-z0-9_-]+$/', $settings['telegram_token'] ) || ! $settings['telegram_chat'] ) return false;
-        $response = wp_remote_post( 'https://api.telegram.org/bot' . $settings['telegram_token'] . '/sendMessage', array( 'timeout' => 8, 'redirection' => 0, 'body' => array( 'chat_id' => $settings['telegram_chat'], 'text' => __( 'Urgent CRM submission', 'bfcamel-crm' ) . "\n" . self::event_title( $event->submission_id, $event->kind ) . "\n" . self::url( $event->submission_id ), 'disable_web_page_preview' => true ) ) );
-        return ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) && ! empty( json_decode( wp_remote_retrieve_body( $response ), true )['ok'] );
-    }
 }

@@ -21,6 +21,9 @@ final class SubmissionDetailPage {
             wp_die( esc_html__( 'Submission not found.', 'bfcamel-crm' ) );
         }
 
+        global $wpdb;
+        $events = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE submission_id=%d ORDER BY id ASC', Schema::table( 'consent_events' ), $row->id ) );
+        $empty_labels = array();
         $summary = SubmissionService::summary( $row );
         $back_url = NotificationAdmin::return_url();
         $form = Repository::get( $row->form_id );
@@ -87,12 +90,38 @@ final class SubmissionDetailPage {
                                 if ( ! $name || 'html' === ( $field['type'] ?? '' ) ) {
                                     continue;
                                 }
+                                if ( in_array( $field['type'], array( 'consent_personal_data', 'consent_marketing' ), true ) ) continue;
                                 $value = $payload[ $name ] ?? '';
+                                if ( '' === $value || array() === $value ) {
+                                    $empty_labels[] = $field['label'] ?: $name;
+                                    continue;
+                                }
                                 ?>
                                 <dt><?php echo esc_html( $field['label'] ?: $name ); ?></dt>
                                 <dd><?php echo esc_html( is_array( $value ) ? implode( ', ', $value ) : (string) $value ); ?></dd>
                             <?php endforeach; ?>
                         </dl>
+                        <?php if ( $empty_labels ) : ?><details><summary>Незаполненные поля</summary><?php echo esc_html( implode( ', ', $empty_labels ) ); ?></details><?php endif; ?>
+                    </div>
+                    <div class="bfcamel-crm-panel">
+                        <h2>Согласия</h2>
+                        <?php foreach ( $events as $event ) : $proof = json_decode( $event->documents_json, true ); ?>
+                            <p><strong><?php echo esc_html( ActivityFormatter::consent_type_label( $event->consent_type ) ); ?></strong>
+                            — <?php echo esc_html( ActivityFormatter::consent_status_label( $event->status ) ); ?><br>
+                            <?php echo esc_html( $proof['utc'] ?? $event->event_at ); ?>
+                            · <?php echo esc_html( $proof['form_name'] ?? '' ); ?>
+                            · <?php echo esc_html( $event->source_url ); ?></p>
+                            <?php foreach ( (array) ( $proof['documents'] ?? array() ) as $doc ) : ?>
+                                <?php if ( ! empty( $doc['archive_id'] ) ) : ?>
+                                <a href="<?php echo esc_url( \BfCamel\CRM\Consent\DocumentArchive::url( $doc['archive_id'] ) ); ?>"><?php echo esc_html( $doc['title'] ?: 'Сохранённая редакция' ); ?></a>
+                                <?php else : ?>Редакция не подтверждена<?php endif; ?>
+                            <?php endforeach; ?>
+                            <?php if ( $event->source_ip ) : ?><details><summary>IP отправителя</summary><?php echo esc_html( $event->source_ip ); ?></details><?php endif; ?>
+                        <?php endforeach; ?>
+                        <?php if ( ! $events ) : ?>Редакция не подтверждена<?php endif; ?>
+                        <?php if ( $row->contact_id ) : $current = \BfCamel\CRM\Consent\ConsentService::current_statuses( $row->contact_id ); ?>
+                            <p>Рассылка сейчас: <?php echo esc_html( ActivityFormatter::consent_status_label( $current['marketing'] ) ); ?></p>
+                        <?php endif; ?>
                     </div>
 
                     <div class="bfcamel-crm-panel">

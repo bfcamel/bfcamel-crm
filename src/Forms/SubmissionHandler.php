@@ -21,10 +21,19 @@ final class SubmissionHandler {
         if(!$form_id||!$revision_id||!wp_verify_nonce($nonce,'bfcamel_crm_submit_'.$form_id.'_'.$revision_id))$this->redirect($return_url,$form_id,'error');
         if(''!==Request::post_text('bfcamel_crm_website'))$this->redirect($return_url,$form_id,'success');
         $form=Repository::get($form_id);$revision=Repository::get_revision($revision_id);if(!$form||'publish'!==$form->status||!$revision||absint($revision->form_id)!==$form_id)$this->redirect($return_url,$form_id,'error');
-        if($this->is_rate_limited($form_id))$this->redirect($return_url,$form_id,'error');
+        if ( absint( $form->current_revision_id ) !== $revision_id || ! hash_equals( \BfCamel\CRM\Consent\DocumentArchive::context( $form_id, $revision_id, $return_url ), Request::post_text( 'consent_context' ) ) ) {
+            $path = wp_parse_url( wp_validate_redirect( $return_url, home_url( '/' ) ), PHP_URL_PATH );
+            Renderer::instance()->retry( $form_id, home_url( '/' . ltrim( (string) $path, '/' ) ), Request::post_payload(), new \WP_Error( 'revision', 'Форма или документы изменились. Проверьте ответы и подтвердите согласия заново.' ) );
+        }
+
         $schema=Repository::decode_schema($revision);$result=$this->validate_payload($schema,Request::post_payload());
-        if(is_wp_error($result))$this->redirect($return_url,$form_id,'error');
-        $payload=$result;$settings=Repository::decode_settings($revision);$workflow=WorkflowService::evaluate($form_id,$settings,$payload);$source=$this->source_context($return_url);$uuid=wp_generate_uuid4();
+        if(is_wp_error($result))Renderer::instance()->retry($form_id,$return_url,Request::post_payload(),$result);
+        if($this->is_rate_limited($form_id))Renderer::instance()->retry($form_id,$return_url,Request::post_payload(),new \WP_Error('limited','Повторите попытку через несколько секунд.'));
+        $payload=$result;$settings=Repository::decode_settings($revision);$workflow=WorkflowService::evaluate($form_id,$settings,$payload);$source=$this->source_context($return_url);$source['form_name'] = $form->name;
+        $source['source_url'] = $return_url;
+        $source['source_ip'] = Request::server_textarea( 'REMOTE_ADDR', 100 );
+        if ( ! filter_var( $source['source_ip'], FILTER_VALIDATE_IP ) ) $this->redirect($return_url,$form_id,'error');
+        $uuid=wp_generate_uuid4();
         if(!Schema::begin_transaction())$this->redirect($return_url,$form_id,'error');
         global $wpdb;$inserted=$wpdb->insert(Schema::table('submissions'),array('form_id'=>$form_id,'revision_id'=>$revision_id,'submission_uuid'=>$uuid,'contact_id'=>0,'status'=>$workflow['status'],'contact_sync_status'=>'pending','assigned_to'=>0,'priority'=>$workflow['priority'],'payload_json'=>wp_json_encode($payload),'source_url'=>$source['source_url'],'source_ip'=>$source['source_ip'],'user_agent'=>$source['user_agent'],'submitted_at'=>current_time('mysql')),array('%d','%d','%s','%d','%s','%s','%d','%s','%s','%s','%s','%s','%s')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional insert into the plugin's custom submissions table.
         if(!$inserted)$this->rollback_and_redirect($return_url,$form_id);
@@ -32,13 +41,15 @@ final class SubmissionHandler {
         if('error'===$sync_status)$this->rollback_and_redirect($return_url,$form_id);
         $status=$workflow['status'];if('conflict'===$sync_status){$status=WorkflowService::is_valid('status','needs_review')?'needs_review':WorkflowService::default_status();}
         if(false===$wpdb->update(Schema::table('submissions'),array('contact_id'=>$contact_id,'contact_sync_status'=>$sync_status,'status'=>$status),array('id'=>$submission_id),array('%d','%s','%s'),array('%d')))$this->rollback_and_redirect($return_url,$form_id); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional synchronization requires current custom-table state.
-        if(!ConsentService::capture_from_submission($submission_id,'created'===$sync_status?$contact_id:0,$form_id,$revision_id,$schema,$payload,$source))$this->rollback_and_redirect($return_url,$form_id);
+        if(!ConsentService::capture_from_submission($submission_id,in_array($sync_status,array('created','linked'),true)?$contact_id:0,$form_id,$revision_id,$schema,$payload,$source))$this->rollback_and_redirect($return_url,$form_id);
         if(!Schema::log('submission',$submission_id,'created','Form submission received.',array('form_id'=>$form_id,'revision_id'=>$revision_id,'submission_uuid'=>$uuid,'contact_id'=>$contact_id,'contact_sync_status'=>$sync_status,'status'=>$status,'priority'=>$workflow['priority'])))$this->rollback_and_redirect($return_url,$form_id);
         if(!Schema::commit())$this->rollback_and_redirect($return_url,$form_id);
         do_action('bfcamel_crm_submission_created',$submission_id,$contact_id,$form_id,$revision_id);$this->redirect($return_url,$form_id,'success');
     }
 
     private function validate_payload( $schema, $posted ) {
+        $policy = Repository::validate_consents( $schema );
+        if ( is_wp_error( $policy ) ) return $policy;
         $payload = array();
         foreach ( (array) $schema as $field ) {
             $name     = sanitize_key( $field['name'] ?? '' );
@@ -48,22 +59,36 @@ final class SubmissionHandler {
                 continue;
             }
             $raw   = isset( $posted[ $name ] ) ? $posted[ $name ] : '';
+            if ( in_array( $type, array( 'consent_personal_data', 'consent_marketing' ), true ) &&
+                array_key_exists( $name, $posted ) && '1' !== $raw ) {
+                return new \WP_Error( 'invalid_consent', 'Недопустимое значение согласия.', $name );
+            }
+            if ( 'tel' === $type && '' !== $raw &&
+                ( ! is_string( $raw ) || ! preg_match( '/^\+?[0-9 ()-]+$/D', $raw ) ||
+                  ! preg_match( '/^[0-9]{10,15}$/D', preg_replace( '/[^0-9]/', '', $raw ) ) ) ) {
+                return new \WP_Error( 'invalid_phone', 'Проверьте номер телефона.', $name );
+            }
+            if ( 'date' === $type && '' !== $raw &&
+                ( ! is_string( $raw ) || ! preg_match( '/^(\d{4})-(\d{2})-(\d{2})$/D', $raw, $parts ) ||
+                  ! checkdate( (int) $parts[2], (int) $parts[3], (int) $parts[1] ) ) ) {
+                return new \WP_Error( 'invalid_date', 'Укажите существующую календарную дату.', $name );
+            }
             $value = $this->sanitize_value( $type, $raw, (array) ( $field['options'] ?? array() ) );
             if ( is_wp_error( $value ) ) {
                 return $value;
             }
             if ( $required && $this->is_empty( $value ) ) {
                 /* translators: %s: required form field key. */
-                return new \WP_Error( 'bfcamel_crm_required', sprintf( __( 'Required field missing: %s', 'bfcamel-crm' ), $name ) );
+                return new \WP_Error( 'bfcamel_crm_required', sprintf( __( 'Required field missing: %s', 'bfcamel-crm' ), $name ), $name );
             }
             if ( 'email' === $type && '' !== $value && ! is_email( $value ) ) {
-                return new \WP_Error( 'bfcamel_crm_email', __( 'Invalid email address.', 'bfcamel-crm' ) );
+                return new \WP_Error( 'bfcamel_crm_email', __( 'Invalid email address.', 'bfcamel-crm' ), $name );
             }
             $payload[ $name ] = in_array( $type, array( 'consent_personal_data', 'consent_marketing' ), true ) ? ( $value ? '1' : '' ) : $value;
         }
         return $payload;
     }
-    private function sanitize_value($type,$raw,$options){switch($type){case'email':return sanitize_email(is_scalar($raw)?$raw:'');case'tel':case'text':case'hidden':case'date':return sanitize_text_field(is_scalar($raw)?$raw:'');case'number':if(''===$raw||null===$raw)return'';return is_numeric($raw)?(string)$raw:new \WP_Error('bfcamel_crm_number',__( 'Invalid number.', 'bfcamel-crm' ));case'textarea':return sanitize_textarea_field(is_scalar($raw)?$raw:'');case'select':case'radio':$value=sanitize_text_field(is_scalar($raw)?$raw:'');if(''===$value)return'';return in_array($value,$options,true)?$value:new \WP_Error('bfcamel_crm_option',__( 'Invalid option.', 'bfcamel-crm' ));case'checkbox':$values=array();foreach((array)$raw as $item){$item=sanitize_text_field($item);if(in_array($item,$options,true))$values[]=$item;}return array_values(array_unique($values));case'consent_personal_data':case'consent_marketing':return !empty($raw);default:return sanitize_text_field(is_scalar($raw)?$raw:'');}}
+    private function sanitize_value($type,$raw,$options){switch($type){case'email':return sanitize_email(is_scalar($raw)?$raw:'');case'tel':case'text':case'hidden':case'date':return sanitize_text_field(is_scalar($raw)?$raw:'');case'number':if(''===$raw||null===$raw)return'';return is_numeric($raw)?(string)$raw:new \WP_Error('bfcamel_crm_number',__( 'Invalid number.', 'bfcamel-crm' ));case'textarea':return sanitize_textarea_field(is_scalar($raw)?$raw:'');case'select':case'radio':$value=sanitize_text_field(is_scalar($raw)?$raw:'');if(''===$value)return'';return in_array($value,$options,true)?$value:new \WP_Error('bfcamel_crm_option',__( 'Invalid option.', 'bfcamel-crm' ));case'checkbox':$values=array();foreach((array)$raw as $item){$item=sanitize_text_field($item);if(in_array($item,$options,true))$values[]=$item;}return array_values(array_unique($values));case'consent_personal_data':case'consent_marketing':return '1' === $raw;default:return sanitize_text_field(is_scalar($raw)?$raw:'');}}
     private function is_empty($value){if(is_array($value))return 0===count($value);if(is_bool($value))return false===$value;return''===trim((string)$value);}
     private function source_context($source_url){$settings=get_option('bfcamel_crm_settings',array());$store_ip=!empty($settings['store_ip']);$store_url=!isset($settings['store_source_url'])||!empty($settings['store_source_url']);$store_agent=!isset($settings['store_user_agent'])||!empty($settings['store_user_agent']);$ip='';if($store_ip){$candidate=Request::server_textarea('REMOTE_ADDR',100);if(filter_var($candidate,FILTER_VALIDATE_IP))$ip=$candidate;}return array('source_url'=>$store_url?esc_url_raw($source_url):'','source_ip'=>$ip,'user_agent'=>$store_agent?Request::server_textarea('HTTP_USER_AGENT',1000):'');}
     private function is_rate_limited( $form_id ) {

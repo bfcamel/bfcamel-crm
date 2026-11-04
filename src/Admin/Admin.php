@@ -292,7 +292,7 @@ final class Admin {
         $saved = Request::get_key( 'saved' );
         ?>
         <div class="wrap bfcamel-crm-admin"><div class="bfcamel-crm-page-title"><div><h1><?php esc_html_e( 'BfCamel CRM settings', 'bfcamel-crm' ); ?></h1><p class="description"><?php esc_html_e( 'Configure privacy, legal documents, storage and access in one place.', 'bfcamel-crm' ); ?></p></div></div><?php if ( '1' === $saved ) : ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Settings saved.', 'bfcamel-crm' ); ?></p></div><?php endif; ?>
-        <nav class="bfcamel-crm-section-nav" aria-label="<?php echo esc_attr__( 'Settings sections', 'bfcamel-crm' ); ?>"><a href="#bfcamel-legal"><?php esc_html_e( 'Legal documents', 'bfcamel-crm' ); ?></a><a href="#bfcamel-privacy"><?php esc_html_e( 'Privacy', 'bfcamel-crm' ); ?></a><a href="#bfcamel-access"><?php esc_html_e( 'Access', 'bfcamel-crm' ); ?></a></nav>
+        <nav class="bfcamel-crm-section-nav" aria-label="<?php echo esc_attr__( 'Settings sections', 'bfcamel-crm' ); ?>"><a href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-workflow' ) ); ?>">Обработка заявок</a><a href="#bfcamel-legal"><?php esc_html_e( 'Legal documents', 'bfcamel-crm' ); ?></a><a href="#bfcamel-privacy"><?php esc_html_e( 'Privacy', 'bfcamel-crm' ); ?></a><a href="#bfcamel-access"><?php esc_html_e( 'Access', 'bfcamel-crm' ); ?></a></nav>
         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="bfcamel_crm_save_settings"><?php wp_nonce_field( 'bfcamel_crm_save_settings' ); ?>
             <div class="bfcamel-crm-panel" id="bfcamel-legal"><h2><?php esc_html_e( 'Legal documents', 'bfcamel-crm' ); ?></h2><p class="description"><?php esc_html_e( 'Document links are optional. When provided, their current values are copied into consent evidence so later edits do not rewrite history.', 'bfcamel-crm' ); ?></p>
                 <?php $this->legal_row( 'personal_data_consent', __( 'Personal Data Processing Consent', 'bfcamel-crm' ), $legal ); ?>
@@ -326,6 +326,10 @@ final class Admin {
                 'link_text'      => sanitize_text_field( $posted_legal[ $type ]['link_text'] ?? '' ),
             );
         }
+        foreach ( $legal as $type => &$item ) {
+            $item['archive_id'] = \BfCamel\CRM\Consent\DocumentArchive::publish( $item, $posted_legal[ $type ]['body'] ?? '' );
+        }
+        unset( $item );
         update_option( 'bfcamel_crm_legal_documents', $legal, false );
 
         $settings = Request::post_array( 'settings' );
@@ -389,7 +393,7 @@ final class Admin {
 
     private function legal_row( $key, $label, $legal ) {
         $doc = wp_parse_args( $legal[ $key ] ?? array(), array( 'title' => '', 'url' => '', 'version' => '', 'effective_date' => '', 'link_text' => '' ) );
-        ?><fieldset class="bfcamel-crm-legal-row"><legend><?php echo esc_html( $label ); ?></legend><label><?php esc_html_e( 'Document title', 'bfcamel-crm' ); ?><input type="text" name="legal[<?php echo esc_attr( $key ); ?>][title]" value="<?php echo esc_attr( $doc['title'] ); ?>"></label><label><?php esc_html_e( 'URL (optional)', 'bfcamel-crm' ); ?><input type="url" name="legal[<?php echo esc_attr( $key ); ?>][url]" value="<?php echo esc_attr( $doc['url'] ); ?>" placeholder="https://"></label><label><?php esc_html_e( 'Link text', 'bfcamel-crm' ); ?><input type="text" name="legal[<?php echo esc_attr( $key ); ?>][link_text]" value="<?php echo esc_attr( $doc['link_text'] ); ?>"></label><label><?php esc_html_e( 'Version', 'bfcamel-crm' ); ?><input type="text" name="legal[<?php echo esc_attr( $key ); ?>][version]" value="<?php echo esc_attr( $doc['version'] ); ?>" placeholder="1.0"></label><label><?php esc_html_e( 'Effective date', 'bfcamel-crm' ); ?><input type="date" name="legal[<?php echo esc_attr( $key ); ?>][effective_date]" value="<?php echo esc_attr( $doc['effective_date'] ); ?>"></label></fieldset><?php
+        ?><fieldset class="bfcamel-crm-legal-row"><legend><?php echo esc_html( $label ); ?></legend><label><?php esc_html_e( 'Document title', 'bfcamel-crm' ); ?><input type="text" name="legal[<?php echo esc_attr( $key ); ?>][title]" value="<?php echo esc_attr( $doc['title'] ); ?>"></label><label><?php esc_html_e( 'URL (optional)', 'bfcamel-crm' ); ?><input type="url" name="legal[<?php echo esc_attr( $key ); ?>][url]" value="<?php echo esc_attr( $doc['url'] ); ?>" placeholder="https://"></label><label><?php esc_html_e( 'Link text', 'bfcamel-crm' ); ?><input type="text" name="legal[<?php echo esc_attr( $key ); ?>][link_text]" value="<?php echo esc_attr( $doc['link_text'] ); ?>"></label><label><?php esc_html_e( 'Version', 'bfcamel-crm' ); ?><input type="text" name="legal[<?php echo esc_attr( $key ); ?>][version]" value="<?php echo esc_attr( $doc['version'] ); ?>" placeholder="1.0"></label><label><?php esc_html_e( 'Effective date', 'bfcamel-crm' ); ?><input type="date" name="legal[<?php echo esc_attr( $key ); ?>][effective_date]" value="<?php echo esc_attr( $doc['effective_date'] ); ?>"></label><label>Полный текст архивной редакции<textarea name="legal[<?php echo esc_attr( $key ); ?>][body]"><?php $entry = empty( $doc['archive_id'] ) ? array() : get_option( 'bfcamel_crm_document_' . $doc['archive_id'], array() ); echo esc_textarea( $entry['body'] ?? '' ); ?></textarea></label></fieldset><?php
     }
 
     private function guard( $capability ) {

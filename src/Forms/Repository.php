@@ -229,7 +229,24 @@ final class Repository {
             $label='html'===$type?wp_kses_post($field['label']??''):sanitize_textarea_field($field['label']??'');
             $classes=array_filter(array_map('sanitize_html_class',preg_split('/\s+/',(string)($field['css_class']??''))));
             $result[]=array('name'=>$name,'type'=>$type,'label'=>$label,'required'=>!empty($field['required']),'width'=>$width,'placeholder'=>sanitize_text_field($field['placeholder']??''),'mapping'=>$mapping,'custom_key'=>sanitize_key($field['custom_key']??''),'css_class'=>implode(' ',$classes),'options'=>$options);
-        }return $result;
+        }
+        $policy = self::validate_consents( $result );
+        return is_wp_error( $policy ) ? $policy : $result;
+    }
+
+    public static function validate_consents( $schema ) {
+        $types = array_column( $schema, 'type' );
+        if ( 1 !== count( array_keys( $types, 'consent_personal_data', true ) ) ||
+            count( array_keys( $types, 'consent_marketing', true ) ) > 1 ) {
+            return new \WP_Error( 'invalid_consent_schema', 'Добавьте одно обязательное согласие на обработку данных и не более одного согласия на рассылку.' );
+        }
+        foreach ( $schema as $field ) {
+            if ( ( 'consent_personal_data' === $field['type'] && empty( $field['required'] ) ) ||
+                ( 'consent_marketing' === $field['type'] && ! empty( $field['required'] ) ) ) {
+                return new \WP_Error( 'invalid_consent_schema', 'Согласие на обработку данных обязательно. Согласие на рассылку добровольно.' );
+            }
+        }
+        return true;
     }
 
     private static function sanitize_settings( $settings ) {

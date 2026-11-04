@@ -17,7 +17,6 @@ final class NotificationAdmin {
         add_action( 'admin_footer', array( __CLASS__, 'center' ) );
         add_action( 'wp_ajax_bfcamel_crm_notification_feed', array( __CLASS__, 'ajax_feed' ) );
         add_action( 'wp_ajax_bfcamel_crm_notification_read', array( __CLASS__, 'ajax_read' ) );
-        add_action( 'wp_ajax_bfcamel_crm_submission_detail', array( __CLASS__, 'ajax_detail' ) );
         add_action( 'wp_ajax_bfcamel_crm_complete_submission', array( __CLASS__, 'ajax_complete' ) );
         add_action( 'admin_post_bfcamel_crm_complete_submission', array( __CLASS__, 'post_complete' ) );
         add_action( 'wp_ajax_bfcamel_crm_claim_submission', array( __CLASS__, 'ajax_claim' ) );
@@ -89,11 +88,6 @@ final class NotificationAdmin {
         if ( ! Notifications::read( Request::post_id( 'submission_id' ), get_current_user_id() ) ) wp_send_json_error( array(), 500 );
         wp_send_json_success( Notifications::feed( get_current_user_id() ) );
     }
-    public static function ajax_detail() {
-        self::ajax_guard();
-        ob_start(); SubmissionDetailPage::render( Request::get_id( 'id' ) ); $html = ob_get_clean();
-        wp_send_json_success( array( 'html' => $html ) );
-    }
     public static function ajax_claim() {
         self::ajax_guard();
         $result = SubmissionService::claim( Request::post_id( 'submission_id' ), get_current_user_id() );
@@ -155,12 +149,6 @@ final class NotificationAdmin {
                     <label class="bfcamel-crm-recipient"><input type="checkbox" name="notifications[recipients][]" value="<?php echo absint( $user->ID ); ?>" <?php checked( in_array( absint( $user->ID ), array_map( 'absint', (array) $settings['recipients'] ), true ) ); ?>> <?php echo esc_html( $user->display_name . ' (' . $user->user_email . ')' ); ?></label>
                     <?php endforeach; ?>
                 </fieldset>
-                <p><label><input type="checkbox" name="notifications[normal_digest]" value="1" <?php checked( ! empty( $settings['normal_digest'] ) ); ?>> <?php esc_html_e( 'Hourly email digest for ordinary submissions', 'bfcamel-crm' ); ?></label></p>
-                <p><label><input type="checkbox" name="notifications[telegram_enabled]" value="1" <?php checked( ! empty( $settings['telegram_enabled'] ) ); ?>> <?php esc_html_e( 'Telegram for urgent submissions', 'bfcamel-crm' ); ?></label></p>
-                <p><label><?php esc_html_e( 'Telegram bot token', 'bfcamel-crm' ); ?><input type="password" name="notifications[telegram_token]" value="" autocomplete="new-password" class="regular-text"></label><br><span class="description"><?php echo esc_html( $settings['telegram_token'] ? __( 'Configured. Leave blank to keep the token.', 'bfcamel-crm' ) : __( 'Create a bot with BotFather and add it to the destination chat.', 'bfcamel-crm' ) ); ?></span></p>
-                <p><label><input type="checkbox" name="notifications[clear_token]" value="1"> <?php esc_html_e( 'Remove the saved Telegram token', 'bfcamel-crm' ); ?></label></p>
-                <p><label><?php esc_html_e( 'Telegram chat ID', 'bfcamel-crm' ); ?><input type="text" name="notifications[telegram_chat]" class="regular-text" value="<?php echo esc_attr( $settings['telegram_chat'] ); ?>"></label></p>
-                <p><label><?php esc_html_e( 'Remind about unclaimed urgent submissions after', 'bfcamel-crm' ); ?> <select name="notifications[reminder_minutes]"><?php foreach ( array( 0 => __( 'Never', 'bfcamel-crm' ), 5 => '5', 10 => '10', 15 => '15', 30 => '30' ) as $minutes => $label ) : ?><option value="<?php echo absint( $minutes ); ?>" <?php selected( (int) $settings['reminder_minutes'], $minutes ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select> <?php esc_html_e( 'minutes', 'bfcamel-crm' ); ?></label></p>
                 <p><label><?php esc_html_e( 'Status after taking a submission', 'bfcamel-crm' ); ?> <select name="notifications[working_status]"><option value=""><?php esc_html_e( 'Keep current status', 'bfcamel-crm' ); ?></option><?php foreach ( SubmissionService::statuses() as $slug => $label ) : ?><option value="<?php echo esc_attr( $slug ); ?>" <?php selected( $settings['working_status'] ?? 'in_progress', $slug ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></label></p>
                 <fieldset><legend><strong><?php esc_html_e( 'Closed statuses: exclude from attention and notifications', 'bfcamel-crm' ); ?></strong></legend><?php foreach ( SubmissionService::statuses() as $slug => $label ) : ?><label class="bfcamel-crm-recipient"><input type="checkbox" name="notifications[closed_statuses][]" value="<?php echo esc_attr( $slug ); ?>" <?php checked( in_array( $slug, (array) $settings['closed_statuses'], true ) ); ?>> <?php echo esc_html( $label ); ?></label><?php endforeach; ?></fieldset>
                 <p class="description"><?php esc_html_e( 'Delivery uses WordPress scheduled tasks. Configure a server cron for reliable delivery on quiet sites. A successful mail handoff does not guarantee inbox delivery.', 'bfcamel-crm' ); ?></p>
@@ -175,20 +163,9 @@ final class NotificationAdmin {
         $posted = Request::post_array( 'notifications' ); $old = Notifications::settings();
         $recipients = array();
         foreach ( array_map( 'absint', (array) ( $posted['recipients'] ?? array() ) ) as $id ) if ( user_can( $id, 'bfcamel_crm_view_submissions' ) ) $recipients[] = $id;
-        $token = ! empty( $posted['clear_token'] ) ? '' : $old['telegram_token'];
-        if ( ! empty( $posted['telegram_token'] ) ) {
-            if ( ! preg_match( '/^\d+:[A-Za-z0-9_-]+$/', $posted['telegram_token'] ) ) wp_die( esc_html__( 'Invalid Telegram bot token.', 'bfcamel-crm' ) );
-            $token = $posted['telegram_token'];
-        }
-        $chat = sanitize_text_field( $posted['telegram_chat'] ?? '' );
-        if ( $chat && ! preg_match( '/^(?:-?\d+|@[A-Za-z0-9_]+)$/', $chat ) ) wp_die( esc_html__( 'Invalid Telegram chat ID.', 'bfcamel-crm' ) );
-        if ( ! empty( $posted['telegram_enabled'] ) && ( ! $token || ! $chat ) ) wp_die( esc_html__( 'Configure the bot token and chat ID before enabling Telegram.', 'bfcamel-crm' ) );
         $working = sanitize_key( $posted['working_status'] ?? '' );
         $settings = array(
             'email_enabled' => ! empty( $posted['email_enabled'] ), 'recipients' => array_values( array_unique( $recipients ) ),
-            'normal_digest' => ! empty( $posted['normal_digest'] ), 'telegram_enabled' => ! empty( $posted['telegram_enabled'] ),
-            'telegram_token' => $token, 'telegram_chat' => $chat,
-            'reminder_minutes' => in_array( (int) ( $posted['reminder_minutes'] ?? 10 ), array( 0, 5, 10, 15, 30 ), true ) ? (int) $posted['reminder_minutes'] : 10,
             'working_status' => isset( SubmissionService::statuses()[ $working ] ) ? $working : '',
             'closed_statuses' => array_values( array_intersect( array_keys( SubmissionService::statuses() ), array_map( 'sanitize_key', (array) ( $posted['closed_statuses'] ?? array() ) ) ) ),
         );
