@@ -145,7 +145,9 @@ final class RoleManager {
      * @return bool
      */
     private static function all_enabled( $permissions ) {
-        foreach ( self::capability_keys() as $capability ) {
+        $legacy_keys = array_diff( self::capability_keys(), array( 'bfcamel_crm_export_contacts', 'bfcamel_crm_export_submissions' ) );
+        $legacy_keys[] = 'bfcamel_crm_export_data';
+        foreach ( $legacy_keys as $capability ) {
             if ( empty( $permissions[ $capability ] ) ) {
                 return false;
             }

@@ -11,6 +11,16 @@ let debugPage;
   await page.goto(base + '/wp-login.php');
   await page.locator('#user_login').fill('admin'); await page.locator('#user_pass').fill('integration-only');
   await Promise.all([page.waitForURL('**/wp-admin/**'), page.locator('#wp-submit').click()]);
+  for (const [area, field] of [['contacts', 'created'], ['submissions', 'status']]) {
+    await page.goto(base + '/wp-admin/admin.php?page=bfcamel-crm-' + area + '&view=all');
+    const url = await page.locator('a[href*="bfcamel_crm_export"][href*="format=csv"]').first().getAttribute('href');
+    await page.goto(url);
+    await page.locator('input[name="columns[]"][value="id"]').uncheck();
+    await page.locator('input[name="columns[]"][value="' + field + '"]').check();
+    const [download] = await Promise.all([page.waitForEvent('download'), page.locator('button[name="download"]').click()]);
+    const data = fs.readFileSync(await download.path(), 'utf8').replace(/^\\uFEFF/, '').trim().split(/\\r?\\n/);
+    if (data.length < 2 || data.some(line => line.includes(','))) throw new Error('CSV field projection failed: ' + area);
+  }
   await page.goto(base + '/wp-admin/admin.php?page=bfcamel-crm-submissions');
   await page.locator('[data-bfcamel-inbox]').waitFor();
   if (await page.locator('.bfcamel-crm-extra-filters[open]').count()) throw new Error('Secondary filters must be collapsed initially.');

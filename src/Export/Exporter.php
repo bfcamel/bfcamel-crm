@@ -60,8 +60,10 @@ final class Exporter {
         if ( ! $ids ) foreach ( $filters as $key => $value ) $args[ 'search' === $key ? 's' : $key ] = $value;
         $url = add_query_arg( $args, admin_url( 'admin-post.php' ) );
         nocache_headers();
-        ?><!doctype html><html lang="ru"><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Экспорт CRM</title><main><h1><?php echo 'contacts' === $type ? 'Экспорт контактов' : 'Экспорт заявок'; ?></h1>
+        ?><!doctype html><html lang="ru"><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Экспорт CRM</title><style>body{margin:0;background:#f0f0f1;color:#1d2327;font:16px/1.5 system-ui,sans-serif}main{max-width:44rem;margin:2rem auto;padding:1.5rem;background:white;border:1px solid #c3c4c7}fieldset{display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:.5rem;padding:1rem;margin:1rem 0}fieldset br{display:none}button{padding:.6rem 1rem;cursor:pointer}</style><main><h1><?php echo 'contacts' === $type ? 'Экспорт контактов' : 'Экспорт заявок'; ?></h1>
         <p>Записей по выбранным фильтрам: <?php echo absint( count( $rows ) ); ?>. Формат: <?php echo esc_html( strtoupper( $format ) ); ?>.</p>
+        <?php $back = 'contacts' === $type ? 'bfcamel-crm-contacts' : 'bfcamel-crm-submissions'; ?>
+        <p><a href="<?php echo esc_url( add_query_arg( array_merge( array_diff_key( $args, array_flip( array( 'type', 'action', 'format' ) ) ), array( 'page' => $back ) ), admin_url( 'admin.php' ) ) ); ?>">Вернуться к фильтрам</a></p>
         <form action="<?php echo esc_url( $url ); ?>" method="post"><?php wp_nonce_field( 'bfcamel_crm_export_' . $type . '_' . $format ); ?>
         <?php if ( $ids ) : ?><input type="hidden" name="selected_only" value="1"><?php foreach ( $ids as $id ) : ?><input type="hidden" name="selected_ids[]" value="<?php echo absint( $id ); ?>"><?php endforeach; endif; ?>
         <fieldset><legend>Поля файла</legend><?php foreach ( $headers as $i => $label ) : ?><label><input type="checkbox" name="columns[]" value="<?php echo esc_attr( $keys[$i] ); ?>" <?php checked( 0 === $i ); ?>><?php echo esc_html( $label ); ?></label><br><?php endforeach; ?></fieldset>
