@@ -16,7 +16,7 @@ $fixture = get_option( 'bfcamel_crm_test_fixture' );
 crm_assert( get_option( 'bfcamel_crm_test_snapshot' ) === crm_snapshot(), 'loading fixed code preserves every legacy CRM row byte-for-byte' );
 \BfCamel\CRM\Plugin::instance()->upgrade();
 crm_assert( get_option( 'bfcamel_crm_test_snapshot' ) === crm_snapshot(), 'upgrade preserves all submissions, revisions, identifiers, notes and evidence' );
-crm_assert( '7' === get_option( Schema::OPTION ), 'additive notification schema preserves original data' );
+crm_assert( '8' === get_option( Schema::OPTION ), 'additive notification schema preserves original data' );
 
 // Retained data and permissions survive a real uninstall/reinstall lifecycle.
 update_option( 'bfcamel_crm_settings', array( 'delete_data_on_uninstall' => false ) );
@@ -39,6 +39,13 @@ function crm_worker_end( $worker ) {
     crm_assert( 0 === proc_close( $process ), 'public worker finished: ' . $err );
     return $out;
 }
+$docs = array();
+foreach ( array( 'privacy_policy', 'personal_data_consent', 'marketing_consent' ) as $kind ) {
+    $doc = array( 'title' => $kind, 'url' => home_url( '/' . $kind ) );
+    $doc['archive_id'] = \BfCamel\CRM\Consent\DocumentArchive::publish( $doc, 'Integration fixture ' . $kind );
+    $docs[ $kind ] = $doc;
+}
+update_option( 'bfcamel_crm_legal_documents', $docs, false );
 $form = Repository::get( $fixture['form_id'] );
 $victim_before = wp_json_encode( array( ContactService::get_emails( $fixture['victim'] ), ContactService::get_phones( $fixture['victim'] ), ContactService::get_custom_fields( $fixture['victim'] ), ConsentService::current_statuses( $fixture['victim'] ) ) );
 $request = array( 'form_id' => $form->id, 'revision_id' => $form->current_revision_id, 'ip' => '198.51.100.1', 'fields' => array( 'name' => 'Changed name', 'email' => 'attacker@example.test', 'phone' => '79990000000', 'city' => 'Attacker city', 'consent' => '1', 'action' => 'user-selected-action', 'choices' => array( 'Two' ) ) );

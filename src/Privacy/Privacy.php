@@ -309,6 +309,22 @@ final class Privacy {
         return array( 'rows' => array_slice( $rows, 0, self::PAGE_SIZE ), 'has_more' => $has_more );
     }
 
+    public function erase_selected( $row, $reason ) {
+        global $wpdb;
+        $details = array( 'submission_id' => (int) $row->id, 'system' => 'BfCamel CRM', 'reason' => $reason, 'method' => 'Очистка полей заявки, технических метаданных, заметок и журнала заявки', 'external' => 'Копии, выгрузки, письма и карточка контакта проверяются отдельно' );
+        if ( ! Register::log( 'erase_requested', $details ) || ! Schema::begin_transaction() ) return false;
+        $locked = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id=%d FOR UPDATE', Schema::table( 'submissions' ), $row->id ) );
+        if ( ! $locked || ! $this->scrub_submission( $locked ) ||
+            false === $wpdb->update( Schema::table( 'submissions' ), array( 'contact_id' => 0 ), array( 'id' => $row->id ) ) ||
+            false === $wpdb->delete( Schema::table( 'purposes' ), array( 'submission_id' => $row->id ) ) ||
+            ! Register::log( 'erase_submission', $details ) || ! Schema::commit() ) {
+            Schema::rollback();
+            Register::log( 'erase_failed', $details );
+            return false;
+        }
+        return true;
+    }
+
     private function scrub_submission( $submission ) {
         global $wpdb;
         $payload = json_decode( (string) $submission->payload_json, true );

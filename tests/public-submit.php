@@ -20,6 +20,7 @@ $posted = array(
     'action' => 'bfcamel_crm_submit', 'form_id' => $request['form_id'], 'revision_id' => $request['revision_id'],
     'return_url' => home_url( '/' ), 'bfcamel_crm_nonce' => wp_create_nonce( 'bfcamel_crm_submit_' . $request['form_id'] . '_' . $request['revision_id'] ),
 );
+$posted['consent_context'] = \BfCamel\CRM\Consent\DocumentArchive::context( (int) $request['form_id'], (int) $request['revision_id'], $posted['return_url'] );
 if ( ! empty( $request['legacy'] ) ) {
     $posted = array_merge( $posted, $request['fields'] );
 } else {

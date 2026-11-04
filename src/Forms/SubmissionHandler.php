@@ -41,6 +41,7 @@ final class SubmissionHandler {
         if('error'===$sync_status)$this->rollback_and_redirect($return_url,$form_id);
         $status=$workflow['status'];if('conflict'===$sync_status){$status=WorkflowService::is_valid('status','needs_review')?'needs_review':WorkflowService::default_status();}
         if(false===$wpdb->update(Schema::table('submissions'),array('contact_id'=>$contact_id,'contact_sync_status'=>$sync_status,'status'=>$status),array('id'=>$submission_id),array('%d','%s','%s'),array('%d')))$this->rollback_and_redirect($return_url,$form_id); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional synchronization requires current custom-table state.
+        if ( ! \BfCamel\CRM\Privacy\Register::capture( $submission_id, $settings, $schema, $payload ) ) $this->rollback_and_redirect($return_url,$form_id);
         if(!ConsentService::capture_from_submission($submission_id,in_array($sync_status,array('created','linked'),true)?$contact_id:0,$form_id,$revision_id,$schema,$payload,$source))$this->rollback_and_redirect($return_url,$form_id);
         if(!Schema::log('submission',$submission_id,'created','Form submission received.',array('form_id'=>$form_id,'revision_id'=>$revision_id,'submission_uuid'=>$uuid,'contact_id'=>$contact_id,'contact_sync_status'=>$sync_status,'status'=>$status,'priority'=>$workflow['priority'])))$this->rollback_and_redirect($return_url,$form_id);
         if(!Schema::commit())$this->rollback_and_redirect($return_url,$form_id);

@@ -91,7 +91,7 @@ check( false !== strpos( $readme, 'Stable tag: 0.6.0' ), 'Stable tag is not 0.6.
 check( false === strpos( $plugin, 'Update URI:' ), 'A third-party Update URI would block WordPress.org updates.' );
 check( strpos( $plugin, "if ( defined( 'BFCAMEL_CRM_FILE' ) )" ) < strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION'" ), 'Duplicate guard moved after constants.' );
 $schema = file_get_contents( $root . '/src/Database/Schema.php' );
-check( false !== strpos( $schema, "const VERSION = '7'" ), 'Database schema version is not 7.' );
+check( false !== strpos( $schema, "const VERSION = '8'" ), 'Database schema version is not 8.' );
 check( false !== strpos( $schema, "self::table( 'notes' )" ), 'Internal notes table is missing.' );
 check( false !== strpos( $schema, "strpos( (string) \$screen->id, 'bfcamel-crm' )" ), 'The database error notice is not limited to BfCamel CRM screens.' );
 check( false !== strpos( $schema, 'Check the database user permissions' ), 'The database error notice does not explain how to resolve the problem.' );

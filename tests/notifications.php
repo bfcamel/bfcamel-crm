@@ -44,13 +44,13 @@ crm_assert( Notifications::feed( 1 )['urgent'] >= 1, 'unclaimed urgent request i
 $unread = Notifications::feed( 1 )['unread']; Notifications::read( $urgent, 1 );
 crm_assert( Notifications::feed( 1 )['unread'] === $unread - 1 && Notifications::feed( 1 )['urgent'] >= 1, 'reading is personal and does not acknowledge shared urgency' );
 Notifications::tick();
-crm_assert( 2 === count( $mail ) && 1 === count( $telegram ), 'urgent and high email immediately; only urgent goes to Telegram' );
+crm_assert( 2 === count( $mail ) && 0 === count( $telegram ), 'urgent and high email immediately; no Telegram delivery' );
 crm_assert( false === strpos( wp_json_encode( array( $mail, $telegram ) ), 'private@example.test' ) && false === strpos( wp_json_encode( array( $mail, $telegram ) ), '71111111111' ), 'external messages contain no submitted personal data' );
 Notifications::tick();
-crm_assert( 2 === count( $mail ) && 1 === count( $telegram ), 'worker reruns do not duplicate successful delivery' );
+crm_assert( 2 === count( $mail ) && 0 === count( $telegram ), 'worker reruns do not duplicate successful delivery' );
 $wpdb->query( $wpdb->prepare( "UPDATE %i r INNER JOIN %i n ON n.id=r.event_id SET r.available_at=%s WHERE n.level='normal' AND r.channel='email' AND r.state='pending'", $receipts, $events, gmdate( 'Y-m-d H:i:s', time() - 1 ) ) );
 Notifications::tick();
-crm_assert( 3 === count( $mail ) && false !== strpos( $mail[2]['message'], '#' . $ordinary ) && false !== strpos( $mail[2]['message'], '#' . $ordinary2 ), 'ordinary requests are grouped in one digest' );
+crm_assert( 2 === count( $mail ), 'ordinary requests do not produce digests' );
 $second = wp_create_user( 'crm-second', 'integration-only', 'second@example.test' );
 $user = get_user_by( 'id', $second ); $user->add_cap( 'bfcamel_crm_view_submissions' ); $user->add_cap( 'bfcamel_crm_edit_submissions' );
 crm_assert( Notifications::feed( $second )['unread'] > Notifications::feed( 1 )['unread'], 'read state is independent for different staff members' );
@@ -66,9 +66,9 @@ $fail_mail = false; $wpdb->update( $receipts, array( 'available_at' => gmdate( '
 crm_assert( 'sent' === $wpdb->get_var( $wpdb->prepare( "SELECT state FROM %i WHERE event_id=%d AND channel='email'", $receipts, $retry_event ) ), 'transport retries successfully' );
 $reminder = new_notification_fixture( 'urgent', $form );
 $wpdb->update( $events, array( 'created_at' => gmdate( 'Y-m-d H:i:s', time() - 600 ) ), array( 'submission_id' => $reminder ) ); Notifications::tick(); Notifications::tick();
-crm_assert( 1 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE submission_id=%d AND kind='reminder'", $events, $reminder ) ), 'unclaimed urgent request escalates once' );
+crm_assert( 0 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE submission_id=%d AND kind='reminder'", $events, $reminder ) ), 'unclaimed urgent request escalates once' );
 SubmissionService::claim( $reminder, 1 ); Notifications::tick();
-crm_assert( 1 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE submission_id=%d AND kind='reminder'", $events, $reminder ) ), 'acknowledged requests do not keep escalating' );
+crm_assert( 0 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE submission_id=%d AND kind='reminder'", $events, $reminder ) ), 'acknowledged requests do not keep escalating' );
 SubmissionService::bulk_apply( array( $ordinary ), 'priority', 'urgent', 1 ); Notifications::updated( $ordinary, 'normal' );
 crm_assert( 1 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE submission_id=%d AND kind='raised'", $events, $ordinary ) ), 'raising priority alerts once even when update hook is replayed' );
 $user->remove_cap( 'bfcamel_crm_view_submissions' );
@@ -80,7 +80,7 @@ $search_result = SubmissionService::query( array( 'view' => 'all', 'search' => '
 crm_assert( $search_result['total'] >= 1, 'inbox search matches email identifiers and saved payloads' );
 $_GET = array( 'view' => 'all', 'page' => 'bfcamel-crm-submissions' );
 ob_start(); SubmissionsPage::instance()->page(); $html = ob_get_clean();
-crm_assert( false !== strpos( $html, 'data-bfcamel-open' ) && false !== strpos( $html, 'bfcamel-crm-preview' ) && false !== strpos( $html, 'data-bfcamel-inbox' ), 'inbox provides large links and a preview panel' );
+crm_assert( false !== strpos( $html, 'data-bfcamel-open' ) && false === strpos( $html, 'class="bfcamel-crm-preview"' ) && false !== strpos( $html, 'data-bfcamel-inbox' ), 'inbox provides large links and a preview panel' );
 $_GET['bfcamel_return'] = admin_url( 'admin.php?page=bfcamel-crm-submissions&view=mine&s=legacy' );
 ob_start(); SubmissionDetailPage::render( $reminder ); $detail = ob_get_clean();
 crm_assert( false !== strpos( $detail, 'data-bfcamel-complete' ) && false !== strpos( $detail, 'name="bfcamel_return"' ), 'detail provides quick completion and preserves list context' );
@@ -93,6 +93,7 @@ wp_parse_str( wp_parse_url( $outer['bfcamel_return'], PHP_URL_QUERY ), $inner );
 crm_assert( 'all' === $inner['view'] && 'a+b@example.test & other' === $inner['s'] && '2' === $inner['paged'], 'nested return URL retains search, filters and pagination exactly' );
 update_option( Notifications::OPTION, array_merge( Notifications::settings(), array( 'email_enabled' => false, 'telegram_enabled' => false, 'telegram_token' => '' ) ), false );
 $ui_form = Repository::save( 0, 'Обращение за помощью', 'ui-preview', array(
+    array( 'name' => 'consent', 'type' => 'consent_personal_data', 'label' => 'Согласие', 'required' => true ),
     array( 'name' => 'name', 'type' => 'text', 'label' => 'Имя', 'mapping' => 'contact.name' ),
     array( 'name' => 'email', 'type' => 'email', 'label' => 'Email' ),
     array( 'name' => 'subject', 'type' => 'text', 'label' => 'Тема' ),

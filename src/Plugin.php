@@ -24,13 +24,14 @@ final class Plugin {
         global $wp_textdomain_registry;
         if ( isset( $wp_textdomain_registry ) ) $wp_textdomain_registry->set_custom_path( 'bfcamel-crm', BFCAMEL_CRM_DIR . 'languages' );
         if(is_admin()||(defined('WP_CLI')&&WP_CLI))add_action('init',array($this,'upgrade'),1);
+        \BfCamel\CRM\Privacy\Register::register();
         Notifications::register();
         RoleManager::register();Renderer::instance()->register();SubmissionHandler::instance()->register();Privacy::instance()->register();
         if(is_admin()){add_action('admin_notices',array('BfCamel\\CRM\\Database\\Schema','admin_notice'));Bootstrap::instance()->register();NotificationAdmin::register();}
     }
 
     public function upgrade(){
-        Schema::maybe_upgrade();WorkflowService::seed_defaults();RoleManager::ensure_roles();self::seed_defaults();Notifications::initialize();
+        Schema::maybe_upgrade();if ( Schema::is_current() && ! wp_next_scheduled( \BfCamel\CRM\Privacy\Register::HOOK ) ) wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', \BfCamel\CRM\Privacy\Register::HOOK );WorkflowService::seed_defaults();RoleManager::ensure_roles();self::seed_defaults();Notifications::initialize();
     }
 
     public static function activate( $network_wide = false ){
@@ -39,7 +40,7 @@ final class Plugin {
         }
         $installed=Schema::install();if(is_wp_error($installed))wp_die(esc_html($installed->get_error_message()));self::seed_defaults();WorkflowService::seed_defaults();RoleManager::ensure_roles(true);Notifications::initialize();
     }
-    public static function deactivate(){wp_clear_scheduled_hook(Notifications::CRON);}
+    public static function deactivate(){wp_clear_scheduled_hook(Notifications::CRON);wp_clear_scheduled_hook(\BfCamel\CRM\Privacy\Register::HOOK);}
     public static function capabilities(){return RoleManager::all_capabilities();}
 
     private static function seed_defaults(){

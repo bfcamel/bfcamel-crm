@@ -140,6 +140,7 @@ final class SubmissionService {
             return new \WP_Error( 'bfcamel_crm_submission_missing', __( 'Submission not found.', 'bfcamel-crm' ) );
         }
 
+        if ( false === $wpdb->delete( Schema::table( 'purposes' ), array( 'submission_id' => $submission_id ) ) ) return self::delete_error();
         $event_ids = $wpdb->get_col( $wpdb->prepare( 'SELECT id FROM %i WHERE submission_id=%d', Schema::table( 'notifications' ), $submission_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Collect dependent notification IDs inside the explicit delete transaction.
         foreach ( (array) $event_ids as $event_id ) {
             if ( false === $wpdb->delete( Schema::table( 'notification_receipts' ), array( 'event_id' => absint( $event_id ) ), array( '%d' ) ) ) return self::delete_error(); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Delete metadata only for the explicitly deleted submission.
