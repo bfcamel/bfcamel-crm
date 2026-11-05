@@ -18,7 +18,7 @@ let debugPage;
     await page.locator('input[name="columns[]"][value="id"]').uncheck();
     await page.locator('input[name="columns[]"][value="' + field + '"]').check();
     const [download] = await Promise.all([page.waitForEvent('download'), page.locator('button[name="download"]').click()]);
-    const data = fs.readFileSync(await download.path(), 'utf8').replace(/^\\uFEFF/, '').trim().split(/\\r?\\n/);
+    const data = fs.readFileSync(await download.path(), 'utf8').replace(/^\uFEFF/, '').trim().split(/\r?\n/);
     if (data.length < 2 || data.some(line => line.includes(','))) throw new Error('CSV field projection failed: ' + area);
   }
   await page.goto(base + '/wp-admin/admin.php?page=bfcamel-crm-submissions');
