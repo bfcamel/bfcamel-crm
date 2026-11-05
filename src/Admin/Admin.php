@@ -216,7 +216,7 @@ final class Admin {
                     </main>
 
                     <aside>
-                        <div class="bfcamel-crm-panel bfcamel-crm-sticky">
+                        <div class="bfcamel-crm-panel bfcamel-crm-sidebar-fields bfcamel-crm-sticky">
                             <h2><?php esc_html_e( 'Workflow', 'bfcamel-crm' ); ?></h2>
                             <p>Цели обработки. Введите * для всей формы или ключ=значение для выбранного ответа.</p>
                             <?php foreach ( \BfCamel\CRM\Privacy\Register::PURPOSES as $purpose => $title ) : if ( 'marketing' === $purpose ) continue; ?>

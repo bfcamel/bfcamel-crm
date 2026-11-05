@@ -160,7 +160,7 @@ final class SubmissionDetailPage {
                 </main>
 
                 <aside>
-                    <div class="bfcamel-crm-panel bfcamel-crm-sticky">
+                    <div class="bfcamel-crm-panel bfcamel-crm-sidebar-fields">
                         <h2><?php esc_html_e( 'CRM', 'bfcamel-crm' ); ?></h2>
                         <p><strong><?php esc_html_e( 'Contact sync', 'bfcamel-crm' ); ?>:</strong> <?php echo esc_html( ActivityFormatter::sync_label( $row->contact_sync_status ) ); ?></p>
                         <?php if ( $row->contact_id && current_user_can( 'bfcamel_crm_manage_contacts' ) ) : ?><p><a class="button bfcamel-crm-contact-link" href="<?php echo esc_url( add_query_arg( 'bfcamel_return', rawurlencode( $back_url ), admin_url( 'admin.php?page=bfcamel-crm-contacts&id=' . absint( $row->contact_id ) ) ) ); ?>"><?php echo esc_html( ( $summary['person'] ?: __( 'Open contact', 'bfcamel-crm' ) ) . ' →' ); ?></a></p><?php endif; ?>

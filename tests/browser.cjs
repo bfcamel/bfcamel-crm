@@ -1,6 +1,18 @@
 const { chromium } = require(process.env.CRM_PLAYWRIGHT_MODULE);
 const fs = require('node:fs');
 let debugPage;
+async function checkSidebar(page) {
+  const panel = page.locator('.bfcamel-crm-editor-grid aside > .bfcamel-crm-panel').first();
+  await panel.waitFor();
+  const ok = await panel.evaluate(element => {
+    const next = element.nextElementSibling;
+    window.scrollBy(0, element.getBoundingClientRect().bottom);
+    const separated = next && element.getBoundingClientRect().bottom <= next.getBoundingClientRect().top;
+    window.scrollTo(0, 0);
+    return separated && getComputedStyle(element).position === 'static';
+  });
+  if (!ok) throw new Error('The sidebar must scroll with the card without overlapping the next panel.');
+}
 (async () => {
   const browser = await chromium.launch({headless: true});
   const context = await browser.newContext({viewport: {width: 1440, height: 1000}});
@@ -44,6 +56,7 @@ let debugPage;
   await row.locator('input[type="checkbox"]').uncheck();
   await row.locator('a[data-bfcamel-open]').first().click();
   await page.locator('[data-bfcamel-submission-id]').waitFor();
+  await checkSidebar(page);
   await page.locator('form[data-bfcamel-claim] button').click();
   await page.locator('form[data-bfcamel-complete]').waitFor();
   await page.screenshot({path: process.env.CRM_SCREENSHOTS + '/submission-preview.png', fullPage: true});
@@ -63,6 +76,7 @@ let debugPage;
   await page.goto(base + '/wp-admin/admin.php?page=bfcamel-crm-submissions&view=all&s=victim%40example.test');
   await page.locator('.bfcamel-crm-request-person a').first().click();
   await page.waitForURL('**/*page=bfcamel-crm-contacts*');
+  await checkSidebar(page);
   await page.locator('.bfcamel-crm-page-title .bfcamel-crm-actions > a').first().click();
   await page.waitForURL('**/*view=all*');
   if (new URL(page.url()).searchParams.get('s') !== 'victim@example.test') throw new Error('Contact return changed the search context.');

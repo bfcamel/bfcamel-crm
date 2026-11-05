@@ -310,22 +310,22 @@
     top: 48px;
 }
 
-.bfcamel-crm-sticky label,
+.bfcamel-crm-sidebar-fields label,
 .bfcamel-crm-legal-row label {
     display: grid;
     gap: 6px;
 }
 
-.bfcamel-crm-sticky input[type="text"],
-.bfcamel-crm-sticky input[type="number"],
-.bfcamel-crm-sticky textarea,
-.bfcamel-crm-sticky select,
+.bfcamel-crm-sidebar-fields input[type="text"],
+.bfcamel-crm-sidebar-fields input[type="number"],
+.bfcamel-crm-sidebar-fields textarea,
+.bfcamel-crm-sidebar-fields select,
 .bfcamel-crm-legal-row input {
     width: 100%;
     max-width: none;
 }
 
-.bfcamel-crm-sticky input[type="color"] {
+.bfcamel-crm-sidebar-fields input[type="color"] {
     width: 100%;
     height: 38px;
 }

@@ -364,7 +364,7 @@ final class ContactsPage {
                 </main>
 
                 <aside>
-                    <div class="bfcamel-crm-panel bfcamel-crm-sticky">
+                    <div class="bfcamel-crm-panel bfcamel-crm-sidebar-fields">
                         <h2><?php esc_html_e( 'Contact tags', 'bfcamel-crm' ); ?></h2>
                         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                             <input type="hidden" name="action" value="bfcamel_crm_update_contact_tags">
