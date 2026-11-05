@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.3
+
+- Restore administrator access to the privacy register and workflow settings.
+- Include the Russian translation in the installable ZIP and translate system status labels.
+
 ## 0.6.2
 
 - Separate role permissions for exporting contacts and submissions.

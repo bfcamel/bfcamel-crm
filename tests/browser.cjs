@@ -11,6 +11,12 @@ let debugPage;
   await page.goto(base + '/wp-login.php');
   await page.locator('#user_login').fill('admin'); await page.locator('#user_pass').fill('integration-only');
   await Promise.all([page.waitForURL('**/wp-admin/**'), page.locator('#wp-submit').click()]);
+  for (const [slug, heading] of [['privacy', 'Обработка персональных данных'], ['workflow', null]]) {
+    const response = await page.goto(base + '/wp-admin/admin.php?page=bfcamel-crm-' + slug);
+    if (!response.ok()) throw new Error('Administrator route failed: ' + slug);
+    if (heading) await page.getByRole('heading', {name: heading, exact: true}).waitFor();
+    await page.locator('#adminmenu').getByRole('link', {name: 'Формы', exact: true}).waitFor();
+  }
   for (const [area, field] of [['contacts', 'created'], ['submissions', 'status']]) {
     await page.goto(base + '/wp-admin/admin.php?page=bfcamel-crm-' + area + '&view=all');
     const url = await page.locator('a[href*="bfcamel_crm_export"][href*="format=csv"]').first().getAttribute('href');

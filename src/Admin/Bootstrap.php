@@ -50,12 +50,9 @@ final class Bootstrap {
         remove_submenu_page( 'bfcamel-crm', 'bfcamel-crm' );
         add_submenu_page( 'bfcamel-crm', __( 'Contacts', 'bfcamel-crm' ), __( 'Contacts', 'bfcamel-crm' ), 'bfcamel_crm_manage_contacts', 'bfcamel-crm-contacts', array( $contacts, 'page' ) );
         add_submenu_page( 'bfcamel-crm', __( 'Forms', 'bfcamel-crm' ), __( 'Forms', 'bfcamel-crm' ), 'bfcamel_crm_manage_forms', 'bfcamel-crm-forms', array( $admin, 'forms_page' ) );
-        add_submenu_page( 'bfcamel-crm', __( 'Dashboard', 'bfcamel-crm' ), __( 'Dashboard', 'bfcamel-crm' ), 'bfcamel_crm_view_dashboard', 'bfcamel-crm-dashboard', array( DashboardPage::class, 'render' ) );
-        add_submenu_page( 'bfcamel-crm', __( 'CRM configuration', 'bfcamel-crm' ), __( 'Workflow', 'bfcamel-crm' ), 'bfcamel_crm_manage_settings', 'bfcamel-crm-workflow', array( $workflow, 'page' ) );
+        add_submenu_page( 'options.php', __( 'Dashboard', 'bfcamel-crm' ), __( 'Dashboard', 'bfcamel-crm' ), 'bfcamel_crm_view_dashboard', 'bfcamel-crm-dashboard', array( DashboardPage::class, 'render' ) );
+        add_submenu_page( 'options.php', __( 'CRM configuration', 'bfcamel-crm' ), __( 'Workflow', 'bfcamel-crm' ), 'bfcamel_crm_manage_settings', 'bfcamel-crm-workflow', array( $workflow, 'page' ) );
         add_submenu_page( 'bfcamel-crm', 'Реестр ПДн', 'Реестр ПДн', 'bfcamel_crm_manage_settings', 'bfcamel-crm-privacy', array( \BfCamel\CRM\Privacy\Register::class, 'page' ) );
-        remove_submenu_page( 'bfcamel-crm', 'bfcamel-crm-privacy' );
-        remove_submenu_page( 'bfcamel-crm', 'bfcamel-crm-dashboard' );
-        remove_submenu_page( 'bfcamel-crm', 'bfcamel-crm-workflow' );
         add_submenu_page( 'bfcamel-crm', __( 'Settings', 'bfcamel-crm' ), __( 'Settings', 'bfcamel-crm' ), 'bfcamel_crm_manage_settings', 'bfcamel-crm-settings', array( $admin, 'settings_page' ) );
     }
 

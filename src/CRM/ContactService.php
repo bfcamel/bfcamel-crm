@@ -205,6 +205,11 @@ final class ContactService {
         );
     }
 
+    public static function status_label( $status ) {
+        $labels = array( 'active' => 'Активен', 'anonymized' => 'Обезличен' );
+        return $labels[ $status ] ?? $status;
+    }
+
     public static function stored_statuses() {
         global $wpdb;
         return $wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT status FROM %i ORDER BY status', Schema::table( 'contacts' ) ) );
