@@ -138,7 +138,7 @@ check( false !== strpos( $release_workflow, 'php tests/smoke.php' ), 'Release pa
 check( false !== strpos( $release_workflow, 'ignore-warnings: false' ), 'Plugin Check warnings must block release publication.' );
 $build_script = file_get_contents( $root . '/scripts/build-release.sh' );
 check( false !== strpos( $build_script, 'cp "$TRANSLATION_CHECK_MO" "$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.mo"' ), 'Russian catalog not packaged.' );
-check( false !== strpos( $build_script, 'Release ZIP contains bundled translation files' ), 'The release build does not reject bundled translation catalogs.' );
+check( false !== strpos( $build_script, 'Russian catalog missing or invalid in release ZIP' ), 'Release build must reject a missing or corrupted Russian catalog.' );
 
 if ( class_exists( 'ZipArchive' ) ) {
     $xlsx_path = XlsxWriter::create( array( 'Имя' ), array( array( 'Тест' ) ) );
