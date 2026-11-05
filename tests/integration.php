@@ -140,3 +140,13 @@ crm_assert( ! ConsentService::record_manual( $id, 'marketing', 'granted', 1, '',
 $grant();
 $_POST['marketing_event'] = ConsentService::latest_marketing( $id )->id;
 crm_assert( ConsentService::record_manual( $id, 'marketing', 'granted', 1, '', 'Confirmed by telephone' ), 'current request confirmed' );
+
+$test_role = get_role( 'subscriber' );
+$test_role->add_cap( 'bfcamel_crm_export_contacts' );
+crm_assert( $test_role->has_cap( 'bfcamel_crm_export_contacts' ) && ! $test_role->has_cap( 'bfcamel_crm_export_submissions' ), 'contact export permission does not grant submission export' );
+$test_role->remove_cap( 'bfcamel_crm_export_contacts' );
+$contacts_export = new ReflectionMethod( \BfCamel\CRM\Export\Exporter::class, 'contacts' );
+$contacts_export->setAccessible( true );
+list( $headers, $rows, $keys ) = $contacts_export->invoke( null, array( 'ids' => array( $id ) ) );
+crm_assert( count( $headers ) === count( $keys ) && count( $rows ) === 1 && (int) $rows[0][array_search( 'id', $keys, true )] === (int) $id, 'selected contact export has matching stable column keys' );
+crm_assert( ! ContactService::query( array( 'stage' => 'Absent stage' ) )['rows'], 'a nonmatching staff stage never broadens the selection' );

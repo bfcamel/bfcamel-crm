@@ -59,6 +59,8 @@ function bfcamel_crm_uninstall() {
         'bfcamel_crm_manage_contacts',
         'bfcamel_crm_manage_consents',
         'bfcamel_crm_export_data',
+        'bfcamel_crm_export_contacts',
+        'bfcamel_crm_export_submissions',
         'bfcamel_crm_manage_settings',
     );
     // The permission matrix may be retained, but its applied state is revoked below.

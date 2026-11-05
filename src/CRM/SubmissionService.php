@@ -48,7 +48,7 @@ final class SubmissionService {
             $where[] = '(' . implode( ' OR ', $parts ) . ')'; $args = array_merge( $args, $search_args );
         }
         $status = isset( $filters['status'] ) ? sanitize_key( $filters['status'] ) : '';
-        if ( isset( self::statuses()[ $status ] ) ) { $where[] = 's.status=%s'; $args[] = $status; }
+        if ( '' !== $status ) { $where[] = 's.status=%s'; $args[] = $status; }
         $priority = isset( $filters['priority'] ) ? sanitize_key( $filters['priority'] ) : '';
         if ( isset( self::priorities()[ $priority ] ) ) { $where[] = 's.priority=%s'; $args[] = $priority; }
         $form_id = isset( $filters['form_id'] ) ? absint( $filters['form_id'] ) : 0;
