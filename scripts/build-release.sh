@@ -39,8 +39,7 @@ if msgattrib --only-fuzzy --no-obsolete languages/bfcamel-crm-ru_RU.po | grep -q
   exit 1
 fi
 
-# Keep the reviewed Russian catalog healthy in the source repository while
-# letting WordPress.org distribute approved translations as language packs.
+# Compile the reviewed catalog for standalone installations.
 TRANSLATION_CHECK_DIR="$(mktemp -d)"
 trap 'rm -rf "$TRANSLATION_CHECK_DIR"' EXIT
 TRANSLATION_CHECK_MO="$TRANSLATION_CHECK_DIR/bfcamel-crm-ru_RU.mo"
@@ -82,6 +81,7 @@ rsync -a ./ "$PACKAGE_DIR/" \
   --exclude='phpcs.xml.dist'
 
 (
+  cp "$TRANSLATION_CHECK_MO" "$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.mo"
   cd "$BUILD_DIR"
   zip -qr "$(basename "$ZIP_PATH")" bfcamel-crm
 )
@@ -91,8 +91,8 @@ if ! unzip -Z1 "$ZIP_PATH" | grep -qx 'bfcamel-crm/bfcamel-crm.php'; then
   exit 1
 fi
 
-if unzip -Z1 "$ZIP_PATH" | grep -Eq '\.(po|mo)$'; then
-  echo "Release ZIP contains bundled translation files instead of using WordPress.org language packs." >&2
+if ! unzip -p "$ZIP_PATH" bfcamel-crm/languages/bfcamel-crm-ru_RU.mo | cmp - "$TRANSLATION_CHECK_MO"; then
+  echo "Packaged Russian translations differ from the reviewed catalog." >&2
   exit 1
 fi
 

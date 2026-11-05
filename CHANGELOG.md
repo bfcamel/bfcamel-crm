@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.3
+
+- Restore administrator access to the privacy register. Distinguish permission errors from an incomplete database upgrade.
+- Include Russian translations in the installable ZIP and separate the three inbox view buttons.
+
 ## 0.6.2
 
 - Separate role permissions for exporting contacts and submissions.

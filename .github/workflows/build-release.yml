@@ -88,7 +88,7 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y gettext zip rsync
           bash scripts/build-release.sh
-          wp plugin install "$GITHUB_WORKSPACE/build/bfcamel-crm-0.6.2.zip" --force --activate --path="$WP_PATH"
+          wp plugin install "$GITHUB_WORKSPACE/build/bfcamel-crm-0.6.3.zip" --force --activate --path="$WP_PATH"
           wp eval-file "$GITHUB_WORKSPACE/tests/integration.php" --path="$WP_PATH"
           wp eval-file "$GITHUB_WORKSPACE/tests/notifications.php" --path="$WP_PATH"
 
@@ -99,6 +99,7 @@ jobs:
           "$RUNNER_TEMP/crm-browser/node_modules/.bin/playwright" install --with-deps chromium
           wp option update home http://127.0.0.1:8899 --path="$WP_PATH"
           wp option update siteurl http://127.0.0.1:8899 --path="$WP_PATH"
+          wp language core install ru_RU --path="$WP_PATH"
           wp user update admin --locale=ru_RU --path="$WP_PATH"
           php -S 127.0.0.1:8899 -t "$WP_PATH" > "$RUNNER_TEMP/crm-ui-server.log" 2>&1 &
           export CRM_PLAYWRIGHT_MODULE="$RUNNER_TEMP/crm-browser/node_modules/playwright"

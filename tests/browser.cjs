@@ -11,6 +11,22 @@ let debugPage;
   await page.goto(base + '/wp-login.php');
   await page.locator('#user_login').fill('admin'); await page.locator('#user_pass').fill('integration-only');
   await Promise.all([page.waitForURL('**/wp-admin/**'), page.locator('#wp-submit').click()]);
+  const registry = await page.goto(base + '/wp-admin/admin.php?page=bfcamel-crm-privacy');
+  if (registry.status() !== 200) throw new Error('Administrator cannot open privacy register.');
+  await page.getByRole('heading', {name: 'Обработка персональных данных'}).waitFor();
+  await page.goto(base + '/wp-admin/admin.php?page=bfcamel-crm-submissions');
+  const views = page.locator('.bfcamel-crm-quick-views');
+  for (const label of ['Требуют внимания', 'Мои заявки', 'Все заявки']) {
+    await views.getByRole('link', {name: label, exact: true}).waitFor();
+  }
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({width, height: 1000});
+    const boxes = await views.locator('a').evaluateAll(links => links.map(link => link.getBoundingClientRect().toJSON()));
+    for (let i = 1; i < boxes.length; i++) {
+      if (boxes[i].left - boxes[i-1].right < 7 && boxes[i].top - boxes[i-1].bottom < 7) throw new Error('Inbox buttons touch.');
+    }
+  }
+  await page.setViewportSize({width: 1440, height: 1000});
   for (const [area, field] of [['contacts', 'created'], ['submissions', 'status']]) {
     await page.goto(base + '/wp-admin/admin.php?page=bfcamel-crm-' + area + '&view=all');
     const url = await page.locator('a[href*="bfcamel_crm_export"][href*="format=csv"]').first().getAttribute('href');

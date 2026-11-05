@@ -60,7 +60,12 @@ final class Register {
     }
 
     private static function guard() {
-        if ( ! Schema::is_current() || ! current_user_can( 'manage_options' ) || ! current_user_can( 'bfcamel_crm_manage_settings' ) ) wp_die( 'Недостаточно прав.', '', array( 'response' => 403 ) );
+        if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'bfcamel_crm_manage_settings' ) ) {
+            wp_die( 'Для доступа к реестру нужны права управления настройками WordPress и CRM.', '', array( 'response' => 403 ) );
+        }
+        if ( ! Schema::is_current() ) {
+            wp_die( 'Обновление базы CRM не завершено. Откройте консоль WordPress и проверьте сообщение об обновлении.', '', array( 'response' => 503 ) );
+        }
     }
 
     public static function action() {
@@ -137,7 +142,7 @@ final class Register {
             if ( strlen( $phone ) >= 10 ) self::matches( $phone );
         } ?>
         <h2>Цели и сроки проверки</h2><ul><?php foreach ( $goals as $goal ) : ?>
-        <li>#<?php echo (int) $goal->submission_id; ?> · <?php echo esc_html( self::PURPOSES[ $goal->purpose ] ?? $goal->purpose ); ?> · <?php echo esc_html( $goal->state . ' · ' . $goal->due_at ); ?></li><?php endforeach; ?></ul>
+        <li>#<?php echo (int) $goal->submission_id; ?> · <?php echo esc_html( self::PURPOSES[ $goal->purpose ] ?? $goal->purpose ); ?> · <?php echo esc_html( ( array( 'active' => 'Действует', 'blocked' => 'Заблокирована', 'closed' => 'Завершена' )[ $goal->state ] ?? $goal->state ) . ' · ' . $goal->due_at ); ?></li><?php endforeach; ?></ul>
         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'bfcamel_privacy' ); ?><input type="hidden" name="action" value="bfcamel_crm_privacy_action">
         <p><label>Номер заявки <input type="number" min="1" name="submission" required></label></p>
         <p><label>Цель <select name="purpose"><?php foreach ( self::PURPOSES as $key => $label ) echo '<option value="' . esc_attr( $key ) . '">' . esc_html( $label ) . '</option>'; ?></select></label>
@@ -148,7 +153,7 @@ final class Register {
         <hr><p><label>Состояние писем, выгрузок и резервных копий <input name="copies"></label></p><label><input type="checkbox" name="confirmed" value="1"> Проверены личность, все цели заявки и состав удаляемых данных</label>
         <button class="button" name="operation" value="erase">Уничтожить данные выбранной заявки</button></form>
         <h2>Журнал операций</h2><ul><?php foreach ( $logs as $log ) : ?>
-        <li><?php echo esc_html( $log->occurred_at . ' UTC · ' . $log->operation ); ?> <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'bfcamel_crm_privacy_report', 'id' => $log->id ), admin_url( 'admin-post.php' ) ), 'bfcamel_privacy_report' ) ); ?>">Скачать запись</a> <?php if ( 'erase_submission' === $log->operation ) : ?><a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'bfcamel_crm_privacy_report', 'id' => $log->id, 'format' => 'act' ), admin_url( 'admin-post.php' ) ), 'bfcamel_privacy_report' ) ); ?>">Проект акта</a><?php endif; ?></li><?php endforeach; ?></ul></div><?php
+        <li><?php echo esc_html( $log->occurred_at . ' UTC · ' . ( array( 'purpose' => 'Изменение цели', 'erase_submission' => 'Уничтожение данных заявки', 'export' => 'Экспорт' )[ $log->operation ] ?? $log->operation ) ); ?> <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'bfcamel_crm_privacy_report', 'id' => $log->id ), admin_url( 'admin-post.php' ) ), 'bfcamel_privacy_report' ) ); ?>">Скачать запись</a> <?php if ( 'erase_submission' === $log->operation ) : ?><a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'bfcamel_crm_privacy_report', 'id' => $log->id, 'format' => 'act' ), admin_url( 'admin-post.php' ) ), 'bfcamel_privacy_report' ) ); ?>">Проект акта</a><?php endif; ?></li><?php endforeach; ?></ul></div><?php
     }
 
     private static function matches( $phone ) {

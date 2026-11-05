@@ -193,7 +193,8 @@
     padding: 20px 22px 0;
 }
 
-.bfcamel-crm-section-nav {
+.bfcamel-crm-section-nav,
+.bfcamel-crm-quick-views {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;

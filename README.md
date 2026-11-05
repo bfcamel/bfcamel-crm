@@ -75,7 +75,7 @@ Schema version 7 keeps the existing forms, contacts, submissions, tags, consent 
 
 ## Localization
 
-English remains the source language. The complete Russian (`ru_RU`) catalog is maintained and validated in the source repository. Installable packages omit PO and MO files so approved translations can be delivered through standard WordPress.org language packs; the POT template remains in the package.
+English remains the source language. The complete Russian (`ru_RU`) catalog is maintained and validated in the source repository. GitHub installation packages include the compiled Russian translation and the POT template.
 
 ## Core features
 

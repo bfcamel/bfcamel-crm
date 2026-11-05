@@ -85,9 +85,9 @@ check( "'@SUM(A1)" === $xlsx_cell->invoke( null, '@SUM(A1)' ), 'XLSX injection p
 
 $root = dirname( __DIR__ );
 $plugin = file_get_contents( $root . '/bfcamel-crm.php' ); $readme = file_get_contents( $root . '/readme.txt' );
-check( false !== strpos( $plugin, 'Version: 0.6.2' ), 'Plugin header version is not 0.6.2.' );
-check( false !== strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION', '0.6.2' )" ), 'Plugin constant version is not 0.6.2.' );
-check( false !== strpos( $readme, 'Stable tag: 0.6.2' ), 'Stable tag is not 0.6.2.' );
+check( false !== strpos( $plugin, 'Version: 0.6.3' ), 'Plugin header version is not 0.6.3.' );
+check( false !== strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION', '0.6.3' )" ), 'Plugin constant version is not 0.6.3.' );
+check( false !== strpos( $readme, 'Stable tag: 0.6.3' ), 'Stable tag is not 0.6.3.' );
 check( false === strpos( $plugin, 'Update URI:' ), 'A third-party Update URI would block WordPress.org updates.' );
 check( strpos( $plugin, "if ( defined( 'BFCAMEL_CRM_FILE' ) )" ) < strpos( $plugin, "define( 'BFCAMEL_CRM_VERSION'" ), 'Duplicate guard moved after constants.' );
 $schema = file_get_contents( $root . '/src/Database/Schema.php' );
@@ -137,8 +137,8 @@ $release_workflow = file_get_contents( $root . '/.github/workflows/build-release
 check( false !== strpos( $release_workflow, 'php tests/smoke.php' ), 'Release packaging is not gated by smoke tests.' );
 check( false !== strpos( $release_workflow, 'ignore-warnings: false' ), 'Plugin Check warnings must block release publication.' );
 $build_script = file_get_contents( $root . '/scripts/build-release.sh' );
-check( false !== strpos( $build_script, "--exclude='languages/*.po'" ) && false !== strpos( $build_script, "--exclude='languages/*.mo'" ), 'WordPress.org packages still include bundled translation catalogs.' );
-check( false !== strpos( $build_script, 'Release ZIP contains bundled translation files' ), 'The release build does not reject bundled translation catalogs.' );
+check( false !== strpos( $build_script, "--exclude='languages/*.po'" ) && false !== strpos( $build_script, 'cp "$TRANSLATION_CHECK_MO" "$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.mo"' ), 'The GitHub ZIP must include the compiled Russian catalog.' );
+check( false !== strpos( $build_script, 'Packaged Russian translations differ from the reviewed catalog' ), 'The release build must verify the Russian catalog inside the ZIP.' );
 
 if ( class_exists( 'ZipArchive' ) ) {
     $xlsx_path = XlsxWriter::create( array( 'Имя' ), array( array( 'Тест' ) ) );
