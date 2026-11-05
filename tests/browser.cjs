@@ -29,6 +29,11 @@ let debugPage;
   }
   await page.goto(base + '/wp-admin/admin.php?page=bfcamel-crm-submissions');
   await page.locator('[data-bfcamel-inbox]').waitFor();
+  const views = page.locator('.bfcamel-crm-quick-views');
+  if (await views.evaluate(nav => getComputedStyle(nav).columnGap) !== '8px') throw new Error('Missing inbox tab spacing');
+  await page.setViewportSize({width: 340, height: 740});
+  if (!await views.evaluate(nav => nav.lastElementChild.offsetTop > nav.firstElementChild.offsetTop)) throw new Error('Inbox tabs do not wrap');
+  await page.setViewportSize({width: 1440, height: 1000});
   if (await page.locator('.bfcamel-crm-extra-filters[open]').count()) throw new Error('Secondary filters must be collapsed initially.');
   if (await page.locator('.bfcamel-crm-bulk-bar:visible').count()) throw new Error('Bulk actions visible without selection.');
   fs.mkdirSync(process.env.CRM_SCREENSHOTS, {recursive: true});
