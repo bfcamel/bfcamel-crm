@@ -4,7 +4,7 @@ Tags: crm, forms, contacts, consent, submissions
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.6.2
+Stable tag: 0.6.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,9 @@ Yes. Choose Theme / unstyled in the form editor and use the stable `bfcamel-form
 Version 0.5.6 supports activation on individual sites. Network-wide activation is not supported.
 
 == Changelog ==
+
+= 0.6.3 =
+* Fix administrator access to privacy and workflow pages and bundle the Russian translation.
 
 = 0.5.6 =
 

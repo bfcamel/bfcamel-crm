@@ -133,7 +133,7 @@ final class Exporter {
                 if ( ContactService::SOCIAL_PAGES_FIELD === $key ) $value = implode( '; ', ContactService::split_social_pages( $value ) );
                 $row[] = $value;
             }
-            $row[] = $contact->status;
+            $row[] = ContactService::status_label( $contact->status );
             $row[] = $contact->tag_names;
             $row[] = $consent_statuses[ $personal_data ] ?? $personal_data;
             $row[] = $consent_statuses[ $marketing ] ?? $marketing;
