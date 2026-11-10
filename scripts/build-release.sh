@@ -88,7 +88,9 @@ cp "$TRANSLATION_CHECK_MO" "$PACKAGE_DIR/languages/bfcamel-crm-ru_RU.mo"
   zip -qr "$(basename "$ZIP_PATH")" bfcamel-crm
 )
 
-if ! unzip -Z1 "$ZIP_PATH" | grep -qx 'bfcamel-crm/bfcamel-crm.php'; then
+ZIP_ENTRIES="$(unzip -Z1 "$ZIP_PATH")"
+
+if ! grep -qx 'bfcamel-crm/bfcamel-crm.php' <<<"$ZIP_ENTRIES"; then
   echo "Release ZIP does not contain bfcamel-crm/bfcamel-crm.php" >&2
   exit 1
 fi
@@ -98,12 +100,12 @@ if ! unzip -p "$ZIP_PATH" bfcamel-crm/languages/bfcamel-crm-ru_RU.mo | cmp -s - 
   exit 1
 fi
 
-if ! unzip -Z1 "$ZIP_PATH" | grep -qx 'bfcamel-crm/languages/bfcamel-crm.pot'; then
+if ! grep -qx 'bfcamel-crm/languages/bfcamel-crm.pot' <<<"$ZIP_ENTRIES"; then
   echo "Release ZIP does not contain the translation template." >&2
   exit 1
 fi
 
-if unzip -Z1 "$ZIP_PATH" | grep -Eq '^bfcamel-crm/\.git($|/)'; then
+if grep -Eq '^bfcamel-crm/\.git($|/)' <<<"$ZIP_ENTRIES"; then
   echo "Release ZIP contains Git metadata." >&2
   exit 1
 fi

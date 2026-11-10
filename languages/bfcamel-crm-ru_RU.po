@@ -2172,8 +2172,8 @@ msgid "Only the current owner can complete this submission."
 msgstr "Завершить заявку может только назначенный сотрудник."
 
 #: src/Admin/InboxView.php:27
-msgid "Read the request, take ownership and keep the next action clear."
-msgstr "Откройте обращение и возьмите заявку в работу."
+msgid "Newest submissions first. Highlighted rows are still in the initial status."
+msgstr "Новые заявки сверху. Цветом выделены заявки в начальном статусе."
 
 #: src/Admin/InboxView.php:28 src/Admin/ContactsPage.php:37 src/Admin/SubmissionDetailPage.php:65
 msgid "More"

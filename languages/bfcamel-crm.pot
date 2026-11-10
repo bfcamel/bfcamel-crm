@@ -1964,7 +1964,7 @@ msgid "Only the current owner can complete this submission."
 msgstr ""
 
 #: src/Admin/InboxView.php:27
-msgid "Read the request, take ownership and keep the next action clear."
+msgid "Newest submissions first. Highlighted rows are still in the initial status."
 msgstr ""
 
 #: src/Admin/InboxView.php:28 src/Admin/ContactsPage.php:37 src/Admin/SubmissionDetailPage.php:65

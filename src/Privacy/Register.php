@@ -128,28 +128,62 @@ final class Register {
         global $wpdb;
         $goals = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i ORDER BY due_at IS NULL,due_at LIMIT 100', Schema::table( 'purposes' ) ) );
         $logs = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i ORDER BY id DESC LIMIT 100', Schema::table( 'privacy_register' ) ) );
+        $states = array( 'active' => 'Действует', 'closed' => 'Завершена', 'blocked' => 'Заблокирована' );
+        $operations = array( 'purpose' => 'Изменение цели', 'export' => 'Выгрузка', 'erase_submission' => 'Уничтожение данных заявки', 'erase_failed' => 'Ошибка уничтожения', 'erase_requested' => 'Запрос на уничтожение' );
         ?>
-        <div class="wrap"><h1>Обработка персональных данных</h1>
-        <h2>Поиск заявок</h2>
-        <form method="post"><?php wp_nonce_field( 'bfcamel_privacy_lookup' ); ?><label>Телефон <input type="tel" name="lookup"></label> <button class="button">Найти</button></form>
-        <?php if ( isset( $_POST['lookup'] ) ) {
-            check_admin_referer( 'bfcamel_privacy_lookup' );
-            $phone = ContactService::normalize_phone( Request::post_text( 'lookup' ) );
-            if ( strlen( $phone ) >= 10 ) self::matches( $phone );
-        } ?>
-        <h2>Цели и сроки проверки</h2><ul><?php foreach ( $goals as $goal ) : ?>
-        <li>#<?php echo (int) $goal->submission_id; ?> · <?php echo esc_html( self::PURPOSES[ $goal->purpose ] ?? $goal->purpose ); ?> · <?php echo esc_html( ( array( 'active' => 'Действует', 'closed' => 'Завершена', 'blocked' => 'Заблокирована' )[ $goal->state ] ?? $goal->state ) . ' · ' . $goal->due_at ); ?></li><?php endforeach; ?></ul>
-        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'bfcamel_privacy' ); ?><input type="hidden" name="action" value="bfcamel_crm_privacy_action">
-        <p><label>Номер заявки <input type="number" min="1" name="submission" required></label></p>
-        <p><label>Цель <select name="purpose"><?php foreach ( self::PURPOSES as $key => $label ) echo '<option value="' . esc_attr( $key ) . '">' . esc_html( $label ) . '</option>'; ?></select></label>
-        <label>Состояние <select name="state"><option value="active">Действует</option><option value="blocked">Заблокирована</option><option value="closed">Завершена</option></select></label>
-        <label>Срок проверки <input type="date" name="due"></label></p>
-        <p><label>Основание <input name="reason" required></label></p>
-        <button class="button" name="operation" value="purpose">Сохранить цель</button>
-        <hr><p><label>Состояние писем, выгрузок и резервных копий <input name="copies"></label></p><label><input type="checkbox" name="confirmed" value="1"> Проверены личность, все цели заявки и состав удаляемых данных</label>
-        <button class="button" name="operation" value="erase">Уничтожить данные выбранной заявки</button></form>
-        <h2>Журнал операций</h2><ul><?php foreach ( $logs as $log ) : ?>
-        <li><?php echo esc_html( $log->occurred_at . ' UTC · ' . ( array( 'purpose' => 'Изменение цели', 'export' => 'Выгрузка', 'erase_submission' => 'Уничтожение данных заявки', 'erase_failed' => 'Ошибка уничтожения', 'erase_requested' => 'Запрос на уничтожение' )[ $log->operation ] ?? $log->operation ) ); ?> <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'bfcamel_crm_privacy_report', 'id' => $log->id ), admin_url( 'admin-post.php' ) ), 'bfcamel_privacy_report' ) ); ?>">Скачать запись</a> <?php if ( 'erase_submission' === $log->operation ) : ?><a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'bfcamel_crm_privacy_report', 'id' => $log->id, 'format' => 'act' ), admin_url( 'admin-post.php' ) ), 'bfcamel_privacy_report' ) ); ?>">Проект акта</a><?php endif; ?></li><?php endforeach; ?></ul></div><?php
+        <div class="wrap bfcamel-crm-admin bfcamel-crm-privacy">
+            <div class="bfcamel-crm-page-title"><div><h1>Обработка персональных данных</h1><p class="description">Реестр ПДн: цели обработки, сроки проверки и история действий с данными заявителей.</p></div></div>
+            <section class="bfcamel-crm-panel" aria-labelledby="bfcamel-privacy-about">
+                <h2 id="bfcamel-privacy-about">Для чего нужен реестр</h2>
+                <p>Здесь ответственный сотрудник проверяет, зачем хранятся персональные данные из заявок, когда нужно пересмотреть срок их хранения и какие действия уже выполнены. Согласия и ответы заявителя доступны в карточке заявки.</p>
+                <ol class="bfcamel-crm-privacy-steps"><li><strong>Найдите заявку</strong><span>По телефону заявителя или по номеру из списка ниже.</span></li><li><strong>Проверьте цель и срок</strong><span>При необходимости обновите их и укажите основание.</span></li><li><strong>Зафиксируйте результат</strong><span>Изменения и выгрузки сохраняются в журнале операций.</span></li></ol>
+            </section>
+            <section class="bfcamel-crm-panel" aria-labelledby="bfcamel-privacy-search">
+                <h2 id="bfcamel-privacy-search">Поиск заявок</h2><p class="description" id="bfcamel-privacy-lookup-help">Введите телефон с кодом страны: поиск покажет связанные контакты и заявки.</p>
+                <form method="post" class="bfcamel-crm-privacy-search"><?php wp_nonce_field( 'bfcamel_privacy_lookup' ); ?><label for="bfcamel-privacy-phone">Телефон</label><div class="bfcamel-crm-privacy-search-row"><input id="bfcamel-privacy-phone" type="tel" name="lookup" required autocomplete="tel" aria-describedby="bfcamel-privacy-lookup-help" value="<?php echo esc_attr( Request::post_text( 'lookup' ) ); ?>" placeholder="+7 999 123-45-67"><button type="submit" class="button">Найти</button></div></form>
+                <?php if ( isset( $_POST['lookup'] ) ) {
+                    check_admin_referer( 'bfcamel_privacy_lookup' );
+                    $phone = ContactService::normalize_phone( Request::post_text( 'lookup' ) );
+                    if ( strlen( $phone ) >= 10 ) {
+                        ob_start();
+                        self::matches( $phone );
+                        $matches = ob_get_clean();
+                        echo '<div class="bfcamel-crm-privacy-results" role="status">' . ( $matches ? wp_kses_post( $matches ) : '<p>Контакты и заявки с этим телефоном не найдены.</p>' ) . '</div>';
+                    } else {
+                        echo '<p role="alert">Введите корректный телефон с кодом страны, не менее 10 цифр.</p>';
+                    }
+                } ?>
+            </section>
+            <section class="bfcamel-crm-panel bfcamel-crm-panel--table" aria-labelledby="bfcamel-privacy-goals">
+                <div class="bfcamel-crm-panel__head bfcamel-crm-panel__head--padded"><div><h2 id="bfcamel-privacy-goals">Цели и сроки проверки</h2><p class="description">До 100 записей с ближайшими сроками в начале списка. Срок означает дату проверки необходимости дальнейшего хранения.</p></div></div>
+                <div class="bfcamel-crm-table-scroll"><table class="widefat bfcamel-crm-table"><thead><tr><th scope="col">Заявка</th><th scope="col">Цель обработки</th><th scope="col">Состояние</th><th scope="col">Срок проверки (UTC)</th></tr></thead><tbody>
+                <?php if ( ! $goals ) : ?><tr><td colspan="4"><div class="bfcamel-crm-empty">Цели пока не зарегистрированы. Они появляются при отправке форм с настроенными целями обработки; существующую заявку можно добавить через форму ниже.</div></td></tr><?php endif; ?>
+                <?php foreach ( $goals as $goal ) : ?><tr><td><a href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-submissions&id=' . absint( $goal->submission_id ) ) ); ?>">#<?php echo absint( $goal->submission_id ); ?></a></td><td><?php echo esc_html( self::PURPOSES[ $goal->purpose ] ?? $goal->purpose ); ?></td><td><span class="bfcamel-crm-badge"><?php echo esc_html( $states[ $goal->state ] ?? $goal->state ); ?></span></td><td><?php echo esc_html( $goal->due_at ? mysql2date( get_option( 'date_format' ), $goal->due_at ) : 'Не назначен' ); ?></td></tr><?php endforeach; ?>
+                </tbody></table></div>
+            </section>
+            <section class="bfcamel-crm-panel" aria-labelledby="bfcamel-privacy-edit">
+                <h2 id="bfcamel-privacy-edit">Изменить цель обработки</h2><p class="description">Укажите номер заявки, выберите цель и состояние. Основание сохранится в журнале вместе с изменением.</p>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'bfcamel_privacy' ); ?><input type="hidden" name="action" value="bfcamel_crm_privacy_action"><input type="hidden" name="operation" value="purpose">
+                    <div class="bfcamel-crm-privacy-fields"><label>Номер заявки<input type="number" min="1" name="submission" required></label><label>Цель<select name="purpose"><?php foreach ( self::PURPOSES as $key => $label ) echo '<option value="' . esc_attr( $key ) . '">' . esc_html( $label ) . '</option>'; ?></select></label><label>Состояние<select name="state"><?php foreach ( $states as $key => $label ) echo '<option value="' . esc_attr( $key ) . '">' . esc_html( $label ) . '</option>'; ?></select></label><label>Срок проверки (UTC)<input type="date" name="due"></label><label class="bfcamel-crm-privacy-wide">Основание<textarea name="reason" rows="3" required></textarea></label></div>
+                    <button type="submit" class="button button-primary">Сохранить цель</button>
+                </form>
+            </section>
+            <details class="bfcamel-crm-panel bfcamel-crm-privacy-erasure"><summary>Уничтожение данных выбранной заявки</summary>
+                <p>Используйте после проверки личности заявителя, всех целей обработки и состава данных. Операция обезличивает заявку; результат сохраняется в журнале, где можно скачать проект акта.</p>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'bfcamel_privacy' ); ?><input type="hidden" name="action" value="bfcamel_crm_privacy_action"><input type="hidden" name="operation" value="erase">
+                    <div class="bfcamel-crm-privacy-fields"><label>Номер заявки<input type="number" min="1" name="submission" required></label><label class="bfcamel-crm-privacy-wide">Основание<textarea name="reason" rows="3" required></textarea></label><label class="bfcamel-crm-privacy-wide">Состояние писем, выгрузок и резервных копий<textarea name="copies" rows="2"></textarea></label></div>
+                    <p><label><input type="checkbox" name="confirmed" value="1" required> Проверены личность, все цели заявки и состав удаляемых данных</label></p>
+                    <button type="submit" class="button button-link-delete" data-bfcamel-confirm data-bfcamel-confirm-message="Уничтожить персональные данные выбранной заявки? Отменить эту операцию нельзя.">Уничтожить данные выбранной заявки</button>
+                </form>
+            </details>
+            <section class="bfcamel-crm-panel bfcamel-crm-panel--table" aria-labelledby="bfcamel-privacy-log">
+                <div class="bfcamel-crm-panel__head bfcamel-crm-panel__head--padded"><div><h2 id="bfcamel-privacy-log">Журнал операций</h2><p class="description">Последние 100 операций, новые сверху. Запись содержит подробности действия; для уничтожения данных доступен проект акта.</p></div></div>
+                <div class="bfcamel-crm-table-scroll"><table class="widefat bfcamel-crm-table"><thead><tr><th scope="col">Дата и время (UTC)</th><th scope="col">Операция</th><th scope="col">Документы</th></tr></thead><tbody>
+                <?php if ( ! $logs ) : ?><tr><td colspan="3"><div class="bfcamel-crm-empty">Операций пока нет. Здесь появятся изменения целей, выгрузки и результаты уничтожения данных.</div></td></tr><?php endif; ?>
+                <?php foreach ( $logs as $log ) : ?><tr><td><?php echo esc_html( mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $log->occurred_at ) ); ?></td><td><?php echo esc_html( $operations[ $log->operation ] ?? $log->operation ); ?></td><td class="bfcamel-crm-privacy-downloads"><a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'bfcamel_crm_privacy_report', 'id' => $log->id ), admin_url( 'admin-post.php' ) ), 'bfcamel_privacy_report' ) ); ?>">Скачать запись</a><?php if ( 'erase_submission' === $log->operation ) : ?><a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'bfcamel_crm_privacy_report', 'id' => $log->id, 'format' => 'act' ), admin_url( 'admin-post.php' ) ), 'bfcamel_privacy_report' ) ); ?>">Проект акта</a><?php endif; ?></td></tr><?php endforeach; ?>
+                </tbody></table></div>
+            </section>
+        </div><?php
     }
 
     private static function matches( $phone ) {

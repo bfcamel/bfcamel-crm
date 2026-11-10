@@ -81,6 +81,31 @@ crm_assert( $search_result['total'] >= 1, 'inbox search matches email identifier
 $_GET = array( 'view' => 'all', 'page' => 'bfcamel-crm-submissions' );
 ob_start(); SubmissionsPage::instance()->page(); $html = ob_get_clean();
 crm_assert( false !== strpos( $html, 'data-bfcamel-open' ) && false === strpos( $html, 'class="bfcamel-crm-preview"' ) && false !== strpos( $html, 'data-bfcamel-inbox' ), 'inbox provides large links and a preview panel' );
+// The unfiltered landing page includes closed requests and ignores priority ordering.
+$_GET = array( 'page' => 'bfcamel-crm-submissions' );
+$filters_method = new ReflectionMethod( SubmissionsPage::class, 'filters' );
+if ( PHP_VERSION_ID < 80100 ) $filters_method->setAccessible( true );
+$filters = $filters_method->invoke( SubmissionsPage::instance() );
+crm_assert( 'all' === $filters['view'], 'opening submissions defaults to all records' );
+$all = SubmissionService::query( $filters, 1, 500 );
+$all_ids = array_map( 'intval', wp_list_pluck( $all['rows'], 'id' ) );
+crm_assert( in_array( $urgent, $all_ids, true ), 'completed submissions are visible by default' );
+foreach ( array( 'all', 'attention', 'mine' ) as $view ) {
+    $ordered = SubmissionService::query( array( 'view' => $view ), 1, 500 )['rows'];
+    for ( $i = 1; $i < count( $ordered ); $i++ ) {
+        $previous = $ordered[ $i - 1 ]; $current = $ordered[ $i ];
+        crm_assert( $previous->submitted_at > $current->submitted_at || ( $previous->submitted_at === $current->submitted_at && (int) $previous->id > (int) $current->id ), 'received date and ID sort descending in ' . $view );
+    }
+}
+ob_start(); SubmissionsPage::instance()->page(); $default_html = ob_get_clean();
+crm_assert( false !== strpos( $default_html, 'name="view" value="all"' ), 'default screen visibly selects all submissions' );
+foreach ( SubmissionService::query( $filters )['rows'] as $row ) {
+    preg_match( '/<tr[^>]*data-bfcamel-row-id="' . (int) $row->id . '"[^>]*class="([^"]*)"/', $default_html, $classes );
+    crm_assert( isset( $classes[1] ) && ( false !== strpos( $classes[1], 'is-new' ) ) === ( $row->status === \BfCamel\CRM\CRM\WorkflowService::default_status() ), 'only initial-status requests are highlighted' );
+}
+$_GET['view'] = 'invalid';
+crm_assert( 'all' === $filters_method->invoke( SubmissionsPage::instance() )['view'], 'unknown view safely falls back to all' );
+$_GET = array( 'view' => 'all', 'page' => 'bfcamel-crm-submissions' );
 $_GET['bfcamel_return'] = admin_url( 'admin.php?page=bfcamel-crm-submissions&view=mine&s=legacy' );
 ob_start(); SubmissionDetailPage::render( $reminder ); $detail = ob_get_clean();
 crm_assert( false !== strpos( $detail, 'data-bfcamel-complete' ) && false !== strpos( $detail, 'name="bfcamel_return"' ), 'detail provides quick completion and preserves list context' );

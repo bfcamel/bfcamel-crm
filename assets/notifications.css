@@ -33,3 +33,10 @@
 @media(prefers-reduced-motion:reduce){.bfcamel-notification-center,.bfcamel-notification-toast{scroll-behavior:auto}}
 
 #toplevel_page_bfcamel-crm .awaiting-mod{background:#397d83!important}#toplevel_page_bfcamel-crm.bfcamel-has-urgent .awaiting-mod{background:#b42318!important}
+
+/* Initial workflow status stays highlighted until the request is processed. */
+.bfcamel-crm-admin .bfcamel-crm-request-row.is-new>td,
+.bfcamel-crm-admin .bfcamel-crm-request-row.is-new>th{background:#e6f5f2}
+.bfcamel-crm-admin .bfcamel-crm-request-row.is-new:hover>td,
+.bfcamel-crm-admin .bfcamel-crm-request-row.is-new:hover>th{background:#d5ece7}
+.bfcamel-crm-admin .bfcamel-crm-request-row.is-new .bfcamel-crm-request-meta>span:first-child{color:#155e50;font-weight:700}

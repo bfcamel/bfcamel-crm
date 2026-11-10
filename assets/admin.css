@@ -794,3 +794,27 @@
         padding-top: 3px;
     }
 }
+
+/* Personal-data register uses the shared CRM panels and table styles. */
+.bfcamel-crm-privacy-steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; margin:22px 0 0; padding-left:24px; }
+.bfcamel-crm-privacy-steps li { padding-right:16px; }
+.bfcamel-crm-privacy-steps span { display:block; margin-top:6px; color:#52686d; }
+.bfcamel-crm-privacy-search { max-width:540px; }
+.bfcamel-crm-privacy-search>label { display:block; margin-bottom:6px; font-weight:600; }
+.bfcamel-crm-privacy-search-row { display:flex; gap:10px; }
+.bfcamel-crm-privacy-search-row input { flex:1; min-width:0; }
+.bfcamel-crm-privacy-results { margin-top:16px; padding:4px 16px; border-left:3px solid #39858a; background:#f0f8f6; }
+.bfcamel-crm-privacy-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; max-width:900px; margin:20px 0; }
+.bfcamel-crm-privacy-fields label { display:grid; gap:7px; font-weight:600; }
+.bfcamel-crm-privacy-fields input,.bfcamel-crm-privacy-fields select,.bfcamel-crm-privacy-fields textarea { width:100%; max-width:100%; box-sizing:border-box; font-weight:400; }
+.bfcamel-crm-privacy-wide { grid-column:1/-1; }
+.bfcamel-crm-privacy-erasure { border-color:#e4c9c5; }
+.bfcamel-crm-privacy-erasure>summary { cursor:pointer; font-size:16px; font-weight:600; color:#9b2c21; }
+.bfcamel-crm-privacy-downloads a { display:inline-block; margin:0 16px 8px 0; }
+.bfcamel-crm-privacy .bfcamel-crm-empty { padding:24px; color:#52686d; }
+@media(max-width:782px) {
+    .bfcamel-crm-privacy-steps,.bfcamel-crm-privacy-fields { grid-template-columns:minmax(0,1fr); }
+    .bfcamel-crm-privacy-steps { gap:16px; }
+    .bfcamel-crm-privacy .bfcamel-crm-panel { padding:18px; }
+    .bfcamel-crm-privacy .bfcamel-crm-panel--table { padding:0; }
+}

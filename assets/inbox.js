@@ -28,6 +28,7 @@
     if (next.changed && inbox) {
       var row = inbox.querySelector('[data-bfcamel-row-id="' + next.changed.id + '"]');
       if (row) {
+        row.classList.toggle('is-new', !!next.changed.isNew);
         var owner = row.querySelector('td.bfcamel-crm-owner-column'); if (owner) owner.textContent = next.changed.assignee || '';
         var status = row.querySelector('.bfcamel-crm-request-meta span'); if (status) status.textContent = next.changed.status;
         var view = inbox.querySelector('input[name="view"]');

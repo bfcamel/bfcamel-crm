@@ -4,7 +4,7 @@ Tags: crm, forms, contacts, consent, submissions
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.6.3
+Stable tag: 0.6.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -101,7 +101,12 @@ Version 0.5.6 supports activation on individual sites. Network-wide activation i
 
 == Changelog ==
 
-= 0.6.3 =
+= 0.6.4 =
+* Public forms open configured document links while retaining archived consent evidence.
+* Refreshed personal-data register with descriptions and separate operation forms.
+* All submissions open by default, newest first, with new requests highlighted.
+
+= 0.6.4 =
 * Fix administrator access to privacy and workflow pages and bundle the Russian translation.
 
 = 0.5.6 =

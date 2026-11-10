@@ -47,6 +47,20 @@ foreach ( array( 'privacy_policy', 'personal_data_consent', 'marketing_consent' 
 }
 update_option( 'bfcamel_crm_legal_documents', $docs, false );
 $form = Repository::get( $fixture['form_id'] );
+// Public links use the formatted document URL without changing archived evidence.
+$legalize = new ReflectionMethod( Renderer::class, 'legalize_label' );
+if ( PHP_VERSION_ID < 80100 ) $legalize->setAccessible( true );
+foreach ( $docs as $kind => $doc ) {
+    $label = $legalize->invoke( Renderer::instance(), '{' . $kind . '}' );
+    crm_assert( false !== strpos( $label, 'href="' . esc_url( $doc['url'] ) . '"' ) && false === strpos( $label, 'bfcamel_crm_document' ), 'public ' . $kind . ' link prefers configured URL' );
+    $entry = get_option( 'bfcamel_crm_document_' . $doc['archive_id'] );
+    crm_assert( 'Integration fixture ' . $kind === $entry['body'], 'public link retains immutable ' . $kind . ' text' );
+}
+$without_url = $docs;
+$without_url['privacy_policy']['url'] = '';
+update_option( 'bfcamel_crm_legal_documents', $without_url, false );
+crm_assert( false !== strpos( $legalize->invoke( Renderer::instance(), '{privacy_policy}' ), 'bfcamel_crm_document' ), 'unconfigured URL falls back to archived document' );
+update_option( 'bfcamel_crm_legal_documents', $docs, false );
 $victim_before = wp_json_encode( array( ContactService::get_emails( $fixture['victim'] ), ContactService::get_phones( $fixture['victim'] ), ContactService::get_custom_fields( $fixture['victim'] ), ConsentService::current_statuses( $fixture['victim'] ) ) );
 $request = array( 'form_id' => $form->id, 'revision_id' => $form->current_revision_id, 'ip' => '198.51.100.1', 'fields' => array( 'name' => 'Changed name', 'email' => 'attacker@example.test', 'phone' => '79990000000', 'city' => 'Attacker city', 'consent' => '1', 'action' => 'user-selected-action', 'choices' => array( 'Two' ) ) );
 $request['token'] = wp_generate_uuid4();

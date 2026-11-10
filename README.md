@@ -2,7 +2,7 @@
 
 **BfCamel CRM** is an open-source WordPress form builder and lightweight CRM developed by the People & Camels Charity Foundation.
 
-Version **0.5.6** is the current public release prepared for distribution through WordPress.org. It preserves the established plugin identity and the in-place update path from earlier BfCamel CRM versions.
+Version **0.6.4** is the current release. It preserves the established plugin identity and the in-place update path from earlier BfCamel CRM versions.
 
 ## 0.5.6 release highlights
 
@@ -113,7 +113,7 @@ For the upgrade regression suite, use an isolated MySQL-backed WordPress install
 
 ## Inbox and notifications (unreleased)
 
-The CRM landing screen is the attention inbox. Secondary filters, exports and batch actions are disclosed only when needed. Large request titles open a desktop preview; mobile users open the full card. Contact names and explicit open links provide reliable navigation without JavaScript. Taking ownership is separate from a personal read receipt and is atomic across staff members.
+The CRM landing screen shows all submissions, newest first. The attention and personal views are available as explicit filters. Initial-status submissions are highlighted until their workflow status changes. Secondary filters, exports and batch actions are disclosed only when needed. Large request titles open a desktop preview; mobile users open the full card. Contact names and explicit open links provide reliable navigation without JavaScript. Taking ownership is separate from a personal read receipt and is atomic across staff members.
 
 Notification severity follows enabled priority weights: the highest distinct weight is urgent, intermediate weights are high, and the lowest is ordinary. Configure working and closed statuses under Settings → Notifications and delivery. Existing submissions are not backfilled into the notification feed when upgrading. Schema version 7 adds `notifications` and `notification_receipts` without rewriting the original 13 tables.
 

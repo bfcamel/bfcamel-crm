@@ -105,7 +105,7 @@ final class NotificationAdmin {
 
     private static function changed_feed( $id ) {
         $feed = Notifications::feed( get_current_user_id() ); $row = SubmissionService::get( $id );
-        if ( $row ) $feed['changed'] = array( 'id' => (int) $row->id, 'status' => SubmissionService::status_label( $row->status ), 'assignee' => $row->assignee_name, 'closed' => Notifications::is_closed( $row ), 'attention' => ! Notifications::is_closed( $row ) && ( ! $row->assigned_to || $row->status === WorkflowService::default_status() || 'conflict' === $row->contact_sync_status ) );
+        if ( $row ) $feed['changed'] = array( 'id' => (int) $row->id, 'status' => SubmissionService::status_label( $row->status ), 'isNew' => $row->status === WorkflowService::default_status(), 'assignee' => $row->assignee_name, 'closed' => Notifications::is_closed( $row ), 'attention' => ! Notifications::is_closed( $row ) && ( ! $row->assigned_to || $row->status === WorkflowService::default_status() || 'conflict' === $row->contact_sync_status ) );
         return $feed;
     }
 

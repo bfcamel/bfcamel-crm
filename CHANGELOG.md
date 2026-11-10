@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.4
+
+- Open configured legal-document URLs in public forms while retaining immutable text snapshots for consent evidence; use the archive only when no URL is configured.
+- Redesign the personal-data register with purpose guidance, responsive tables, clear empty states and separate purpose/erasure forms.
+- Open all submissions by default, order every view by received date descending and highlight the configured initial workflow status, including after inline updates.
+
 ## 0.6.3
 
 - Restore administrator access to the privacy register and workflow settings.

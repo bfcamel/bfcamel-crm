@@ -70,11 +70,6 @@ final class SubmissionService {
             $where[] = Notifications::open_sql();
         }
         $order = 's.submitted_at DESC,s.id DESC';
-        if ( 'attention' === $view ) {
-            $cases = array();
-            foreach ( WorkflowService::definitions( 'priority', true ) as $item ) $cases[] = $wpdb->prepare( 'WHEN %s THEN %d', $item['slug'], (int) $item['weight'] );
-            if ( $cases ) $order = 'CASE s.priority ' . implode( ' ', $cases ) . ' ELSE 0 END DESC,' . $order;
-        }
         $where_sql = implode( ' AND ', $where );
         $base_from = $wpdb->prepare( 'FROM %i s LEFT JOIN %i f ON f.id=s.form_id LEFT JOIN %i c ON c.id=s.contact_id LEFT JOIN %i u ON u.ID=s.assigned_to', $submissions, $forms, $contacts, $users );
         $total = (int) $wpdb->get_var( self::prepare_sql( "SELECT COUNT(*) {$base_from} WHERE {$where_sql}", $args ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Identifiers are prepared with %i; WHERE fragments are fixed and values are prepared by prepare_sql().
