@@ -156,10 +156,10 @@ final class Register {
             </section>
             <section class="bfcamel-crm-panel bfcamel-crm-panel--table" aria-labelledby="bfcamel-privacy-goals">
                 <div class="bfcamel-crm-panel__head bfcamel-crm-panel__head--padded"><div><h2 id="bfcamel-privacy-goals">Цели и сроки проверки</h2><p class="description">До 100 записей с ближайшими сроками в начале списка. Срок означает дату проверки необходимости дальнейшего хранения.</p></div></div>
+                <?php if ( ! $goals ) : ?><div class="bfcamel-crm-empty">Цели пока не зарегистрированы. Они появляются при отправке форм с настроенными целями обработки; существующую заявку можно добавить через форму ниже.</div><?php else : ?>
                 <div class="bfcamel-crm-table-scroll"><table class="widefat bfcamel-crm-table"><thead><tr><th scope="col">Заявка</th><th scope="col">Цель обработки</th><th scope="col">Состояние</th><th scope="col">Срок проверки (UTC)</th></tr></thead><tbody>
-                <?php if ( ! $goals ) : ?><tr><td colspan="4"><div class="bfcamel-crm-empty">Цели пока не зарегистрированы. Они появляются при отправке форм с настроенными целями обработки; существующую заявку можно добавить через форму ниже.</div></td></tr><?php endif; ?>
                 <?php foreach ( $goals as $goal ) : ?><tr><td><a href="<?php echo esc_url( admin_url( 'admin.php?page=bfcamel-crm-submissions&id=' . absint( $goal->submission_id ) ) ); ?>">#<?php echo absint( $goal->submission_id ); ?></a></td><td><?php echo esc_html( self::PURPOSES[ $goal->purpose ] ?? $goal->purpose ); ?></td><td><span class="bfcamel-crm-badge"><?php echo esc_html( $states[ $goal->state ] ?? $goal->state ); ?></span></td><td><?php echo esc_html( $goal->due_at ? mysql2date( get_option( 'date_format' ), $goal->due_at ) : 'Не назначен' ); ?></td></tr><?php endforeach; ?>
-                </tbody></table></div>
+                </tbody></table></div><?php endif; ?>
             </section>
             <section class="bfcamel-crm-panel" aria-labelledby="bfcamel-privacy-edit">
                 <h2 id="bfcamel-privacy-edit">Изменить цель обработки</h2><p class="description">Укажите номер заявки, выберите цель и состояние. Основание сохранится в журнале вместе с изменением.</p>
@@ -178,10 +178,10 @@ final class Register {
             </details>
             <section class="bfcamel-crm-panel bfcamel-crm-panel--table" aria-labelledby="bfcamel-privacy-log">
                 <div class="bfcamel-crm-panel__head bfcamel-crm-panel__head--padded"><div><h2 id="bfcamel-privacy-log">Журнал операций</h2><p class="description">Последние 100 операций, новые сверху. Запись содержит подробности действия; для уничтожения данных доступен проект акта.</p></div></div>
+                <?php if ( ! $logs ) : ?><div class="bfcamel-crm-empty">Операций пока нет. Здесь появятся изменения целей, выгрузки и результаты уничтожения данных.</div><?php else : ?>
                 <div class="bfcamel-crm-table-scroll"><table class="widefat bfcamel-crm-table"><thead><tr><th scope="col">Дата и время (UTC)</th><th scope="col">Операция</th><th scope="col">Документы</th></tr></thead><tbody>
-                <?php if ( ! $logs ) : ?><tr><td colspan="3"><div class="bfcamel-crm-empty">Операций пока нет. Здесь появятся изменения целей, выгрузки и результаты уничтожения данных.</div></td></tr><?php endif; ?>
                 <?php foreach ( $logs as $log ) : ?><tr><td><?php echo esc_html( mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $log->occurred_at ) ); ?></td><td><?php echo esc_html( $operations[ $log->operation ] ?? $log->operation ); ?></td><td class="bfcamel-crm-privacy-downloads"><a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'bfcamel_crm_privacy_report', 'id' => $log->id ), admin_url( 'admin-post.php' ) ), 'bfcamel_privacy_report' ) ); ?>">Скачать запись</a><?php if ( 'erase_submission' === $log->operation ) : ?><a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'bfcamel_crm_privacy_report', 'id' => $log->id, 'format' => 'act' ), admin_url( 'admin-post.php' ) ), 'bfcamel_privacy_report' ) ); ?>">Проект акта</a><?php endif; ?></td></tr><?php endforeach; ?>
-                </tbody></table></div>
+                </tbody></table></div><?php endif; ?>
             </section>
         </div><?php
     }
