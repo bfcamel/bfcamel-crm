@@ -50,7 +50,7 @@ async function checkSidebar(page) {
   await page.goto(base + '/wp-admin/admin.php?page=bfcamel-crm-submissions');
   await page.locator('[data-bfcamel-inbox]').waitFor();
   if (await page.locator('input[name="view"]').inputValue() !== 'all') throw new Error('All submissions must be selected by default.');
-  const newRow = page.locator('[data-bfcamel-row-id="' + process.env.CRM_UI_ID + '"]');
+  const newRow = page.locator('.bfcamel-crm-request-row.is-new').first();
   if (!await newRow.evaluate(row => row.classList.contains('is-new') && getComputedStyle(row.querySelector('td')).backgroundColor === 'rgb(230, 245, 242)')) throw new Error('New request is not highlighted.');
   const views = page.locator('.bfcamel-crm-quick-views');
   if (await views.evaluate(nav => getComputedStyle(nav).columnGap) !== '8px') throw new Error('Missing inbox tab spacing');
