@@ -42,7 +42,8 @@ jobs:
           find assets -type f -name '*.js' -print0 | xargs -0 -n1 node --check
 
   integration:
-    runs-on: ubuntu-latest
+    # Playwright 1.56.1 supports this image; ubuntu-latest now resolves to 26.04.
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
